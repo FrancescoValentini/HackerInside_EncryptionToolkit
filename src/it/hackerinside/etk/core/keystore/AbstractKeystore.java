@@ -194,4 +194,10 @@ public abstract class AbstractKeystore {
     public boolean containsAlias(String alias) throws KeyStoreException {
         return keyStore.containsAlias(alias);
     }
+
+	public SupportedKeystores getKeystoreType() {
+		return keystoreType;
+	}
+    
+    
 }
