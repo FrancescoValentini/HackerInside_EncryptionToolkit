@@ -7,10 +7,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.PrivateKey;
+import java.util.Collection;
 
+import org.bouncycastle.cms.CMSEnvelopedDataParser;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.RecipientInfoGenerator;
 import org.bouncycastle.cms.RecipientInformation;
+import org.bouncycastle.cms.RecipientInformationStore;
 import org.bouncycastle.cms.jcajce.JceKeyAgreeEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKeyTransEnvelopedRecipient;
 
@@ -64,6 +67,29 @@ public class CMSDecryptor {
                 OutputStream out = new FileOutputStream(outputFile)) {
         		decrypt(in, out);
            }
+    }
+    /**
+     * Parses and extracts recipient information from CMS (Cryptographic Message Syntax) enveloped data.
+     *
+     * @param cmsInput the input stream containing CMS enveloped data
+     * @return a collection of {@link RecipientInformation} objects representing the recipients
+     *         in the CMS data structure
+     * @throws CMSException if the CMS data is malformed, cannot be parsed, or if no recipient
+     *         information is found in the data
+     * @throws IOException if an I/O error occurs while reading from the input stream
+     * @throws NullPointerException if the cmsInput parameter is null
+     *
+     */
+    private Collection<RecipientInformation> findReciepients(InputStream cmsInput) throws CMSException, IOException{
+        CMSEnvelopedDataParser parser = new CMSEnvelopedDataParser(cmsInput);
+        RecipientInformationStore recipients = parser.getRecipientInfos();
+        Collection<RecipientInformation> recipientInfos = recipients.getRecipients();
+
+        if (recipientInfos.isEmpty()) {
+            throw new CMSException("No recipient information found in CMS data.");
+        }
+        
+        return recipientInfos;
     }
     
     /**
