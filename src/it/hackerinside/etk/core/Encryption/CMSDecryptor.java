@@ -133,6 +133,7 @@ public class CMSDecryptor {
 	private InputStream createRecipientContentStream(RecipientInformation recipient) throws CMSException, IOException {
         AsymmetricAlgorithm keyAlgo = AsymmetricAlgorithm.fromPrivateKey(privateKey);
         
+        
         return switch (keyAlgo) {
             case RSA -> recipient
                         .getContentStream(new JceKeyTransEnvelopedRecipient(privateKey).setProvider("BC"))

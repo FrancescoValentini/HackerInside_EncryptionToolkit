@@ -1,10 +1,12 @@
 package it.hackerinside.etk.TEST;
 
 import java.io.File;
+import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.X509Certificate;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+import it.hackerinside.etk.core.Encryption.CMSDecryptor;
 import it.hackerinside.etk.core.Encryption.CMSEncryptor;
 import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
@@ -31,6 +33,20 @@ public class EncryptTest {
 		System.out.println("ECC ENCRYPT");
 		CMSEncryptor eccEncryptor = new CMSEncryptor(eccCert, SymmetricAlgorithms.AES_256_CBC, EncodingOption.ENCODING_PEM);
 		eccEncryptor.encrypt(toEncrypt, new File("enc_ecc.test"));
+		
+		// Decrypt
+		
+		PrivateKey rsaPriv = ks.pkcs12_rsa.getPrivateKey(rsaAlias, "123".toCharArray());
+		PrivateKey eccPriv = ks.pkcs12_ecc.getPrivateKey(eccAlias, "123".toCharArray());
+		
+		System.out.println("RSA DECRYPT");
+		CMSDecryptor rsaDecryptor = new CMSDecryptor(rsaPriv, EncodingOption.ENCODING_DER);
+		rsaDecryptor.decrypt(new File("enc_rsa.test"), new File("dec_rsa.test"));
+		
+		System.out.println("ECC DECRYPT");
+		CMSDecryptor eccDecryptor = new CMSDecryptor(eccPriv, EncodingOption.ENCODING_PEM);
+		eccDecryptor.decrypt(new File("enc_ecc.test"), new File("dec_ecc.test"));
+		
 	}
 
 }
