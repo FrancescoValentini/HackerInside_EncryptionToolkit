@@ -14,7 +14,7 @@ import it.hackerinside.etk.core.Models.SupportedKeystores;
  * 
  * @author Francesco Valentini
  */
-class PKCS12Keystore extends AbstractKeystore {
+public class PKCS12Keystore extends AbstractKeystore {
 	
     /**
      * The file where the PKCS12 keystore is stored.
