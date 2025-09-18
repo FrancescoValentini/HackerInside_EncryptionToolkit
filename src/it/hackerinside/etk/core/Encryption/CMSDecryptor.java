@@ -11,7 +11,6 @@ import java.util.Collection;
 
 import org.bouncycastle.cms.CMSEnvelopedDataParser;
 import org.bouncycastle.cms.CMSException;
-import org.bouncycastle.cms.RecipientInfoGenerator;
 import org.bouncycastle.cms.RecipientInformation;
 import org.bouncycastle.cms.RecipientInformationStore;
 import org.bouncycastle.cms.jcajce.JceKeyAgreeEnvelopedRecipient;
@@ -19,6 +18,7 @@ import org.bouncycastle.cms.jcajce.JceKeyTransEnvelopedRecipient;
 
 import it.hackerinside.etk.core.Models.AsymmetricAlgorithm;
 import it.hackerinside.etk.core.Models.EncodingOption;
+import it.hackerinside.etk.core.PEM.PemInputStream;
 
 /**
  * A CMS (Cryptographic Message Syntax) decryptor for decrypting data using
@@ -51,7 +51,32 @@ public class CMSDecryptor {
      *                   or unsupported algorithms
      */
     public void decrypt(InputStream input, OutputStream output) throws Exception  {
-    	//TODO IMPLEMENT
+    	InputStream cmsInput = wrapDecoding(input);
+    	boolean success = false;
+    	
+    	Collection<RecipientInformation> recipients = findReciepients(cmsInput);
+    	
+    	for (RecipientInformation recipient : recipients) {
+    		try {
+    			InputStream decryptedStream = createRecipientContentStream(recipient);
+    			
+    			 byte[] buffer = new byte[8192];
+                 int bytesRead;
+                 while ((bytesRead = decryptedStream.read(buffer)) != -1) {
+                     output.write(buffer, 0, bytesRead);
+                 }
+                 decryptedStream.close();
+                 success = true;
+                 break;
+                 
+    		}catch (Exception e) {
+                
+            }
+    	}
+    	
+        if (!success) {
+            throw new Exception("Unable to decrypt CMS data with the provided private key.");
+        }
     }
     
     /**
@@ -117,6 +142,23 @@ public class CMSDecryptor {
                         .getContentStream();
             default -> throw new CMSException("Unsupported asymmetric algorithm: " + keyAlgo);
         };
+    }
+	
+    /**
+     * Wraps the input stream with the appropriate decoding based on the encoding option.
+     * If PEM encoding is selected, returns a PemInputStream; otherwise returns the
+     * original input stream for DER encoding.
+     *
+     * @param input the original input stream
+     * @return an input stream wrapped with the appropriate decoding
+     * @throws IOException 
+     */
+    private InputStream wrapDecoding(InputStream input) throws IOException {
+        if (encoding == EncodingOption.ENCODING_PEM) {
+            return new PemInputStream(input);
+        } else {
+            return input;
+        }
     }
 
 
