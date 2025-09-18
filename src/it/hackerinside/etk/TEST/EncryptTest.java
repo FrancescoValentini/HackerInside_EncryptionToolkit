@@ -1,17 +1,28 @@
 package it.hackerinside.etk.TEST;
 
 import java.io.File;
+import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
+import it.hackerinside.etk.core.Encryption.CMSEncryptor;
+import it.hackerinside.etk.core.Models.EncodingOption;
+import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
 import it.hackerinside.etk.core.keystore.PKCS12Keystore;
 
 public class EncryptTest {
-
+	static {
+	    Security.addProvider(new BouncyCastleProvider());
+	}
 	public static void main(String[] args) throws Exception {
+
 		File rsaKeystore = new File("RSATEST.pfx");
 		File eccKeystore = new File("ECCTEST.pfx");
+		
+		File toEncrypt = new File("file.test");
 		
 		String rsaAlias = "rsatest", eccAlias = "ecctest";
 		
@@ -42,6 +53,14 @@ public class EncryptTest {
 		System.out.println(eccCert);
 		
 		
+		// 3) Encrypt 
+		System.out.println("RSA ENCRYPT");
+		CMSEncryptor rsaEncryptor = new CMSEncryptor(rsaCert, SymmetricAlgorithms.AES_256_CBC, EncodingOption.ENCODING_DER);
+		rsaEncryptor.encrypt(toEncrypt, new File("enc_rsa.test"));
+		
+		System.out.println("ECC ENCRYPT");
+		CMSEncryptor eccEncryptor = new CMSEncryptor(eccCert, SymmetricAlgorithms.AES_256_CBC, EncodingOption.ENCODING_PEM);
+		eccEncryptor.encrypt(toEncrypt, new File("enc_ecc.test"));
 	}
 
 }
