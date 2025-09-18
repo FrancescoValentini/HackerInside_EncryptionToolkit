@@ -3,10 +3,18 @@ package it.hackerinside.etk.core.Encryption;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.PrivateKey;
 
+import org.bouncycastle.cms.CMSException;
+import org.bouncycastle.cms.RecipientInfoGenerator;
+import org.bouncycastle.cms.RecipientInformation;
+import org.bouncycastle.cms.jcajce.JceKeyAgreeEnvelopedRecipient;
+import org.bouncycastle.cms.jcajce.JceKeyTransEnvelopedRecipient;
+
+import it.hackerinside.etk.core.Models.AsymmetricAlgorithm;
 import it.hackerinside.etk.core.Models.EncodingOption;
 
 /**
@@ -57,4 +65,33 @@ public class CMSDecryptor {
         		decrypt(in, out);
            }
     }
+    
+    /**
+     * Creates an input stream for reading the decrypted content of a CMS recipient.
+     * The method automatically selects the appropriate decryption mechanism based on
+     * the asymmetric algorithm of the provided private key.
+     *
+     * @param recipient the recipient information containing the encrypted content
+     * @return an InputStream providing access to the decrypted content
+     * @throws CMSException if the asymmetric algorithm is not supported or if
+     *         decryption fails. Supported algorithms are RSA and EC (Elliptic Curve)
+     * @throws IOException if an I/O error occurs during stream creation or decryption
+     * @throws NullPointerException if the recipient or private key is null
+     *
+     */
+	private InputStream createRecipientContentStream(RecipientInformation recipient) throws CMSException, IOException {
+        AsymmetricAlgorithm keyAlgo = AsymmetricAlgorithm.fromPrivateKey(privateKey);
+        
+        return switch (keyAlgo) {
+            case RSA -> recipient
+                        .getContentStream(new JceKeyTransEnvelopedRecipient(privateKey).setProvider("BC"))
+                        .getContentStream();
+            case EC -> recipient
+                        .getContentStream(new JceKeyAgreeEnvelopedRecipient(privateKey).setProvider("BC"))
+                        .getContentStream();
+            default -> throw new CMSException("Unsupported asymmetric algorithm: " + keyAlgo);
+        };
+    }
+
+
 }
