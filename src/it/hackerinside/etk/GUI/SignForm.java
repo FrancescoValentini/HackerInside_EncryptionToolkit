@@ -67,7 +67,7 @@ public class SignForm {
 		
 		frmSign = new JFrame();
 		frmSign.setTitle("SIGN");
-		frmSign.setBounds(100, 100, 585, 668);
+		frmSign.setBounds(100, 100, 587, 727);
 		frmSign.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		JPanel panel = new JPanel();
