@@ -60,6 +60,8 @@ public class EncryptForm {
 		} catch( Exception ex ) {
 		    System.err.println( "Failed to initialize LaF" );
 		}
+		
+		
 		frmEncrypt = new JFrame();
 		frmEncrypt.setTitle("Encrypt");
 		frmEncrypt.setBounds(100, 100, 593, 715);
