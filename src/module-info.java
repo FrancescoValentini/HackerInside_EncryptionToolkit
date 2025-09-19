@@ -9,4 +9,5 @@ module HackerInside_EncryptionToolkit {
 	requires org.bouncycastle.pkix;
 	requires org.bouncycastle.provider;
 	requires org.bouncycastle.util;
+	requires com.formdev.flatlaf;
 }
