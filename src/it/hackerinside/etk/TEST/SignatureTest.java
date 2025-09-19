@@ -5,6 +5,7 @@ import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 
 import it.hackerinside.etk.core.CAdES.CAdESSigner;
+import it.hackerinside.etk.core.CAdES.CAdESUtils;
 import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.HashAlgorithm;
 
@@ -34,6 +35,9 @@ public class SignatureTest {
 		System.out.println("ECC SIGNATURE DETACHED");
 		CAdESSigner eccSignerDetached = new CAdESSigner(eccPriv, eccCert, EncodingOption.ENCODING_PEM, HashAlgorithm.SHA384, true);
 		eccSignerDetached.sign(toSign, new File("ecc_signed_detached.test"));
+		
+		System.out.println(CAdESUtils.isDetached(new File("ecc_signed_detached.test"), EncodingOption.ENCODING_PEM));
+		System.out.println(CAdESUtils.isDetached(new File("rsa_signed.test"), EncodingOption.ENCODING_DER));
 	}
 
 }
