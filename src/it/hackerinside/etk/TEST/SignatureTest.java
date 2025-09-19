@@ -2,16 +2,26 @@ package it.hackerinside.etk.TEST;
 
 import java.io.File;
 import java.security.PrivateKey;
+import java.security.Security;
 import java.security.cert.X509Certificate;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import it.hackerinside.etk.core.CAdES.CAdESSigner;
 import it.hackerinside.etk.core.CAdES.CAdESUtils;
+import it.hackerinside.etk.core.CAdES.CAdESVerifier;
 import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.HashAlgorithm;
+import it.hackerinside.etk.core.Models.VerificationResult;
 
 public class SignatureTest {
-
+    static {
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleProvider());
+        }
+    }
 	public static void main(String[] args) throws Exception {
+		
 		KeystoreTest ks = new KeystoreTest();
 		File toSign = new File("file.test");
 		String rsaAlias = "rsatest", eccAlias = "ecctest";
@@ -38,6 +48,14 @@ public class SignatureTest {
 		
 		System.out.println(CAdESUtils.isDetached(new File("ecc_signed_detached.test"), EncodingOption.ENCODING_PEM));
 		System.out.println(CAdESUtils.isDetached(new File("rsa_signed.test"), EncodingOption.ENCODING_DER));
+		
+		// Verify TEST
+		
+		CAdESVerifier verifier = new CAdESVerifier(EncodingOption.ENCODING_PEM, false);
+		VerificationResult result = verifier.verify(new File("ecc_signed.test"));
+		verifier.extractContent(new File("ecc_signed.test"), new File("ecc_extracted.test"));
+		System.out.println(result);
+		System.out.println(result.getSigningTime());
 	}
 
 }
