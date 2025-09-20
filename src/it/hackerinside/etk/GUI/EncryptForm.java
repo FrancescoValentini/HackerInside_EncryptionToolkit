@@ -233,6 +233,7 @@ public class EncryptForm {
 		populateSymmetricAlgorithms(cmbEncAlgorithm);
 		populateKnowCerts(cmbRecipientCert);
 		this.chckbPemOutput.setSelected(ctx.usePEM());
+		this.cmbEncAlgorithm.setSelectedItem(ctx.getCipher());
 		
 
 		
