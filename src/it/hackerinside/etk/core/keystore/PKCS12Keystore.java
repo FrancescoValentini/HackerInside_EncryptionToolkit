@@ -57,6 +57,11 @@ public class PKCS12Keystore extends AbstractKeystore {
     @Override
     public void load() throws Exception {
         keyStore = KeyStore.getInstance("PKCS12");
+        // If file doesn't exist, initialize an empty keystore
+        if (!file.exists()) {
+            initialize();
+            return;
+        }
         try (FileInputStream fis = new FileInputStream(file)) {
             keyStore.load(fis, password);
         }
@@ -67,5 +72,20 @@ public class PKCS12Keystore extends AbstractKeystore {
         try (FileOutputStream fos = new FileOutputStream(file)) {
             keyStore.store(fos, password);
         }
+    }
+    
+    /**
+     * Initializes a new empty PKCS12 keystore and creates the file if it doesn't exist.
+     * This method is automatically called during load() if the file doesn't exist.
+     *
+     * @throws Exception if initialization fails
+     */
+    public void initialize() throws Exception {
+        keyStore = KeyStore.getInstance("PKCS12");
+        // Load with null input stream to create an empty keystore
+        keyStore.load(null, password);
+        
+        // Save the empty keystore to create the file
+        save();
     }
 }

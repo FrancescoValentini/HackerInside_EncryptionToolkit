@@ -86,10 +86,19 @@ public class FileDialogUtils {
      * @return a configured JFileChooser instance
      */
     private static JFileChooser createFileChooser(String title, String path, DefaultExtensions... filters) {
-        JFileChooser chooser = new JFileChooser(path != null ? path : ".");
+        File initial = path != null ? new File(path) : new File(".");
+        JFileChooser chooser;
+
+        if (initial.isDirectory()) {
+            chooser = new JFileChooser(initial);
+        } else {
+            chooser = new JFileChooser(initial.getParentFile());
+            chooser.setSelectedFile(initial); // <--- qui imposti il file proposto
+        }
+
         chooser.setDialogTitle(title != null ? title : "Select file");
 
-        // Add all filters
+        FileNameExtensionFilter defaultFilter = null;
         if (filters != null && filters.length > 0) {
             for (DefaultExtensions ext : filters) {
                 String extensionWithoutDot = ext.getExt().replace(".", "");
@@ -98,13 +107,20 @@ public class FileDialogUtils {
                         extensionWithoutDot
                 );
                 chooser.addChoosableFileFilter(filter);
+
+                if (defaultFilter == null) {
+                    defaultFilter = filter; // salva il primo filtro passato come default
+                }
             }
-            // Set default to the first filter
-            chooser.setFileFilter(chooser.getChoosableFileFilters()[0]);
+            if (defaultFilter != null) {
+                chooser.setFileFilter(defaultFilter); // imposta esplicitamente come filtro selezionato
+            }
         }
-        
+
+
         return chooser;
     }
+
 
     /**
      * Convenience method for displaying an open file dialog with a single file filter.

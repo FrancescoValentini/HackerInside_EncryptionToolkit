@@ -1,6 +1,13 @@
 package it.hackerinside.etk.GUI;
 
+import java.security.Security;
 import java.util.prefs.Preferences;
+
+import javax.swing.UIManager;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
+import com.formdev.flatlaf.themes.FlatMacDarkLaf;
 
 import it.hackerinside.etk.core.Models.ApplicationPreferences;
 import it.hackerinside.etk.core.Models.HashAlgorithm;
@@ -60,6 +67,14 @@ public class ETKContext {
      * This method is called during construction and should not be called directly.
      */
     private void init() {
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleProvider());
+        }
+		try {
+		    UIManager.setLookAndFeel( new FlatMacDarkLaf() );
+		} catch( Exception ex ) {
+		    System.err.println( "Failed to initialize LaF" );
+		}
         try {
             preferences = Preferences.userNodeForPackage(ETKContext.class);
             initOrLoadKnownCerts(this.getKnownCertsPath());
@@ -253,6 +268,25 @@ public class ETKContext {
     }
 
     /**
+     * Sets whether the application should use PEM Encoding
+     */
+    public void setUsePEM(boolean pem) {
+        preferences.put(ApplicationPreferences.USE_PEM.getKey(), Boolean.toString(pem));
+    }
+    
+    /**
+     * Returns whether the application should use PEM Encoding
+     * @return if PEM should be used
+     */
+    public boolean usePEM() {
+        String usePEM = preferences.get(
+            ApplicationPreferences.USE_PEM.getKey(), 
+            ApplicationPreferences.USE_PEM.getValue()
+        );
+        return Boolean.parseBoolean(usePEM);
+    }
+
+    /**
      * Sets whether the application should use PKCS11 (hardware security module)
      * instead of PKCS12 (software-based keystore).
      * 
@@ -261,4 +295,5 @@ public class ETKContext {
     public void setUsePkcs11(boolean usePkcs11) {
         preferences.put(ApplicationPreferences.USE_PKCS11.getKey(), Boolean.toString(usePkcs11));
     }
+
 }

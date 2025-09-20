@@ -41,7 +41,12 @@ public enum ApplicationPreferences {
      * Flag indicating whether PKCS#11 (hardware security module) should be used.
      * Default value: "false" (disabled)
      */
-    USE_PKCS11("USE_PKCS11", "false");
+    USE_PKCS11("USE_PKCS11", "false"),
+	
+	/**
+	 * PEM encoding
+	 */
+	USE_PEM("USE_PEM","false");
     
     private final String key;
     private final String value;

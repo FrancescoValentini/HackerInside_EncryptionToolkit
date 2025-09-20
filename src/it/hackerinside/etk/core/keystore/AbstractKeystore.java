@@ -198,6 +198,10 @@ public abstract class AbstractKeystore {
 	public SupportedKeystores getKeystoreType() {
 		return keystoreType;
 	}
+	
+	public boolean isNull() {
+		return this.keyStore == null;
+	}
     
     
 }
