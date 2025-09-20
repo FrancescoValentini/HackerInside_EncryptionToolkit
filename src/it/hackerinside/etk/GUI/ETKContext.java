@@ -195,7 +195,7 @@ public class ETKContext {
             ApplicationPreferences.HASH_ALGORITHM.getKey(), 
             ApplicationPreferences.HASH_ALGORITHM.getValue()
         );
-        return HashAlgorithm.valueOf(algorithm);
+        return HashAlgorithm.fromString(algorithm);
     }
 
     /**

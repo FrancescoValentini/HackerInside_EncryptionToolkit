@@ -9,20 +9,32 @@ import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.JComboBox;
 import java.awt.Font;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.X509Certificate;
+import java.util.Enumeration;
+import java.util.concurrent.ExecutionException;
+
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.JButton;
 import javax.swing.JTextField;
 import javax.swing.border.TitledBorder;
 
-import com.formdev.flatlaf.FlatLightLaf;
-import com.formdev.flatlaf.themes.FlatMacDarkLaf;
-
+import it.hackerinside.etk.core.CAdES.CAdESSigner;
+import it.hackerinside.etk.core.Models.DefaultExtensions;
+import it.hackerinside.etk.core.Models.EncodingOption;
+import it.hackerinside.etk.core.Models.HashAlgorithm;
 import javax.swing.JCheckBox;
 import javax.swing.SwingConstants;
-import javax.swing.UIManager;
-import javax.swing.JSeparator;
+import javax.swing.SwingWorker;
 import javax.swing.JProgressBar;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.awt.event.ActionEvent;
 
 
 
@@ -30,6 +42,16 @@ public class SignForm {
 
 	private JFrame frmSign;
 	private JTextField txtbOutputFile;
+	private JComboBox<HashAlgorithm> cmbAlgorithm;
+	private JComboBox<String> cmbSignerCert;
+	private JCheckBox chckbPem;
+	private JCheckBox chckbDetachedSignature;
+	
+	
+	private static ETKContext ctx;
+	private File fileToSign;
+	private JLabel lblStatus;
+	private JProgressBar progressSignature;
 
 	/**
 	 * Launch the application.
@@ -51,6 +73,13 @@ public class SignForm {
 	 * Create the application.
 	 */
 	public SignForm() {
+		ctx = ETKContext.getInstance();
+		try {
+			ctx.loadKeystore("123");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		initialize();
 	}
 
@@ -58,13 +87,6 @@ public class SignForm {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
-		
-		try {
-		    UIManager.setLookAndFeel( new FlatMacDarkLaf() );
-		} catch( Exception ex ) {
-		    System.err.println( "Failed to initialize LaF" );
-		}
-		
 		frmSign = new JFrame();
 		frmSign.setTitle("SIGN");
 		frmSign.setBounds(100, 100, 587, 727);
@@ -73,13 +95,14 @@ public class SignForm {
 		JPanel panel = new JPanel();
 		frmSign.getContentPane().add(panel, BorderLayout.CENTER);
 		
-		JComboBox cmbSignerCert = new JComboBox();
+		cmbSignerCert = new JComboBox();
 		cmbSignerCert.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		JLabel lblNewLabel = new JLabel("Signer Certificate");
 		lblNewLabel.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		JButton btnCertDetails = new JButton("DETAILS");
+
 		btnCertDetails.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		JLabel lblInputFile = new JLabel("Output File");
@@ -95,41 +118,50 @@ public class SignForm {
 		JPanel panel_1 = new JPanel();
 		panel_1.setBorder(new TitledBorder(null, "Signature Settings", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		
-		JButton btnNewButton = new JButton("SIGN");
-		btnNewButton.setFont(new Font("Tahoma", Font.BOLD, 18));
+		JButton btnSign = new JButton("SIGN");
+		btnSign.setFont(new Font("Tahoma", Font.BOLD, 18));
 		
-		JProgressBar progressBar = new JProgressBar();
-		progressBar.setEnabled(false);
-		progressBar.setFont(new Font("Tahoma", Font.PLAIN, 16));
-		progressBar.setIndeterminate(true);
+		progressSignature = new JProgressBar();
+		progressSignature.setEnabled(false);
+		progressSignature.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		progressSignature.setIndeterminate(true);
+		progressSignature.setVisible(false);
+		
+		lblStatus = new JLabel("");
+		lblStatus.setHorizontalAlignment(SwingConstants.CENTER);
+		lblStatus.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		GroupLayout gl_panel = new GroupLayout(panel);
 		gl_panel.setHorizontalGroup(
-			gl_panel.createParallelGroup(Alignment.TRAILING)
+			gl_panel.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panel.createSequentialGroup()
 					.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
 						.addGroup(gl_panel.createSequentialGroup()
 							.addContainerGap()
 							.addGroup(gl_panel.createParallelGroup(Alignment.TRAILING)
-								.addComponent(panel_1, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 549, Short.MAX_VALUE)
+								.addComponent(panel_1, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 551, Short.MAX_VALUE)
 								.addComponent(lblNewLabel, Alignment.LEADING)
 								.addComponent(lblInputFile, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE)
 								.addGroup(gl_panel.createSequentialGroup()
 									.addGroup(gl_panel.createParallelGroup(Alignment.TRAILING)
-										.addComponent(txtbOutputFile, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 446, Short.MAX_VALUE)
-										.addComponent(cmbSignerCert, 0, 446, Short.MAX_VALUE))
+										.addComponent(txtbOutputFile, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 448, Short.MAX_VALUE)
+										.addComponent(cmbSignerCert, 0, 448, Short.MAX_VALUE))
 									.addGap(18)
 									.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
 										.addComponent(btnOpenOutputFile, GroupLayout.PREFERRED_SIZE, 85, GroupLayout.PREFERRED_SIZE)
 										.addComponent(btnCertDetails)))))
 						.addGroup(gl_panel.createSequentialGroup()
 							.addGap(245)
-							.addComponent(btnNewButton, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+							.addComponent(btnSign, GroupLayout.DEFAULT_SIZE, 81, Short.MAX_VALUE)
 							.addGap(235)))
 					.addContainerGap())
-				.addGroup(Alignment.LEADING, gl_panel.createSequentialGroup()
+				.addGroup(gl_panel.createSequentialGroup()
 					.addGap(138)
-					.addComponent(progressBar, GroupLayout.DEFAULT_SIZE, 293, Short.MAX_VALUE)
+					.addComponent(progressSignature, GroupLayout.DEFAULT_SIZE, 295, Short.MAX_VALUE)
 					.addGap(138))
+				.addGroup(gl_panel.createSequentialGroup()
+					.addGap(200)
+					.addComponent(lblStatus, GroupLayout.DEFAULT_SIZE, 195, Short.MAX_VALUE)
+					.addGap(199))
 		);
 		gl_panel.setVerticalGroup(
 			gl_panel.createParallelGroup(Alignment.LEADING)
@@ -149,10 +181,12 @@ public class SignForm {
 					.addGap(42)
 					.addComponent(panel_1, GroupLayout.PREFERRED_SIZE, 111, GroupLayout.PREFERRED_SIZE)
 					.addGap(34)
-					.addComponent(btnNewButton, GroupLayout.PREFERRED_SIZE, 55, GroupLayout.PREFERRED_SIZE)
+					.addComponent(btnSign, GroupLayout.PREFERRED_SIZE, 55, GroupLayout.PREFERRED_SIZE)
 					.addGap(41)
-					.addComponent(progressBar, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap(192, Short.MAX_VALUE))
+					.addComponent(progressSignature, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+					.addGap(72)
+					.addComponent(lblStatus)
+					.addContainerGap(106, Short.MAX_VALUE))
 		);
 		panel_1.setLayout(null);
 		
@@ -161,25 +195,277 @@ public class SignForm {
 		lblDigestAlgorithm.setBounds(10, 29, 153, 20);
 		panel_1.add(lblDigestAlgorithm);
 		
-		JComboBox cmbSignerCert_1 = new JComboBox();
-		cmbSignerCert_1.setFont(new Font("Tahoma", Font.PLAIN, 16));
-		cmbSignerCert_1.setBounds(152, 25, 174, 28);
-		panel_1.add(cmbSignerCert_1);
+		cmbAlgorithm = new JComboBox();
+		cmbAlgorithm.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		cmbAlgorithm.setBounds(152, 25, 174, 28);
+		panel_1.add(cmbAlgorithm);
 		
-		JCheckBox chckbxNewCheckBox = new JCheckBox("Detached Signature");
-		chckbxNewCheckBox.setFont(new Font("Tahoma", Font.PLAIN, 18));
-		chckbxNewCheckBox.setBounds(10, 67, 187, 23);
-		panel_1.add(chckbxNewCheckBox);
+		chckbDetachedSignature = new JCheckBox("Detached Signature");
+		chckbDetachedSignature.setFont(new Font("Tahoma", Font.PLAIN, 18));
+		chckbDetachedSignature.setBounds(10, 67, 187, 23);
+		panel_1.add(chckbDetachedSignature);
 		
-		JCheckBox chckbxNewCheckBox_1 = new JCheckBox("PEM output");
-		chckbxNewCheckBox_1.setFont(new Font("Tahoma", Font.PLAIN, 18));
-		chckbxNewCheckBox_1.setBounds(210, 67, 141, 23);
-		panel_1.add(chckbxNewCheckBox_1);
+		chckbPem = new JCheckBox("PEM output");
+		chckbPem.setFont(new Font("Tahoma", Font.PLAIN, 18));
+		chckbPem.setBounds(210, 67, 141, 23);
+		panel_1.add(chckbPem);
 		panel.setLayout(gl_panel);
 		
 		JLabel lblNewLabel_1 = new JLabel("SIGN");
 		lblNewLabel_1.setHorizontalAlignment(SwingConstants.CENTER);
 		lblNewLabel_1.setFont(new Font("Tahoma", Font.BOLD, 27));
 		frmSign.getContentPane().add(lblNewLabel_1, BorderLayout.NORTH);
+		
+		
+		btnCertDetails.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				showRecipientDetails();
+			}
+		});
+		
+		btnOpenOutputFile.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				outputFileSelection();
+			}
+		});
+		
+		btnSign.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				sign();
+			}
+		});
+		
+		chckbDetachedSignature.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				createOutputFilePath();
+			}
+		});
+		
+		populateHashAlgorithms(cmbAlgorithm);
+		populateSignerCerts(cmbSignerCert);
+		
+		cmbAlgorithm.setSelectedItem(ctx.getHashAlgorithm());
+		chckbPem.setSelected(ctx.usePEM());
+		
+		if(this.fileToSign == null) fileInitialization();
 	}
+	
+	/**
+	 * Populates a combo box with all available hash algorithms.
+	 * 
+	 * @param combo the combo box to populate with hash algorithm values
+	 */
+	private void populateHashAlgorithms(JComboBox<HashAlgorithm> combo) {
+	    combo.removeAllItems();
+	    for (HashAlgorithm alg : HashAlgorithm.values()) {
+	        combo.addItem(alg);
+	    }
+	}
+	
+	/**
+	 * Populates a combo box with all available signer certificates.
+	 * 
+	 * @param combo the combo box to populate with certificates
+	 */
+	private void populateSignerCerts(JComboBox<String> combo) {
+	    combo.removeAllItems();
+	    Enumeration<String> aliases = null;
+		try {
+			aliases = ctx.getKeystore().listAliases();
+			aliases.asIterator().forEachRemaining(x -> combo.addItem(x));
+		} catch (KeyStoreException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private X509Certificate getCertificate() {
+		try {
+			return ctx.getKeystore().getCertificate((String) cmbSignerCert.getSelectedItem());
+		} catch (KeyStoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	private PrivateKey getPrivateKey() {
+		String alias = (String) cmbSignerCert.getSelectedItem();
+		
+		String password = DialogUtils.showInputBox(null, "Unlock Private key", "Password for " + alias, 
+		        "Password:", true);
+		PrivateKey k = null;
+		try {
+			k = ctx.getKeystore().getPrivateKey(alias, password.toCharArray()); 
+		} catch (UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return k;
+	}
+	
+	/**
+	 * Displays details of the currently selected signer certificate.
+	 */
+	private void showRecipientDetails() {
+		new CertificateDetailsForm(getCertificate());
+	}
+	
+	/**
+	 * Sets the output file and updates the corresponding text field.
+	 * 
+	 * @param file the output file to set
+	 */
+	private void setOutputFile(File file) {
+	    txtbOutputFile.setText(file.getAbsolutePath());
+	}
+
+	/**
+	 * Creates a default output file path by applying the cryptographic extension to the input file.
+	 */
+	private void createOutputFilePath() {
+		File file;
+		if(chckbDetachedSignature.isSelected()) {
+			file = DefaultExtensions.applyExtension(this.fileToSign, DefaultExtensions.CRYPTO_P7S);
+	    	
+		}else {
+			file = DefaultExtensions.applyExtension(this.fileToSign, DefaultExtensions.CRYPTO_P7M);
+
+		}
+		setOutputFile(file);
+	}
+	
+	/**
+	 * Opens a file dialog to select an output file for the signed result.
+	 */
+	private void outputFileSelection() {
+		File file;
+		if(chckbDetachedSignature.isSelected()) {
+		    file = FileDialogUtils.saveFileDialog(
+		            null,
+		            "Signature file",
+		            this.fileToSign != null ? this.fileToSign.getAbsolutePath() : ".",
+		            DefaultExtensions.CRYPTO_P7S
+		    );
+	    	
+		}else {
+		    file = FileDialogUtils.saveFileDialog(
+		            null,
+		            "Signed file",
+		            this.fileToSign != null ? this.fileToSign.getAbsolutePath() : ".",
+		            DefaultExtensions.CRYPTO_P7M
+		    );
+
+		}
+		
+	    if (file != null) {
+	        setOutputFile(file);
+	    }
+	}
+	
+	/**
+	 * Initializes the file selection process
+	 * Selects an input file and creates a default output path.
+	 */
+	private void fileInitialization() {
+	    this.fileToSign = selectInputFile();
+	    if (this.fileToSign != null) {
+	        createOutputFilePath();
+	    }
+	}
+
+	/**
+	 * Opens a file dialog to select an input file
+	 * 
+	 * @return the selected file, or null if no file was selected
+	 */
+	private File selectInputFile() {
+	    return FileDialogUtils.openFileDialog(
+	            null,
+	            "Select the file to sign",
+	            "."
+	    );
+	}
+	
+	private void sign() {
+	    if (!allReady()) {
+	        lblStatus.setText("Missing required inputs.");
+	        return;
+	    }
+	    
+	    EncodingOption encoding = chckbPem.isSelected()
+	            ? EncodingOption.ENCODING_PEM
+	            : EncodingOption.ENCODING_DER;
+	    
+	    HashAlgorithm hash = (HashAlgorithm) cmbAlgorithm.getSelectedItem();
+	    
+	    boolean detached = chckbDetachedSignature.isSelected();
+	    File signedFile = new File(txtbOutputFile.getText());
+	    PrivateKey priv = getPrivateKey();
+	    X509Certificate signerCert = getCertificate();
+	    
+	    startSignatureUI();
+	    
+	    CAdESSigner signer = new CAdESSigner(priv, signerCert, encoding, hash, detached);
+	    
+	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
+	        @Override
+	        protected Void doInBackground() throws Exception {
+	        	signer.sign(fileToSign, signedFile);
+	            return null;
+	        }
+
+	        @Override
+	        protected void done() {
+	        	finishSignatureUI(this);
+	        }
+	    };
+
+	    worker.execute();
+	    
+	}
+	
+	/**
+	 * Updates the UI to indicate that signature is in progress.
+	 */
+	private void startSignatureUI() {
+		progressSignature.setVisible(true);
+		progressSignature.setEnabled(true);
+	    lblStatus.setText("Signing...");
+	    lblStatus.setVisible(true);
+	}
+
+	/**
+	 * Finalizes the UI after signature completes or fails.
+	 * 
+	 * @param worker the SwingWorker that performed the encryption
+	 */
+	private void finishSignatureUI(SwingWorker<?, ?> worker) {
+	    progressSignature.setVisible(false);
+	    try {
+	        worker.get();
+	        lblStatus.setText("File Signed!");
+			DialogUtils.showMessageBox(null, "File signed!", "File signed!", 
+			        "File signed\n\nnSaved to: " 
+			        		+ this.fileToSign.getAbsolutePath().toString() , 
+			        JOptionPane.INFORMATION_MESSAGE);
+	    } catch (InterruptedException | ExecutionException e) {
+			DialogUtils.showMessageBox(null, "Error during digital signature", "Error during digital signature!", 
+			        e.getMessage(), 
+			        JOptionPane.ERROR_MESSAGE);
+	        lblStatus.setText("Digital Signature failed");
+	        e.printStackTrace();
+	    }
+	}
+
+	/**
+	 * Checks if all required inputs are ready.
+	 * 
+	 * @return true if all required inputs are present and valid, false otherwise
+	 */
+	private boolean allReady() {
+	    return this.fileToSign != null &&
+	           this.fileToSign.exists() &&
+	           !this.txtbOutputFile.getText().isEmpty();
+	}
+	
 }
