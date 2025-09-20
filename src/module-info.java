@@ -10,4 +10,5 @@ module HackerInside_EncryptionToolkit {
 	requires org.bouncycastle.provider;
 	requires org.bouncycastle.util;
 	requires com.formdev.flatlaf;
+	requires java.prefs;
 }

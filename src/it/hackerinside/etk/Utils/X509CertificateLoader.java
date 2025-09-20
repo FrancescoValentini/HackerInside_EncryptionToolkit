@@ -33,7 +33,7 @@ public class X509CertificateLoader {
      * </pre>
      * 
      */
-	private X509Certificate loadFromFile(File file) throws CertificateException, IOException {
+	public static X509Certificate loadFromFile(File file) throws CertificateException, IOException {
 		CertificateFactory fact = CertificateFactory.getInstance("X.509");
 		FileInputStream is = new FileInputStream(file);
 		X509Certificate cer = (X509Certificate) fact.generateCertificate(is);
