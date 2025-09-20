@@ -5,6 +5,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 import java.util.Objects;
@@ -203,5 +204,53 @@ public abstract class AbstractKeystore {
 		return this.keyStore == null;
 	}
     
-    
+    /**
+     * Checks if the given certificate exists in the keystore.
+     *
+     * @param cert the X.509 certificate to check
+     * @return the matching certificate if found, or null otherwise
+     * @throws KeyStoreException if the keystore has not been initialized
+     * @throws NullPointerException if cert is null
+     */
+    public X509Certificate contains(X509Certificate cert) throws KeyStoreException {
+        Objects.requireNonNull(cert, "Certificate cannot be null");
+        Enumeration<String> aliases = keyStore.aliases();
+        while (aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+            Certificate storedCert = keyStore.getCertificate(alias);
+            if (storedCert instanceof X509Certificate) {
+                X509Certificate x509 = (X509Certificate) storedCert;
+                if (x509.equals(cert)) {
+                    return x509;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Checks if a certificate with the given serial number exists in the keystore.
+     *
+     * @param serialNumber the serial number of the certificate to check (in decimal or hex form)
+     * @return the matching certificate if found, or null otherwise
+     * @throws KeyStoreException if the keystore has not been initialized
+     * @throws NullPointerException if serialNumber is null
+     */
+    public X509Certificate contains(String serialNumber) throws KeyStoreException {
+        Objects.requireNonNull(serialNumber, "Serial number cannot be null");
+        Enumeration<String> aliases = keyStore.aliases();
+        while (aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+            Certificate storedCert = keyStore.getCertificate(alias);
+            if (storedCert instanceof X509Certificate) {
+                X509Certificate x509 = (X509Certificate) storedCert;
+                if (x509.getSerialNumber().toString().equalsIgnoreCase(serialNumber)
+                        || x509.getSerialNumber().toString(16).equalsIgnoreCase(serialNumber)) {
+                    return x509;
+                }
+            }
+        }
+        return null;
+    }
+
 }

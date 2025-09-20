@@ -1,6 +1,7 @@
 package it.hackerinside.etk.GUI;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import it.hackerinside.etk.core.Models.DefaultExtensions;
@@ -63,14 +64,19 @@ public class FileDialogUtils {
             File file = chooser.getSelectedFile();
 
             // Get the extension chosen by the user
-            FileNameExtensionFilter chosenFilter = (FileNameExtensionFilter) chooser.getFileFilter();
-            String[] exts = chosenFilter.getExtensions();
-            if (exts.length > 0) {
-                String ext = "." + exts[0];
-                if (!file.getName().toLowerCase().endsWith(ext.toLowerCase())) {
-                    file = new File(file.getAbsolutePath() + ext);
+            FileFilter selectedFilter = chooser.getFileFilter();
+            if (selectedFilter instanceof FileNameExtensionFilter) {
+                FileNameExtensionFilter chosenFilter = (FileNameExtensionFilter) selectedFilter;
+                String[] exts = chosenFilter.getExtensions();
+                if (exts.length > 0) {
+                    String ext = "." + exts[0];
+                    if (!file.getName().toLowerCase().endsWith(ext.toLowerCase())) {
+                        file = new File(file.getAbsolutePath() + ext);
+                    }
                 }
             }
+            // else: user selected "All Files", do nothing
+
 
             return file;
         }
