@@ -1,5 +1,6 @@
 package it.hackerinside.etk.core.keystore;
 
+import java.math.BigInteger;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -7,11 +8,21 @@ import java.security.PrivateKey;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.crypto.SecretKey;
 
+import org.bouncycastle.asn1.ASN1OctetString;
+import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.SubjectKeyIdentifier;
+
+import it.hackerinside.etk.core.Models.RecipientIdentifier;
 import it.hackerinside.etk.core.Models.SupportedKeystores;
 
 /**
@@ -252,5 +263,137 @@ public abstract class AbstractKeystore {
         }
         return null;
     }
+    
 
+    /**
+     * Searches the keystore for an alias whose certificate matches at least one of the provided recipient identifiers.
+     * The method iterates through all aliases in the keystore, checking only key entries with valid X.509 certificates.
+     * For each certificate, it compares against all recipient identifiers, matching either by Subject Key Identifier (SKI)
+     * or by Issuer and Serial Number combination.
+     *
+     * @param recipientIds a collection of recipient identifiers to search for. If null or empty, returns empty Optional.
+     * @return an Optional containing the first matching alias found, or an empty Optional if no match is found
+     *         or if the keystore contains no matching certificates.
+     * @throws Exception if an error occurs while accessing the keystore or processing certificates.
+     */
+    public Optional<String> findAliasForRecipients(Collection<RecipientIdentifier> recipientIds) throws Exception {
+        if (recipientIds == null || recipientIds.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Enumeration<String> aliases = keyStore.aliases();
+        while (aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+
+            if (!isKeyEntry(alias)) {
+                continue;
+            }
+
+            X509Certificate cert = getCertificate(alias);
+            if (cert == null) {
+                continue;
+            }
+
+            if (certificateMatchesAnyRecipient(cert, recipientIds)) {
+                return Optional.of(alias);
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Checks if the specified alias represents a valid key entry in the keystore.
+     *
+     * @param alias the alias to check
+     * @return true if the alias represents a key entry, false otherwise or if an error occurs
+     */
+    private boolean isKeyEntry(String alias) {
+        try {
+            return keyStore.isKeyEntry(alias);
+        } catch (KeyStoreException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Determines if a certificate matches any of the provided recipient identifiers.
+     * Compares the certificate's Subject Key Identifier, Issuer, and Serial Number against all recipients.
+     *
+     * @param cert the X.509 certificate to examine
+     * @param recipients the collection of recipient identifiers to compare against
+     * @return true if the certificate matches any recipient identifier, false otherwise
+     */
+    private boolean certificateMatchesAnyRecipient(X509Certificate cert, Collection<RecipientIdentifier> recipients) {
+        byte[] certSki = extractSubjectKeyIdentifier(cert);
+        byte[] certIssuer = extractIssuer(cert);
+        BigInteger certSerial = cert.getSerialNumber();
+
+        for (RecipientIdentifier rid : recipients) {
+            if (recipientMatchesCertificate(rid, certSki, certIssuer, certSerial)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Checks if a single recipient identifier matches the provided certificate data.
+     * For SKI-based recipients, compares the Subject Key Identifier.
+     * For Issuer/Serial-based recipients, compares both Issuer Distinguished Name and Serial Number.
+     *
+     * @param rid the recipient identifier to match
+     * @param certSki the certificate's Subject Key Identifier (may be null)
+     * @param certIssuer the certificate's Issuer DN in ASN.1 encoded form (may be null)
+     * @param certSerial the certificate's Serial Number (may be null)
+     * @return true if the recipient matches the certificate data, false otherwise
+     */
+    private boolean recipientMatchesCertificate(RecipientIdentifier rid,
+                                                byte[] certSki,
+                                                byte[] certIssuer,
+                                                BigInteger certSerial) {
+        if (rid.getType() == RecipientIdentifier.Type.SUBJECT_KEY_IDENTIFIER) {
+            return certSki != null && rid.getSki() != null &&
+                   Arrays.equals(rid.getSki(), certSki);
+        } else {
+            return certIssuer != null && rid.getIssuerEncoded() != null &&
+                   certSerial != null && rid.getSerial() != null &&
+                   rid.getSerial().equals(certSerial) &&
+                   Arrays.equals(rid.getIssuerEncoded(), certIssuer);
+        }
+    }
+
+    /**
+     * Extracts the Subject Key Identifier extension from an X.509 certificate.
+     *
+     * @param cert the certificate from which to extract the SKI
+     * @return the Subject Key Identifier as a byte array, or null if the extension is not present
+     *         or an error occurs during extraction
+     */
+    private byte[] extractSubjectKeyIdentifier(X509Certificate cert) {
+        try {
+            byte[] extVal = cert.getExtensionValue(Extension.subjectKeyIdentifier.getId());
+            if (extVal != null) {
+                ASN1Primitive obj = ASN1Primitive.fromByteArray(extVal);
+                ASN1OctetString oct = ASN1OctetString.getInstance(obj);
+                SubjectKeyIdentifier skid =
+                        SubjectKeyIdentifier.getInstance(ASN1Primitive.fromByteArray(oct.getOctets()));
+                return skid.getKeyIdentifier();
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    /**
+     * Extracts the Issuer Distinguished Name from an X.509 certificate in ASN.1 encoded form.
+     *
+     * @param cert the certificate from which to extract the issuer
+     * @return the Issuer DN as a byte array in ASN.1 encoding, or null if an error occurs
+     */
+    private byte[] extractIssuer(X509Certificate cert) {
+        try {
+            X500Name issuerName = X500Name.getInstance(cert.getIssuerX500Principal().getEncoded());
+            return issuerName.getEncoded();
+        } catch (Exception ignored) {}
+        return null;
+    }
 }
