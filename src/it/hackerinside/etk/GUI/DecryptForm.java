@@ -69,13 +69,11 @@ public class DecryptForm {
 	 */
 	public DecryptForm() {
 		ctx = ETKContext.getInstance();
-		try {
-			ctx.loadKeystore("123");
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 		initialize();
+	}
+	
+	public void setVisible() {
+		this.frame.setVisible(true);
 	}
 
 	/**

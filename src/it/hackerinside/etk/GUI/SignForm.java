@@ -74,13 +74,11 @@ public class SignForm {
 	 */
 	public SignForm() {
 		ctx = ETKContext.getInstance();
-		try {
-			ctx.loadKeystore("123");
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 		initialize();
+	}
+	
+	public void setVisible() {
+		frmSign.setVisible(true);
 	}
 
 	/**
@@ -90,7 +88,7 @@ public class SignForm {
 		frmSign = new JFrame();
 		frmSign.setTitle("SIGN");
 		frmSign.setBounds(100, 100, 587, 727);
-		frmSign.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		//frmSign.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		JPanel panel = new JPanel();
 		frmSign.getContentPane().add(panel, BorderLayout.CENTER);

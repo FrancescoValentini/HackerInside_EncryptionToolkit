@@ -57,7 +57,6 @@ public class EncryptForm {
 	 * Launch the application.
 	 */
 	public static void main(String[] args) {
-		ctx = ETKContext.getInstance();
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
@@ -75,7 +74,12 @@ public class EncryptForm {
 	 * Create the application.
 	 */
 	public EncryptForm() {
+		ctx = ETKContext.getInstance();
 		initialize();
+	}
+	
+	public void setVisible() {
+		frmEncrypt.setVisible(true);
 	}
 
 	/**

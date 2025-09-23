@@ -74,6 +74,10 @@ public class VerifyForm {
 		ctx = ETKContext.getInstance();
 		initialize();
 	}
+	
+	public void setVisible() {
+		frame.setVisible(true);
+	}
 
 	/**
 	 * Initialize the contents of the frame.
@@ -81,7 +85,7 @@ public class VerifyForm {
 	private void initialize() {
 	    frame = new JFrame();
 	    frame.setBounds(100, 100, 792, 567);
-	    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+	    //frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	    frame.getContentPane().setLayout(new BorderLayout());
 
 	    JLabel lblDigitalSignatureVerification = new JLabel("DIGITAL SIGNATURE VERIFICATION");
