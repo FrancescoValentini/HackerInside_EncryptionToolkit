@@ -21,7 +21,21 @@ import javax.swing.JSeparator;
 import javax.swing.JTable;
 import javax.swing.SwingConstants;
 
+import it.hackerinside.etk.GUI.DTOs.CertificateTableModel;
+import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
+import it.hackerinside.etk.GUI.DTOs.KeysLocations;
+
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.security.KeyStoreException;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
 import java.awt.event.ActionEvent;
 
 public class ETKMain {
@@ -29,6 +43,7 @@ public class ETKMain {
 	private JFrame frmHackerinsideEncryptionToolkit;
 	private static ETKContext ctx;
 	private JTable table;
+	private CertificateTableModel tableModel;
 	/**
 	 * Launch the application.
 	 */
@@ -79,14 +94,17 @@ public class ETKMain {
 	    JPanel panel = new JPanel();
 	    frmHackerinsideEncryptionToolkit.getContentPane().add(panel, BorderLayout.CENTER);
 	    panel.setLayout(new BorderLayout(0, 0));
-
-	    table = new JTable();
+	    
+	    tableModel = new CertificateTableModel();
+	    table = new JTable(tableModel);
+	    table.setFont(new Font("Consolas", Font.PLAIN, 16));
 	    panel.add(new JScrollPane(table), BorderLayout.CENTER);
 
 	    JMenuBar menuBar = new JMenuBar();
 	    frmHackerinsideEncryptionToolkit.setJMenuBar(menuBar);
 
 	    JMenu fileMenu = new JMenu("File");
+	    fileMenu.setFont(new Font("Segoe UI", Font.PLAIN, 16));
 	    menuBar.add(fileMenu);
 
 	    JMenuItem mntmNewMenuItem = new JMenuItem("Settings");
@@ -115,6 +133,23 @@ public class ETKMain {
 	            decrypt();
 	        }
 	    });
+	    
+	    // Table row double click
+	    table.addMouseListener(new MouseAdapter() {
+	        @Override
+	        public void mouseClicked(MouseEvent e) {
+	            if (e.getClickCount() == 2 && table.getSelectedRow() != -1) {
+	                int row = table.getSelectedRow();
+	                int modelRow = table.convertRowIndexToModel(row);
+
+	                CertificateTableRow selected = tableModel.getRow(modelRow);
+	                if (selected != null) {
+	                    showCertificateInformation(selected.original());
+	                }
+	            }
+	        }
+	    });
+
 
 	    startProcedure();
 	}
@@ -142,6 +177,7 @@ public class ETKMain {
 	 */
 	private void startProcedure() {
 	    unlockKeystore();
+	    updateTable();
 	}
 
 	/**
@@ -168,7 +204,75 @@ public class ETKMain {
 	        );
 	    }
 	}
+	
+	/**
+	 * Updates the certificate table with current data from all available keystores.
+	 * This method refreshes the table model by retrieving certificate information
+	 * from both private keystores and known certificates keystore.
+	 */
+	private void updateTable() {
+	    List<CertificateTableRow> rows = getTableRows();
+	    tableModel.setRows(rows);
+	}
 
+	/**
+	 * Retrieves certificate table rows from all available keystores.
+	 * 
+	 * @return a list of CertificateTableRow objects representing all available certificates
+	 */
+	private List<CertificateTableRow> getTableRows() {
+	    List<CertificateTableRow> dtos = new ArrayList<>();
+
+	    // --- Private keystore ---
+	    try {
+	        if (ctx.getKeystore() != null) {
+	            List<String> pAliases = Collections.list(ctx.getKeystore().listAliases());
+	            for (String alias : pAliases) {
+	                X509Certificate crt = (X509Certificate) ctx.getKeystore().getCertificate(alias);
+	                if (crt != null) {
+	                    dtos.add(new CertificateTableRow(
+	                            alias,
+	                            ctx.usePKCS11() ? KeysLocations.PKCS11 : KeysLocations.PKCS12,
+	                            crt
+	                    ));
+	                }
+	            }
+	        }
+	    } catch (KeyStoreException e) {
+	        System.err.println("Unable to access private keystore: " + e.getMessage());
+	    }
+
+	    // --- Known certificates keystore ---
+	    try {
+	        if (ctx.getKnownCerts() != null) {
+	            List<String> kAliases = Collections.list(ctx.getKnownCerts().listAliases());
+	            for (String alias : kAliases) {
+	                X509Certificate crt = (X509Certificate) ctx.getKnownCerts().getCertificate(alias);
+	                if (crt != null) {
+	                    dtos.add(new CertificateTableRow(
+	                            alias,
+	                            KeysLocations.KNWOWN_CERTIFICATES,
+	                            crt
+	                    ));
+	                }
+	            }
+	        }
+	    } catch (KeyStoreException e) {
+	        System.err.println("Unable to access known certificates keystore: " + e.getMessage());
+	    }
+
+	    return dtos;
+	}
+
+	/**
+	 * Displays detailed certificate information in a separate form/dialog.
+	 * 
+	 */
+	private void showCertificateInformation(X509Certificate cert) {
+	    new CertificateDetailsForm(cert);
+	}
+	
+	
 	/**
 	 * Opens the digital signature form
 	 */
