@@ -113,8 +113,8 @@ public class ETKMain {
 	    fileMenu.setFont(new Font("Segoe UI", Font.PLAIN, 16));
 	    menuBar.add(fileMenu);
 
-	    JMenuItem mntmNewMenuItem = new JMenuItem("Settings");
-	    fileMenu.add(mntmNewMenuItem);
+	    JMenuItem settingsMenuItem = new JMenuItem("Settings");
+	    fileMenu.add(settingsMenuItem);
 	    
 	    JMenu mnNewMenu = new JMenu("Certificates");
 	    menuBar.add(mnNewMenu);
@@ -181,6 +181,12 @@ public class ETKMain {
 	    menuItemImportKnownCert.addActionListener(new ActionListener() {
 	    	public void actionPerformed(ActionEvent e) {
 	    		importKnownCert();
+	    	}
+	    });
+	    
+	    settingsMenuItem.addActionListener(new ActionListener() {
+	    	public void actionPerformed(ActionEvent e) {
+	    		settings();
 	    	}
 	    });
 	    
@@ -255,7 +261,7 @@ public class ETKMain {
 
 	    startProcedure();
 	}
-	
+
 	/**
 	 * Deletes a certificate from the appropriate keystore based on its location.
 	 * PKCS11 certificates cannot be deleted and will show a warning message.
@@ -538,4 +544,12 @@ public class ETKMain {
 	    decfrm.setVisible();
 	}
 	
+	/**
+	 * Opens the settings form
+	 */
+	protected void settings() {
+		SettingsForm settfrm = new SettingsForm();
+		settfrm.setVisible();
+		
+	}
 }
