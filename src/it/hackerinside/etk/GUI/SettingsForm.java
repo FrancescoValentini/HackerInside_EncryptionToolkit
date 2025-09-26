@@ -12,9 +12,19 @@ import java.awt.Font;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.LayoutStyle.ComponentPlacement;
+
+import it.hackerinside.etk.core.Models.DefaultExtensions;
+import it.hackerinside.etk.core.Models.HashAlgorithm;
+import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
+
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.File;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
 
 public class SettingsForm {
 
@@ -23,6 +33,10 @@ public class SettingsForm {
 	private JTextField txtbKnownCertsPath;
 	private JTextField txtPkcs11ConfPath;
 	private ETKContext ctx;
+	private JCheckBox chckbUsePem;
+	private JCheckBox chckbUsePkcs11;
+	private JComboBox<HashAlgorithm> cmbHashAlgPath;
+	private JComboBox<SymmetricAlgorithms> cmbEncAlgPath;
 
 	/**
 	 * Launch the application.
@@ -91,7 +105,7 @@ public class SettingsForm {
 		JButton btnOpenKnownCerts = new JButton("...");
 		btnOpenKnownCerts.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
-		JCheckBox chckbUsePem = new JCheckBox("PEM Encoding");
+		chckbUsePem = new JCheckBox("PEM Encoding");
 		chckbUsePem.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		GroupLayout gl_panel = new GroupLayout(panel);
 		gl_panel.setHorizontalGroup(
@@ -146,10 +160,10 @@ public class SettingsForm {
 		JLabel lblNewLabel_1_1 = new JLabel("Default Hash Algorithm:");
 		lblNewLabel_1_1.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		JComboBox cmbEncAlgPath = new JComboBox();
+		cmbEncAlgPath = new JComboBox();
 		cmbEncAlgPath.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		JComboBox cmbHashAlgPath = new JComboBox();
+		cmbHashAlgPath = new JComboBox();
 		cmbHashAlgPath.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		GroupLayout gl_panel_1 = new GroupLayout(panel_1);
 		gl_panel_1.setHorizontalGroup(
@@ -195,7 +209,7 @@ public class SettingsForm {
 		JButton btnOpenPKCS11Config = new JButton("...");
 		btnOpenPKCS11Config.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
-		JCheckBox chckbUsePkcs11 = new JCheckBox("USE PKCS#11");
+		chckbUsePkcs11 = new JCheckBox("USE PKCS#11");
 		chckbUsePkcs11.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		GroupLayout gl_panel_2 = new GroupLayout(panel_2);
 		gl_panel_2.setHorizontalGroup(
@@ -230,6 +244,41 @@ public class SettingsForm {
 		);
 		panel_2.setLayout(gl_panel_2);
 		
+		
+		frmHackerinsideEncryptionToolkit.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				save();
+			}
+		});
+		
+		btnOpenKnownCerts.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				openPKCS12(txtbKnownCertsPath);
+			}
+		});
+		
+		btnOpenKeystore.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				openPKCS12(txtbKeyStorePath);
+			}
+		});
+		
+		btnOpenPKCS11Config.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				openPKCS11Config();
+			}
+		});
+		
+		start();
+	}
+	
+	/**
+	 * Method executed when the form opens
+	 */
+	private void start() {
+		loadEncAlgos();
+		loadHashAlgo();
 		loadSettings();
 	}
 	
@@ -240,5 +289,78 @@ public class SettingsForm {
 		txtbKeyStorePath.setText(ctx.getKeyStorePath());
 		txtbKnownCertsPath.setText(ctx.getKnownCertsPath());
 		txtPkcs11ConfPath.setText(ctx.getPkcs11Driver());
+		
+		chckbUsePem.setSelected(ctx.usePEM());
+		chckbUsePkcs11.setSelected(ctx.usePKCS11());
+		
+		cmbEncAlgPath.setSelectedItem(ctx.getCipher());
+		cmbHashAlgPath.setSelectedItem(ctx.getHashAlgorithm());
+	}
+	
+	
+	/**
+	 * Save settings automatically when closing the form
+	 */
+	private void save() {
+		ctx.setKeyStorePath(txtbKeyStorePath.getText());
+		ctx.setKnownCertsPath(txtbKnownCertsPath.getText());
+		ctx.setPkcs11Driver(txtPkcs11ConfPath.getText());
+		ctx.setCipher(((SymmetricAlgorithms) cmbEncAlgPath.getSelectedItem()));
+		ctx.setHashAlgorithm((HashAlgorithm) cmbHashAlgPath.getSelectedItem());
+		ctx.setUsePkcs11(chckbUsePkcs11.isSelected());
+		ctx.setUsePEM(chckbUsePem.isSelected());
+	}
+	
+	/**
+	 * Populates a combo box with all available symmetric algorithms.
+	 */
+	private void loadEncAlgos() {
+		cmbEncAlgPath.removeAllItems();
+	    for (SymmetricAlgorithms alg : SymmetricAlgorithms.values()) {
+	    	cmbEncAlgPath.addItem(alg);
+	    }
+	}
+	
+	/**
+	 * Populates a combo box with all available hash algorithms.
+	 */
+	private void loadHashAlgo() {
+		cmbHashAlgPath.removeAllItems();
+	    for (HashAlgorithm alg : HashAlgorithm.values()) {
+	    	cmbHashAlgPath.addItem(alg);
+	    }
+	}
+	
+	/**
+	 * Dialog for selecting pkcs12 files
+	 * @param txtField the text field where the path is written
+	 */
+	private void openPKCS12(JTextField txtField) {
+	    File file = FileDialogUtils.openFileDialog(
+	            null,
+	            "Select PKCS12 Container",
+	            ".",
+	            DefaultExtensions.CRYPTO_P12,
+	            DefaultExtensions.CRYPTO_PFX
+	    );
+
+	    if (file != null && file.exists() && !file.isDirectory()) {
+	    	txtField.setText(file.getAbsolutePath());
+	    }
+	}
+	
+	/**
+	 * Dialog for selecting the pkcs11 configuration file
+	 */
+	private void openPKCS11Config() {
+	    File file = FileDialogUtils.openFileDialog(
+	            null,
+	            "Select PKCS11 Config file",
+	            "."
+	    );
+
+	    if (file != null && file.exists() && !file.isDirectory()) {
+	    	txtPkcs11ConfPath.setText(file.getAbsolutePath());
+	    }
 	}
 }
