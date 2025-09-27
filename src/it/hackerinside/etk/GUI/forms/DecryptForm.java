@@ -41,10 +41,11 @@ import javax.swing.JProgressBar;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.awt.event.ActionEvent;
+import java.awt.Toolkit;
 
 public class DecryptForm {
 
-	private JFrame frame;
+	private JFrame frmHackerinsideEncryptionToolkit;
 	private JTextField txtbOutputFile;
 	private JComboBox cmbPrivateKey;
 	private JProgressBar progressBar;
@@ -60,7 +61,7 @@ public class DecryptForm {
 			public void run() {
 				try {
 					DecryptForm window = new DecryptForm();
-					window.frame.setVisible(true);
+					window.frmHackerinsideEncryptionToolkit.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -77,26 +78,28 @@ public class DecryptForm {
 	}
 	
 	public void setVisible() {
-		this.frame.setVisible(true);
+		this.frmHackerinsideEncryptionToolkit.setVisible(true);
 	}
 
 	/**
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
-		frame = new JFrame();
-		frame.setResizable(false);
-		frame.setBounds(100, 100, 593, 550);
+		frmHackerinsideEncryptionToolkit = new JFrame();
+		frmHackerinsideEncryptionToolkit.setIconImage(Toolkit.getDefaultToolkit().getImage(DecryptForm.class.getResource("/it/hackerinside/etk/GUI/icons/decrypt.png")));
+		frmHackerinsideEncryptionToolkit.setTitle("HackerInside Encryption Toolkit | Decrypt");
+		frmHackerinsideEncryptionToolkit.setResizable(false);
+		frmHackerinsideEncryptionToolkit.setBounds(100, 100, 593, 550);
 		
 		//frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		JLabel lblNewLabel_1 = new JLabel("DECRYPT");
 		lblNewLabel_1.setHorizontalAlignment(SwingConstants.CENTER);
 		lblNewLabel_1.setFont(new Font("Tahoma", Font.BOLD, 27));
-		frame.getContentPane().add(lblNewLabel_1, BorderLayout.NORTH);
+		frmHackerinsideEncryptionToolkit.getContentPane().add(lblNewLabel_1, BorderLayout.NORTH);
 		
 		JPanel panel = new JPanel();
-		frame.getContentPane().add(panel, BorderLayout.CENTER);
+		frmHackerinsideEncryptionToolkit.getContentPane().add(panel, BorderLayout.CENTER);
 		
 		JLabel lblNewLabel = new JLabel("Private Key");
 		lblNewLabel.setBounds(10, 11, 120, 20);
@@ -186,7 +189,7 @@ public class DecryptForm {
 	        identifyRecipientKeyAsync();
 	    }else {
 	        SwingUtilities.invokeLater(() -> {
-	            frame.dispose();
+	            frmHackerinsideEncryptionToolkit.dispose();
 	        });
 	    }
 	}

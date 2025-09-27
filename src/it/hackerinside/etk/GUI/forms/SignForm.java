@@ -39,6 +39,7 @@ import javax.swing.JProgressBar;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.awt.event.ActionEvent;
+import java.awt.Toolkit;
 
 
 
@@ -90,6 +91,7 @@ public class SignForm {
 	 */
 	private void initialize() {
 		frmSign = new JFrame();
+		frmSign.setIconImage(Toolkit.getDefaultToolkit().getImage(SignForm.class.getResource("/it/hackerinside/etk/GUI/icons/sign.png")));
 		frmSign.setResizable(false);
 		frmSign.setTitle("SIGN");
 		frmSign.setBounds(100, 100, 593, 715);

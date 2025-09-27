@@ -41,10 +41,11 @@ import javax.swing.GroupLayout.Alignment;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import java.awt.Toolkit;
 
 public class VerifyForm {
 
-	private JFrame frame;
+	private JFrame frmHackerinsideEncryptionToolkit;
 	private JLabel lblStatus;
 	private JProgressBar progressBar;
 	private static ETKContext ctx;
@@ -64,7 +65,7 @@ public class VerifyForm {
 			public void run() {
 				try {
 					VerifyForm window = new VerifyForm();
-					window.frame.setVisible(true);
+					window.frmHackerinsideEncryptionToolkit.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -81,26 +82,28 @@ public class VerifyForm {
 	}
 	
 	public void setVisible() {
-		frame.setVisible(true);
+		frmHackerinsideEncryptionToolkit.setVisible(true);
 	}
 
 	/**
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
-	    frame = new JFrame();
-	    frame.setBounds(100, 100, 792, 567);
+	    frmHackerinsideEncryptionToolkit = new JFrame();
+	    frmHackerinsideEncryptionToolkit.setTitle("HackerInside Encryption Toolkit | Verify Digital Signature");
+	    frmHackerinsideEncryptionToolkit.setIconImage(Toolkit.getDefaultToolkit().getImage(VerifyForm.class.getResource("/it/hackerinside/etk/GUI/icons/verify.png")));
+	    frmHackerinsideEncryptionToolkit.setBounds(100, 100, 792, 567);
 	    //frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-	    frame.getContentPane().setLayout(new BorderLayout());
+	    frmHackerinsideEncryptionToolkit.getContentPane().setLayout(new BorderLayout());
 
 	    JLabel lblDigitalSignatureVerification = new JLabel("DIGITAL SIGNATURE VERIFICATION");
 	    lblDigitalSignatureVerification.setHorizontalAlignment(SwingConstants.CENTER);
 	    lblDigitalSignatureVerification.setFont(new Font("Tahoma", Font.BOLD, 27));
-	    frame.getContentPane().add(lblDigitalSignatureVerification, BorderLayout.NORTH);
+	    frmHackerinsideEncryptionToolkit.getContentPane().add(lblDigitalSignatureVerification, BorderLayout.NORTH);
 
 	    splitPane = new JSplitPane();
 	    splitPane.setResizeWeight(0.5);
-	    frame.getContentPane().add(splitPane, BorderLayout.CENTER);
+	    frmHackerinsideEncryptionToolkit.getContentPane().add(splitPane, BorderLayout.CENTER);
 
 	    JPanel panel = new JPanel();
 	    splitPane.setLeftComponent(panel);
@@ -115,7 +118,7 @@ public class VerifyForm {
 
 	    JPanel bottomPanel = new JPanel(null);
 	    bottomPanel.setPreferredSize(new Dimension(100, 100));
-	    frame.getContentPane().add(bottomPanel, BorderLayout.SOUTH);
+	    frmHackerinsideEncryptionToolkit.getContentPane().add(bottomPanel, BorderLayout.SOUTH);
 
 	    btnExportContent = new JButton("EXPORT CONTENT");
 
@@ -190,7 +193,7 @@ public class VerifyForm {
 	    
 	    if(this.fileToVerify == null) {
 	        SwingUtilities.invokeLater(() -> {
-	            frame.dispose();
+	            frmHackerinsideEncryptionToolkit.dispose();
 	        });
 	    }else {
 	    	 verifySignature();

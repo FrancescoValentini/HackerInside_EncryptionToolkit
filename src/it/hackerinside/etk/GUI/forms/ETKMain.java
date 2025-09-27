@@ -9,14 +9,20 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 
 import javax.swing.JMenuBar;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import java.awt.FlowLayout;
+
+import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import java.awt.Font;
+import java.awt.Image;
+
 import javax.swing.JTable;
 import javax.swing.SwingConstants;
 
@@ -37,6 +43,7 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.URL;
 import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
@@ -92,10 +99,10 @@ public class ETKMain {
 	    frmHackerinsideEncryptionToolkit.getContentPane().add(topBarPanel, BorderLayout.NORTH);
 	    topBarPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 12, 12));
 
-	    btnSign = createSquareButton("SIGN");
-	    JButton btnVerify = createSquareButton("VERIFY");
-	    JButton btnEncrypt = createSquareButton("ENCRYPT");
-	    btnDecrypt = createSquareButton("DECRYPT");
+	    btnSign = createSquareButton("SIGN","/it/hackerinside/etk/GUI/icons/sign.png");
+	    JButton btnVerify = createSquareButton("VERIFY","/it/hackerinside/etk/GUI/icons/verify.png");
+	    JButton btnEncrypt = createSquareButton("ENCRYPT","/it/hackerinside/etk/GUI/icons/encrypt.png");
+	    btnDecrypt = createSquareButton("DECRYPT","/it/hackerinside/etk/GUI/icons/decrypt.png");
 
 	    topBarPanel.add(btnSign);
 	    topBarPanel.add(btnVerify);
@@ -349,24 +356,38 @@ public class ETKMain {
 	}
 
 	/**
-	 * Creates a square button with text below and an optional icon above.
-	 * The button is configured with square dimensions and centered text layout.
+	 * Creates a square button with specified text and icon.
+	 * The button features a fixed size, custom font, and icon positioned above the text.
 	 * 
-	 * @param text the text to display on the button
-	 * @return a configured JButton with square dimensions and centered text layout
+	 * @param text The display text to be shown below the icon on the button
+	 * @param iconPath The resource path to the icon image file
+	 * @return A configured JButton with icon and text layout
+	 * @throws NullPointerException if the text parameter is null
 	 */
-	private JButton createSquareButton(String text) {
+	private JButton createSquareButton(String text, String iconPath) {
 	    JButton button = new JButton(text);
-	    button.setPreferredSize(new Dimension(110, 110)); // Square dimensions
-	    button.setFont(new Font("Arial", Font.PLAIN, 16)); // Subtle font
+	    button.setPreferredSize(new Dimension(110, 110));
+	    button.setFont(new Font("Arial", Font.PLAIN, 14));
 	    button.setFocusPainted(false);
 
-	    // Configure for potential icon above + text below layout
+	    // Layout: icon on top, text below
 	    button.setHorizontalTextPosition(SwingConstants.CENTER);
 	    button.setVerticalTextPosition(SwingConstants.BOTTOM);
 
+	    // Load and resize icon
+	    URL iconURL = getClass().getResource(iconPath);
+	    if (iconURL != null) {
+	        ImageIcon rawIcon = new ImageIcon(iconURL);
+	        // Scale image maintaining proportions
+	        Image scaledImage = rawIcon.getImage().getScaledInstance(48, 48, Image.SCALE_SMOOTH);
+	        button.setIcon(new ImageIcon(scaledImage));
+	    } else {
+	        System.err.println("Icon not found: " + iconPath);
+	    }
+
 	    return button;
 	}
+
 
 	/**
 	 * Initiates the main procedure by unlocking the keystore.

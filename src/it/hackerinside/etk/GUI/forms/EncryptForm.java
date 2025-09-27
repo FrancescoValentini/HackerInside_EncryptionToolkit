@@ -42,6 +42,7 @@ import java.awt.Color;
 import javax.swing.JProgressBar;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import java.awt.Toolkit;
 
 public class EncryptForm {
 
@@ -92,8 +93,9 @@ public class EncryptForm {
 	 */
 	private void initialize() {
 		frmEncrypt = new JFrame();
+		frmEncrypt.setIconImage(Toolkit.getDefaultToolkit().getImage(EncryptForm.class.getResource("/it/hackerinside/etk/GUI/icons/encrypt.png")));
 		frmEncrypt.setResizable(false);
-		frmEncrypt.setTitle("Encrypt");
+		frmEncrypt.setTitle("HackerInside Encryption Toolkit | Encrypt");
 		frmEncrypt.setBounds(100, 100, 593, 715);
 		
 		JLabel lblNewLabel = new JLabel("ENCRYPT");
