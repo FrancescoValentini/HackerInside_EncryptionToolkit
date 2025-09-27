@@ -15,6 +15,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
 import it.hackerinside.etk.GUI.CertificateDetailsPanel;
@@ -160,7 +161,7 @@ public class VerifyForm {
 	    });
 	    
 	    if(this.fileToVerify == null) selectInputFile();
-	    verifySignature();
+	   
 	}
 	
 	/**
@@ -186,6 +187,14 @@ public class VerifyForm {
 	            DefaultExtensions.CRYPTO_P7M,
 	            DefaultExtensions.CRYPTO_P7S
 	    );
+	    
+	    if(this.fileToVerify == null) {
+	        SwingUtilities.invokeLater(() -> {
+	            frame.dispose();
+	        });
+	    }else {
+	    	 verifySignature();
+	    }
 	}
 
 	/**

@@ -16,6 +16,7 @@ import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 import java.util.concurrent.ExecutionException;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
 import it.hackerinside.etk.GUI.DialogUtils;
@@ -94,7 +95,6 @@ public class EncryptForm {
 		frmEncrypt.setResizable(false);
 		frmEncrypt.setTitle("Encrypt");
 		frmEncrypt.setBounds(100, 100, 593, 715);
-		//frmEncrypt.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		JLabel lblNewLabel = new JLabel("ENCRYPT");
 		lblNewLabel.setHorizontalAlignment(SwingConstants.CENTER);
@@ -304,6 +304,10 @@ public class EncryptForm {
 	    this.plaintextFile = selectInputFile();
 	    if (this.plaintextFile != null) {
 	        createOutputFilePath();
+	    }else {
+	        SwingUtilities.invokeLater(() -> {
+	            frmEncrypt.dispose();
+	        });
 	    }
 	}
 

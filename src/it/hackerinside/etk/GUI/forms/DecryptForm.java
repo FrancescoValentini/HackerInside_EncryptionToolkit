@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.JPanel;
 import javax.swing.ComboBoxModel;
@@ -183,6 +184,10 @@ public class DecryptForm {
 	        createOutputFilePath();
 	        populaterCerts(cmbPrivateKey);
 	        identifyRecipientKeyAsync();
+	    }else {
+	        SwingUtilities.invokeLater(() -> {
+	            frame.dispose();
+	        });
 	    }
 	}
 	

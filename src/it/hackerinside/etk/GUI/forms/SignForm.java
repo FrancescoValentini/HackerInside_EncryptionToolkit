@@ -33,6 +33,7 @@ import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.HashAlgorithm;
 import javax.swing.JCheckBox;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.JProgressBar;
 import java.awt.event.ActionListener;
@@ -372,6 +373,10 @@ public class SignForm {
 	    this.fileToSign = selectInputFile();
 	    if (this.fileToSign != null) {
 	        createOutputFilePath();
+	    }else {
+	        SwingUtilities.invokeLater(() -> {
+	            frmSign.dispose();
+	        });
 	    }
 	}
 
