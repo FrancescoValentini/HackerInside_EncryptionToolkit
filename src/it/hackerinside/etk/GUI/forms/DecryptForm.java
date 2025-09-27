@@ -84,7 +84,9 @@ public class DecryptForm {
 	 */
 	private void initialize() {
 		frame = new JFrame();
-		frame.setBounds(100, 100, 752, 511);
+		frame.setResizable(false);
+		frame.setBounds(100, 100, 593, 550);
+		
 		//frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		JLabel lblNewLabel_1 = new JLabel("DECRYPT");
@@ -96,99 +98,47 @@ public class DecryptForm {
 		frame.getContentPane().add(panel, BorderLayout.CENTER);
 		
 		JLabel lblNewLabel = new JLabel("Private Key");
+		lblNewLabel.setBounds(10, 11, 120, 20);
 		lblNewLabel.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		cmbPrivateKey = new JComboBox();
+		cmbPrivateKey.setBounds(10, 42, 451, 25);
 		cmbPrivateKey.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		JButton btnCertDetails = new JButton("DETAILS");
+		btnCertDetails.setBounds(471, 42, 95, 25);
 
 		btnCertDetails.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		JButton btnOpenOutputFile = new JButton("...");
+		btnOpenOutputFile.setBounds(471, 148, 95, 25);
 
 		btnOpenOutputFile.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		txtbOutputFile = new JTextField();
+		txtbOutputFile.setBounds(10, 147, 451, 26);
 		txtbOutputFile.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		txtbOutputFile.setColumns(10);
 		
 		JLabel lblInputFile = new JLabel("Output File");
+		lblInputFile.setBounds(10, 116, 120, 20);
 		lblInputFile.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		JButton btnDecrypt = new JButton("DECRYPT");
+		btnDecrypt.setBounds(200, 236, 176, 55);
 
 		btnDecrypt.setFont(new Font("Tahoma", Font.BOLD, 18));
 		
 		progressBar = new JProgressBar();
+		progressBar.setBounds(106, 329, 364, 26);
 		progressBar.setIndeterminate(true);
 		progressBar.setEnabled(false);
 		progressBar.setVisible(false);
 		
 		lblStatus = new JLabel("");
+		lblStatus.setBounds(162, 392, 253, 31);
 		lblStatus.setHorizontalAlignment(SwingConstants.CENTER);
 		lblStatus.setFont(new Font("Tahoma", Font.PLAIN, 16));
-		GroupLayout gl_panel = new GroupLayout(panel);
-		gl_panel.setHorizontalGroup(
-			gl_panel.createParallelGroup(Alignment.TRAILING)
-				.addGroup(gl_panel.createSequentialGroup()
-					.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-						.addGroup(gl_panel.createSequentialGroup()
-							.addContainerGap()
-							.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-								.addComponent(lblNewLabel, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE)
-								.addGroup(gl_panel.createSequentialGroup()
-									.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-										.addGroup(gl_panel.createSequentialGroup()
-											.addComponent(txtbOutputFile, GroupLayout.DEFAULT_SIZE, 523, Short.MAX_VALUE)
-											.addGap(18))
-										.addGroup(gl_panel.createSequentialGroup()
-											.addComponent(cmbPrivateKey, 0, 523, Short.MAX_VALUE)
-											.addGap(18)))
-									.addGroup(gl_panel.createParallelGroup(Alignment.TRAILING, false)
-										.addComponent(btnCertDetails, GroupLayout.DEFAULT_SIZE, 95, Short.MAX_VALUE)
-										.addComponent(btnOpenOutputFile, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-								.addComponent(lblInputFile, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE)))
-						.addGroup(gl_panel.createSequentialGroup()
-							.addGap(240)
-							.addComponent(btnDecrypt, GroupLayout.DEFAULT_SIZE, 176, Short.MAX_VALUE)
-							.addGap(230)))
-					.addContainerGap())
-				.addGroup(gl_panel.createSequentialGroup()
-					.addGap(146)
-					.addComponent(progressBar, GroupLayout.DEFAULT_SIZE, 364, Short.MAX_VALUE)
-					.addGap(146))
-				.addGroup(gl_panel.createSequentialGroup()
-					.addGap(202)
-					.addComponent(lblStatus, GroupLayout.DEFAULT_SIZE, 253, Short.MAX_VALUE)
-					.addGap(201))
-		);
-		gl_panel.setVerticalGroup(
-			gl_panel.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_panel.createSequentialGroup()
-					.addContainerGap()
-					.addGroup(gl_panel.createParallelGroup(Alignment.TRAILING)
-						.addGroup(Alignment.LEADING, gl_panel.createSequentialGroup()
-							.addComponent(lblNewLabel, GroupLayout.PREFERRED_SIZE, 20, GroupLayout.PREFERRED_SIZE)
-							.addGap(11)
-							.addComponent(cmbPrivateKey, GroupLayout.DEFAULT_SIZE, 28, Short.MAX_VALUE))
-						.addComponent(btnCertDetails))
-					.addGap(29)
-					.addGroup(gl_panel.createParallelGroup(Alignment.TRAILING)
-						.addGroup(gl_panel.createSequentialGroup()
-							.addComponent(lblInputFile, GroupLayout.PREFERRED_SIZE, 20, GroupLayout.PREFERRED_SIZE)
-							.addGap(11)
-							.addComponent(txtbOutputFile, GroupLayout.PREFERRED_SIZE, 26, GroupLayout.PREFERRED_SIZE))
-						.addComponent(btnOpenOutputFile, GroupLayout.PREFERRED_SIZE, 25, GroupLayout.PREFERRED_SIZE))
-					.addGap(63)
-					.addComponent(btnDecrypt, GroupLayout.PREFERRED_SIZE, 55, GroupLayout.PREFERRED_SIZE)
-					.addGap(38)
-					.addComponent(progressBar, GroupLayout.PREFERRED_SIZE, 26, GroupLayout.PREFERRED_SIZE)
-					.addGap(37)
-					.addComponent(lblStatus)
-					.addContainerGap(234, Short.MAX_VALUE))
-		);
-		panel.setLayout(gl_panel);
 		
 		btnCertDetails.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -209,6 +159,16 @@ public class DecryptForm {
 		});
 		
 		populaterCerts(cmbPrivateKey);
+		panel.setLayout(null);
+		panel.add(lblNewLabel);
+		panel.add(txtbOutputFile);
+		panel.add(cmbPrivateKey);
+		panel.add(btnCertDetails);
+		panel.add(btnOpenOutputFile);
+		panel.add(lblInputFile);
+		panel.add(btnDecrypt);
+		panel.add(progressBar);
+		panel.add(lblStatus);
 		if(this.fileToDecrypt == null) fileInitialization();
 	}
 	

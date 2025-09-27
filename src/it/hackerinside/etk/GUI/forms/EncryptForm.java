@@ -91,6 +91,7 @@ public class EncryptForm {
 	 */
 	private void initialize() {
 		frmEncrypt = new JFrame();
+		frmEncrypt.setResizable(false);
 		frmEncrypt.setTitle("Encrypt");
 		frmEncrypt.setBounds(100, 100, 593, 715);
 		//frmEncrypt.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
