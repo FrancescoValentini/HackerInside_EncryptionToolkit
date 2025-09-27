@@ -1,4 +1,4 @@
-package it.hackerinside.etk.GUI;
+package it.hackerinside.etk.GUI.forms;
 
 import java.awt.EventQueue;
 
@@ -26,6 +26,9 @@ import javax.swing.JComboBox;
 import javax.swing.JButton;
 import javax.swing.JTextField;
 
+import it.hackerinside.etk.GUI.DialogUtils;
+import it.hackerinside.etk.GUI.ETKContext;
+import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.core.Encryption.CMSCryptoUtils;
 import it.hackerinside.etk.core.Encryption.CMSDecryptor;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
@@ -82,7 +85,7 @@ public class DecryptForm {
 	private void initialize() {
 		frame = new JFrame();
 		frame.setBounds(100, 100, 752, 511);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		//frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		JLabel lblNewLabel_1 = new JLabel("DECRYPT");
 		lblNewLabel_1.setHorizontalAlignment(SwingConstants.CENTER);

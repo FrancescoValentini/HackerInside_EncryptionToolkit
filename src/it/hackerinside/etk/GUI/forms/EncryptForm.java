@@ -1,4 +1,4 @@
-package it.hackerinside.etk.GUI;
+package it.hackerinside.etk.GUI.forms;
 
 import java.awt.EventQueue;
 
@@ -17,6 +17,10 @@ import java.util.Enumeration;
 import java.util.concurrent.ExecutionException;
 import javax.swing.SwingConstants;
 import javax.swing.SwingWorker;
+
+import it.hackerinside.etk.GUI.DialogUtils;
+import it.hackerinside.etk.GUI.ETKContext;
+import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
 import it.hackerinside.etk.core.Encryption.CMSEncryptor;
@@ -89,7 +93,7 @@ public class EncryptForm {
 		frmEncrypt = new JFrame();
 		frmEncrypt.setTitle("Encrypt");
 		frmEncrypt.setBounds(100, 100, 593, 715);
-		frmEncrypt.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		//frmEncrypt.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		JLabel lblNewLabel = new JLabel("ENCRYPT");
 		lblNewLabel.setHorizontalAlignment(SwingConstants.CENTER);

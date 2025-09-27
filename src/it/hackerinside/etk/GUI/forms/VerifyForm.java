@@ -1,4 +1,4 @@
-package it.hackerinside.etk.GUI;
+package it.hackerinside.etk.GUI.forms;
 
 import java.awt.EventQueue;
 
@@ -17,6 +17,10 @@ import java.util.concurrent.ExecutionException;
 import javax.swing.SwingConstants;
 import javax.swing.SwingWorker;
 
+import it.hackerinside.etk.GUI.CertificateDetailsPanel;
+import it.hackerinside.etk.GUI.DialogUtils;
+import it.hackerinside.etk.GUI.ETKContext;
+import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.core.CAdES.CAdESUtils;
 import it.hackerinside.etk.core.CAdES.CAdESVerifier;
 import it.hackerinside.etk.core.Models.DefaultExtensions;

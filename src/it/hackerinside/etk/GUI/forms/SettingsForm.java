@@ -1,4 +1,4 @@
-package it.hackerinside.etk.GUI;
+package it.hackerinside.etk.GUI.forms;
 
 import java.awt.EventQueue;
 
@@ -13,6 +13,8 @@ import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.LayoutStyle.ComponentPlacement;
 
+import it.hackerinside.etk.GUI.ETKContext;
+import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.HashAlgorithm;
 import it.hackerinside.etk.core.Models.SymmetricAlgorithms;

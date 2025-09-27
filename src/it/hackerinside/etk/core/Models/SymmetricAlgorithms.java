@@ -2,6 +2,7 @@ package it.hackerinside.etk.core.Models;
 
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.nist.NISTObjectIdentifiers;
+import org.bouncycastle.cms.CMSAlgorithm;
 
 /**
  * Enumeration of supported symmetric encryption algorithms.
@@ -11,31 +12,20 @@ import org.bouncycastle.asn1.nist.NISTObjectIdentifiers;
  * @author Francesco Valentini
  */
 public enum SymmetricAlgorithms {
-    
     /** AES 128-bit key with CBC (Cipher Block Chaining) mode */
-    AES_128_CBC("AES-128-CBC", NISTObjectIdentifiers.id_aes128_CBC),
-    
-    /** AES 128-bit key with CFB (Cipher Feedback) mode */
-    AES_128_CFB("AES-128-CFB", NISTObjectIdentifiers.id_aes128_CFB),
+    AES_128_CBC("AES-128-CBC", CMSAlgorithm.AES128_CBC),
     
     /** AES 128-bit key with GCM (Galois/Counter Mode) mode */
-    AES_128_GCM("AES-128-GCM", NISTObjectIdentifiers.id_aes128_GCM),
-    
-    /** AES 128-bit key with CCM (Counter with CBC-MAC) mode */
-    AES_128_CCM("AES-128-CCM", NISTObjectIdentifiers.id_aes128_CCM),
+    AES_128_GCM("AES-128-GCM", CMSAlgorithm.AES128_GCM),
     
     /** AES 256-bit key with CBC (Cipher Block Chaining) mode */
-    AES_256_CBC("AES-256-CBC", NISTObjectIdentifiers.id_aes256_CBC),
-    
-    /** AES 256-bit key with CFB (Cipher Feedback) mode */
-    AES_256_CFB("AES-256-CFB", NISTObjectIdentifiers.id_aes256_CFB),
+    AES_256_CBC("AES-256-CBC", CMSAlgorithm.AES256_CBC),
     
     /** AES 256-bit key with GCM (Galois/Counter Mode) mode */
-    AES_256_GCM("AES-256-GCM", NISTObjectIdentifiers.id_aes256_GCM),
+    AES_256_GCM("AES-256-GCM", CMSAlgorithm.AES256_GCM),
     
-    /** AES 256-bit key with CCM (Counter with CBC-MAC) mode */
-    AES_256_CCM("AES-256-CCM", NISTObjectIdentifiers.id_aes256_CCM);
-
+    /** ChaCha20 with Poly1305 (AEAD mode) */
+    CHACHA20_POLY1305("ChaCha20-Poly1305", CMSAlgorithm.ChaCha20Poly1305);
     
     /**
      * The algorithm name as a string.
@@ -119,7 +109,12 @@ public enum SymmetricAlgorithms {
      * @return the key size in bits
      */
     public int keySize() {
-        return Integer.parseInt(algorithm.split("-")[1]);
+        if (algorithm.startsWith("AES-")) {
+            return Integer.parseInt(algorithm.split("-")[1]);
+        } else if (algorithm.startsWith("ChaCha20")) {
+            return 256; // ChaCha20 always uses 256-bit keys
+        }
+        throw new IllegalStateException("Unknown key size for algorithm: " + algorithm);
     }
     
     

@@ -1,4 +1,4 @@
-package it.hackerinside.etk.GUI;
+package it.hackerinside.etk.GUI.forms;
 
 import java.awt.EventQueue;
 
@@ -24,6 +24,9 @@ import javax.swing.JButton;
 import javax.swing.JTextField;
 import javax.swing.border.TitledBorder;
 
+import it.hackerinside.etk.GUI.DialogUtils;
+import it.hackerinside.etk.GUI.ETKContext;
+import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.core.CAdES.CAdESSigner;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;

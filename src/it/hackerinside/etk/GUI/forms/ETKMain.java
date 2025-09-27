@@ -1,4 +1,4 @@
-package it.hackerinside.etk.GUI;
+package it.hackerinside.etk.GUI.forms;
 
 import java.awt.EventQueue;
 
@@ -20,6 +20,9 @@ import java.awt.Font;
 import javax.swing.JTable;
 import javax.swing.SwingConstants;
 
+import it.hackerinside.etk.GUI.DialogUtils;
+import it.hackerinside.etk.GUI.ETKContext;
+import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableModel;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
 import it.hackerinside.etk.GUI.DTOs.KeysLocations;
