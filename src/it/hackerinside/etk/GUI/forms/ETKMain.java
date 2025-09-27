@@ -374,8 +374,14 @@ public class ETKMain {
 	 * the keystore and then updating the certificate table.
 	 */
 	private void startProcedure() {
-	    unlockKeystore();
-	    updateTable();
+		
+		if(!new File(ctx.getKnownCertsPath()).exists()  || !ctx.usePKCS11() && !new File(ctx.getKeyStorePath()).exists()) {
+			SetupForm setup = new SetupForm();
+			setup.setVisible();
+		}else {
+		    unlockKeystore();
+		    updateTable();
+		}
 	}
 
 	/**
