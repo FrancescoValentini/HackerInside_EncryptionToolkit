@@ -28,6 +28,8 @@ import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
 import it.hackerinside.etk.GUI.DTOs.KeysLocations;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
+import it.hackerinside.etk.core.keystore.AbstractKeystore;
+import it.hackerinside.etk.core.keystore.PKCS12Keystore;
 
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -36,6 +38,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.security.KeyStoreException;
+import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -129,8 +132,8 @@ public class ETKMain {
 	    JMenuItem menuItemImportKnownCert = new JMenuItem("Import certificate");
 	    mnNewMenu.add(menuItemImportKnownCert);
 	    
-	    JMenuItem mntmNewMenuItem_3 = new JMenuItem("Import KeyPair");
-	    mnNewMenu.add(mntmNewMenuItem_3);
+	    JMenuItem menuItemImportKeypair = new JMenuItem("Import KeyPair");
+	    mnNewMenu.add(menuItemImportKeypair);
 
 	    btnSign.addActionListener(new ActionListener() {
 	        public void actionPerformed(ActionEvent e) {
@@ -190,6 +193,12 @@ public class ETKMain {
 	    settingsMenuItem.addActionListener(new ActionListener() {
 	    	public void actionPerformed(ActionEvent e) {
 	    		settings();
+	    	}
+	    });
+	    
+	    menuItemImportKeypair.addActionListener(new ActionListener() {
+	    	public void actionPerformed(ActionEvent e) {
+	    		importKeypair();
 	    	}
 	    });
 	    
@@ -264,6 +273,7 @@ public class ETKMain {
 
 	    startProcedure();
 	}
+
 
 	/**
 	 * Deletes a certificate from the appropriate keystore based on its location.
@@ -515,6 +525,60 @@ public class ETKMain {
 	    updateTable();
 	    showCertificateInformation(cert);
 	}	
+	
+	/**
+	 * Imports key pairs from an external keystore file into the application's current keystore.
+	 */
+	private void importKeypair() {
+		if(ctx.usePKCS11()) {
+            DialogUtils.showMessageBox(null, "Error importing Keys!", "Importing keys into PKCS11 devices is not supported","", 
+	                JOptionPane.ERROR_MESSAGE);
+            return;
+		}
+	    File sourceKeystore = FileDialogUtils.openFileDialog(
+		        null,
+		        "Import KeyPairs",
+		        ".",
+		        DefaultExtensions.CRYPTO_PFX,
+		        DefaultExtensions.CRYPTO_P12
+		    );
+	    
+	    if(sourceKeystore != null) {
+		    String password = DialogUtils.showInputBox(
+			        null,
+			        "Unlock Keystore",
+			        sourceKeystore.getName(),
+			        "Password:",
+			        true
+			    );
+	    	AbstractKeystore src = new PKCS12Keystore(sourceKeystore, password.toCharArray());
+	    	try {
+	    		src.load();
+				List<String> aliases = Collections.list(src.listAliases());
+				for(String alias : aliases) {
+				    String keyPwd = DialogUtils.showInputBox(
+					        null,
+					        "Unlock Private key",
+					        alias,
+					        "Password:",
+					        true
+					    );
+				    
+				    X509Certificate crt = src.getCertificate(alias);
+				    PrivateKey key = src.getPrivateKey(alias, keyPwd.toCharArray());
+				    ctx.getKeystore().addPrivateKey(alias, key, keyPwd.toCharArray(), new X509Certificate[] {crt});
+				    ctx.getKeystore().save();
+				}
+				
+			} catch (Exception e) {
+				e.printStackTrace();
+	            DialogUtils.showMessageBox(null, "Error importing Keys!", "Error importing Keys!", 
+		                e.getMessage(), 
+		                JOptionPane.ERROR_MESSAGE);
+			}
+	    }
+	    updateTable();
+	}
 	/**
 	 * Opens the digital signature form
 	 */
