@@ -345,6 +345,14 @@ public class VerifyForm {
 	            } catch (Exception e) {
 	                e.printStackTrace();
 	                finishVerificationUI(null);
+	                DialogUtils.showMessageBox(
+	                        null,
+	                        "Verification failed",
+	                        "Error during verification!",
+	                        e.getMessage(),
+	                        JOptionPane.ERROR_MESSAGE
+	                );
+	                setStatusText("Verification failed.", Color.RED);
 	            }
 	        }
 	    };

@@ -9,7 +9,6 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Dimension;
 
 import javax.swing.JMenuBar;
@@ -17,7 +16,6 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import java.awt.FlowLayout;
 
-import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import java.awt.Font;
