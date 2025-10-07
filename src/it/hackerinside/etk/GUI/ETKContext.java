@@ -21,6 +21,9 @@ import it.hackerinside.etk.core.keystore.PKCS12Keystore;
  * @author Francesco Valentini
  */
 public class ETKContext {
+	
+	public static final String ETK_VERSION = "1.0.0";
+	
     /**
      * Singleton instance of ETKContext.
      */
@@ -296,4 +299,15 @@ public class ETKContext {
         preferences.put(ApplicationPreferences.USE_PKCS11.getKey(), Boolean.toString(usePkcs11));
     }
 
+    
+    
+	@Override
+	public String toString() {
+		return "ETKContext\n    - keystore=" + keystore + "\n    - knownCerts=" + knownCerts + "\n    - preferences=" + preferences
+				+ "\n    - getKeyStorePath()=" + getKeyStorePath() + "\n    - getKnownCertsPath()=" + getKnownCertsPath()
+				+ "\n    - getHashAlgorithm()=" + getHashAlgorithm() + "\n    - getCipher()=" + getCipher() + "\n    - getPkcs11Driver()="
+				+ getPkcs11Driver() + "\n    - usePKCS11()=" + usePKCS11() + "\n    - usePEM()=" + usePEM() + "";
+	}
+    
+    
 }

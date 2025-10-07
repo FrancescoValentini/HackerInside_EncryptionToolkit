@@ -127,6 +127,9 @@ public class ETKMain {
 	    JMenuItem settingsMenuItem = new JMenuItem("Settings");
 	    fileMenu.add(settingsMenuItem);
 	    
+	    JMenuItem mntmAbout = new JMenuItem("About");
+	    fileMenu.add(mntmAbout);
+	    
 	    JMenu mnNewMenu = new JMenu("Certificates");
 	    menuBar.add(mnNewMenu);
 	    
@@ -204,6 +207,12 @@ public class ETKMain {
 	    menuItemImportKeypair.addActionListener(new ActionListener() {
 	    	public void actionPerformed(ActionEvent e) {
 	    		importKeypair();
+	    	}
+	    });
+	    
+	    mntmAbout.addActionListener(new ActionListener() {
+	    	public void actionPerformed(ActionEvent e) {
+	    		about();
 	    	}
 	    });
 	    
@@ -639,9 +648,15 @@ public class ETKMain {
 	/**
 	 * Opens the settings form
 	 */
-	protected void settings() {
+	private void settings() {
 		SettingsForm settfrm = new SettingsForm();
 		settfrm.setVisible();
+		
+	}
+	
+	private void about() {
+		AboutForm abf = new AboutForm();
+		abf.setVisible();
 		
 	}
 }
