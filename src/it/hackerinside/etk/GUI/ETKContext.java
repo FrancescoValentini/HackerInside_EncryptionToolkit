@@ -120,8 +120,6 @@ public class ETKContext {
      * 
      * NOTE:
      * This PKCS12 keystore only contains public certificates (no private keys).
-     * The password "publicnopass" is used only to satisfy the PKCS#12 format requirement.
-     * It does NOT provide any security or confidentiality.
      *
      * @param path the file system path to the known certificates keystore
      * @throws Exception if loading the keystore fails
