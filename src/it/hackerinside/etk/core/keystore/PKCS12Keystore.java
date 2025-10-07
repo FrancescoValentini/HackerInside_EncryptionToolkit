@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.security.KeyStore;
+import java.security.Security;
 import java.util.Objects;
 
 import it.hackerinside.etk.core.Models.SupportedKeystores;
@@ -38,6 +39,7 @@ public class PKCS12Keystore extends AbstractKeystore {
     	super(SupportedKeystores.PKCS12);
         this.file = new File(filePath);
         this.password = password;
+        
     }
     
     /**
@@ -56,6 +58,7 @@ public class PKCS12Keystore extends AbstractKeystore {
 
     @Override
     public void load() throws Exception {
+
         keyStore = KeyStore.getInstance("PKCS12");
         // If file doesn't exist, initialize an empty keystore
         if (!file.exists()) {
@@ -69,6 +72,7 @@ public class PKCS12Keystore extends AbstractKeystore {
 
     @Override
     public void save() throws Exception {
+
         try (FileOutputStream fos = new FileOutputStream(file)) {
             keyStore.store(fos, password);
         }

@@ -133,7 +133,7 @@ public class SetupForm {
 
         // Step 4: Final confirmation
         JPanel finalPanel = new JPanel(new BorderLayout());
-        JLabel finalLabel = new JLabel("Setup completed successfully!", SwingConstants.CENTER);
+        JLabel finalLabel = new JLabel("<html>\r\n\r\n<center>\r\n<b>\r\nSetup complete!\r\n</b>\r\n</center>\r\n</html>", SwingConstants.CENTER);
         finalLabel.setFont(new Font("Tahoma", Font.PLAIN, 16));
         finalPanel.add(finalLabel, BorderLayout.CENTER);
 

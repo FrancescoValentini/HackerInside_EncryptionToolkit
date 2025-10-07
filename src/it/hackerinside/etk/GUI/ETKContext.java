@@ -73,6 +73,7 @@ public class ETKContext {
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
             Security.addProvider(new BouncyCastleProvider());
         }
+        enforceKeystoreSecurityParameters();
 		try {
 		    UIManager.setLookAndFeel( new FlatMacDarkLaf() );
 		} catch( Exception ex ) {
@@ -88,15 +89,48 @@ public class ETKContext {
     }
     
     /**
+     * Enforces secure PKCS#12 keystore parameters globally for the current JVM.
+     * <p>
+     * This method sets the following security properties:
+     * <ul>
+     *     <li>{@code keystore.pkcs12.keyProtectionAlgorithm} = PBEWithHmacSHA256AndAES_256</li>
+     *     <li>{@code keystore.pkcs12.certProtectionAlgorithm} = PBEWithHmacSHA256AndAES_256</li>
+     *     <li>{@code keystore.pkcs12.macAlgorithm} = HmacPBESHA256</li>
+     *     <li>{@code keystore.pkcs12.keyPbeIterationCount} = 100000</li>
+     *     <li>{@code keystore.pkcs12.certPbeIterationCount} = 100000</li>
+     * </ul>
+     * <p>
+     * These settings ensure that any PKCS#12 keystore created or loaded by the JVM
+     * will use AES-256 encryption with HMAC-SHA256 for integrity, and a high
+     * iteration count for key derivation, providing strong protection against brute-force attacks.
+     * <p>
+     * <b>Important:</b> This method must be called <em>before</em> any call to
+     * {@code KeyStore.getInstance("PKCS12")} or keystore loading/saving
+     */
+    private void enforceKeystoreSecurityParameters() {
+    	Security.setProperty("keystore.pkcs12.keyProtectionAlgorithm","PBEWithHmacSHA256AndAES_256");
+    	Security.setProperty("keystore.pkcs12.certProtectionAlgorithm","PBEWithHmacSHA256AndAES_256");
+    	Security.setProperty("keystore.pkcs12.macAlgorithm","HmacPBESHA256");
+    	Security.setProperty("keystore.pkcs12.keyPbeIterationCount","100000");
+    	Security.setProperty("keystore.pkcs12.certPbeIterationCount","100000");
+    }
+    
+    /**
      * Initializes or loads the known certificates keystore from the specified path.
      * 
+     * NOTE:
+     * This PKCS12 keystore only contains public certificates (no private keys).
+     * The password "publicnopass" is used only to satisfy the PKCS#12 format requirement.
+     * It does NOT provide any security or confidentiality.
+     *
      * @param path the file system path to the known certificates keystore
      * @throws Exception if loading the keystore fails
      */
     private void initOrLoadKnownCerts(String path) throws Exception {
-        this.knownCerts = new PKCS12Keystore(path,"".toCharArray());
+        this.knownCerts = new PKCS12Keystore(path, "".toCharArray());
         knownCerts.load();
     }
+
 
     /**
      * Loads the main keystore using the provided password.
