@@ -1,4 +1,9 @@
 # HackerInside EncryptionToolkit
+<p align="center">
+<img src="resources/it/hackerinside/etk/GUI/icons/app_icon.png" width="300" height="300"/>
+</p>
+
+---
 [🇺🇸 English Version](README-en.md)
 
 **HackerInside EncryptionToolkit** è un software per la cifratura e la firma digitale basato sullo standard **CMS (Cryptographic Message Syntax)**.
