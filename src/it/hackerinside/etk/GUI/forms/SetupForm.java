@@ -10,7 +10,6 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
 
 import org.bouncycastle.asn1.x500.X500Name;
@@ -102,6 +101,7 @@ public class SetupForm {
 	 */
     private void initialize() {
         frame = new JFrame("Setup Wizard");
+        frame.setAlwaysOnTop(true);
         frame.setResizable(false);
         frame.setBounds(100, 100, 715, 558);
         frame.getContentPane().setLayout(new BorderLayout());
@@ -133,7 +133,7 @@ public class SetupForm {
 
         // Step 4: Final confirmation
         JPanel finalPanel = new JPanel(new BorderLayout());
-        JLabel finalLabel = new JLabel("<html>\r\n\r\n<center>\r\n<b>\r\nSetup complete!\r\n</b>\r\n</center>\r\n</html>", SwingConstants.CENTER);
+        JLabel finalLabel = new JLabel("<html>\r\n\r\n<center>\r\n<b>\r\nSetup complete!\r\n</b><br /><br />\r\nLog in to the keystore or restart the program to load the keys correctly\r\n</center>\r\n</html>", SwingConstants.CENTER);
         finalLabel.setFont(new Font("Tahoma", Font.PLAIN, 16));
         finalPanel.add(finalLabel, BorderLayout.CENTER);
 
@@ -340,6 +340,13 @@ public class SetupForm {
      */
     private void updateStep() {
         cardLayout.show(cardPanel, "Step" + currentStep);
+        
+        // Ability or disability text boxes for generating certificates
+    	txtbCommonName.setEnabled(!chckbPkcs11.isSelected());
+    	txtbCountryCode.setEnabled(!chckbPkcs11.isSelected());
+    	txtbStateName.setEnabled(!chckbPkcs11.isSelected());
+    	spinnerExpDays.setEnabled(!chckbPkcs11.isSelected());
+
         btnBack.setEnabled(currentStep > 0);
         if (currentStep == 3) {
             btnNext.setText("Finish");
