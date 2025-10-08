@@ -35,7 +35,10 @@ public class DialogUtils {
 	    panel.add(headerLabel, BorderLayout.NORTH);
 	    panel.add(scrollPane, BorderLayout.CENTER);
 
-	    JOptionPane.showMessageDialog(parent, panel, title, messageType);
+        JOptionPane optionPane = new JOptionPane(panel, messageType, JOptionPane.DEFAULT_OPTION);
+        JDialog dialog = optionPane.createDialog(parent, title);
+        dialog.setAlwaysOnTop(true); 
+        dialog.setVisible(true);
 	}
 
 	/**
@@ -65,16 +68,21 @@ public class DialogUtils {
 	    panel.add(headerLabel, BorderLayout.NORTH);
 	    panel.add(inputPanel, BorderLayout.CENTER);
 
-	    int result = JOptionPane.showConfirmDialog(parent, panel, title,
-	            JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+        JOptionPane optionPane = new JOptionPane(panel, JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION);
+        JDialog dialog = optionPane.createDialog(parent, title);
+        dialog.setAlwaysOnTop(true);
+        dialog.setVisible(true);
 
-	    if (result == JOptionPane.OK_OPTION) {
-	        if (password) {
-	            return new String(((JPasswordField) inputField).getPassword());
-	        } else {
-	            return ((JTextField) inputField).getText();
-	        }
-	    }
-	    return null;
+        Object selectedValue = optionPane.getValue();
+        int result = (selectedValue instanceof Integer) ? (Integer) selectedValue : JOptionPane.CLOSED_OPTION;
+
+        if (result == JOptionPane.OK_OPTION) {
+            if (password) {
+                return new String(((JPasswordField) inputField).getPassword());
+            } else {
+                return ((JTextField) inputField).getText();
+            }
+        }
+        return null;
 	}
 }
