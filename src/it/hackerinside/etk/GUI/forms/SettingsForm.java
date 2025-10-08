@@ -27,6 +27,9 @@ import java.awt.event.WindowEvent;
 import java.io.File;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import javax.swing.DefaultComboBoxModel;
+import it.hackerinside.etk.GUI.UIThemes;
+import javax.swing.SwingConstants;
 
 public class SettingsForm {
 
@@ -39,6 +42,7 @@ public class SettingsForm {
 	private JCheckBox chckbUsePkcs11;
 	private JComboBox<HashAlgorithm> cmbHashAlgPath;
 	private JComboBox<SymmetricAlgorithms> cmbEncAlgPath;
+	private JComboBox<UIThemes> cmbTheme;
 
 	/**
 	 * Launch the application.
@@ -246,6 +250,27 @@ public class SettingsForm {
 		);
 		panel_2.setLayout(gl_panel_2);
 		
+		JPanel panel_3 = new JPanel();
+		tabbedPane.addTab("Style", null, panel_3, null);
+		panel_3.setLayout(null);
+		
+		cmbTheme = new JComboBox();
+		cmbTheme.setBounds(109, 11, 339, 25);
+		cmbTheme.setModel(new DefaultComboBoxModel(UIThemes.values()));
+		cmbTheme.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		panel_3.add(cmbTheme);
+		
+		JLabel lblNewLabel_1_2 = new JLabel("Theme:");
+		lblNewLabel_1_2.setBounds(10, 15, 89, 17);
+		lblNewLabel_1_2.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		panel_3.add(lblNewLabel_1_2);
+		
+		JLabel lblNewLabel_2 = new JLabel("Restart the software to apply the theme");
+		lblNewLabel_2.setHorizontalAlignment(SwingConstants.CENTER);
+		lblNewLabel_2.setFont(new Font("Tahoma", Font.BOLD, 16));
+		lblNewLabel_2.setBounds(151, 91, 339, 14);
+		panel_3.add(lblNewLabel_2);
+		
 		
 		frmHackerinsideEncryptionToolkit.addWindowListener(new WindowAdapter() {
 			@Override
@@ -297,6 +322,7 @@ public class SettingsForm {
 		
 		cmbEncAlgPath.setSelectedItem(ctx.getCipher());
 		cmbHashAlgPath.setSelectedItem(ctx.getHashAlgorithm());
+		cmbTheme.setSelectedItem(ctx.getTheme());
 	}
 	
 	
@@ -311,6 +337,7 @@ public class SettingsForm {
 		ctx.setHashAlgorithm((HashAlgorithm) cmbHashAlgPath.getSelectedItem());
 		ctx.setUsePkcs11(chckbUsePkcs11.isSelected());
 		ctx.setUsePEM(chckbUsePem.isSelected());
+		ctx.setTheme((UIThemes)cmbTheme.getSelectedItem());
 	}
 	
 	/**

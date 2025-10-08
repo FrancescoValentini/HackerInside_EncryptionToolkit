@@ -70,17 +70,18 @@ public class ETKContext {
      * This method is called during construction and should not be called directly.
      */
     private void init() {
+    	preferences = Preferences.userNodeForPackage(ETKContext.class);
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
             Security.addProvider(new BouncyCastleProvider());
         }
         enforceKeystoreSecurityParameters();
 		try {
-		    UIManager.setLookAndFeel( new FlatMacDarkLaf() );
+		    UIManager.setLookAndFeel( getTheme().getLookAndFeel());
 		} catch( Exception ex ) {
+			System.out.println(ex.toString());
 		    System.err.println( "Failed to initialize LaF" );
 		}
         try {
-            preferences = Preferences.userNodeForPackage(ETKContext.class);
             initOrLoadKnownCerts(this.getKnownCertsPath());
         } catch (Exception e) {
             e.printStackTrace();
