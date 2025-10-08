@@ -9,6 +9,8 @@ import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.themes.FlatMacDarkLaf;
 import com.formdev.flatlaf.themes.FlatMacLightLaf;
 
+import it.hackerinside.etk.core.Models.EncodingOption;
+
 /**
  * Enumeration of available UI themes using the FlatLaf Look and Feel library.
  * 
@@ -75,6 +77,22 @@ public enum UIThemes {
      */
     public LookAndFeel getLookAndFeel() {
         return this.lookAndFeel;
+    }
+    
+    /**
+     * Converts a string value to its corresponding UIThemes enum constant.
+     * 
+     * @param value the string representation of the UIThemes option (case-insensitive)
+     * @return the UIThemes enum constant matching the provided value
+     * @throws IllegalArgumentException if the provided value doesn't match any encoding option
+     */
+    public static UIThemes fromString(String value) {
+        for (UIThemes option : UIThemes.values()) {
+            if (option.displayName.equalsIgnoreCase(value)) {
+                return option;
+            }
+        }
+        throw new IllegalArgumentException("Invalid Value: " + value);
     }
     
     /**

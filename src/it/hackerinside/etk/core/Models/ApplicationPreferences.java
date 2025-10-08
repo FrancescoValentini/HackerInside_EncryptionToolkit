@@ -46,7 +46,12 @@ public enum ApplicationPreferences {
 	/**
 	 * PEM encoding
 	 */
-	USE_PEM("USE_PEM","false");
+	USE_PEM("USE_PEM","false"),
+	
+	/**
+	 * UI Theme
+	 */
+	UI_THEME("UI_THEME","FlatLaf MacOS Dark");
     
     private final String key;
     private final String value;
