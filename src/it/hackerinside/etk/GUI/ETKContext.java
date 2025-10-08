@@ -330,7 +330,23 @@ public class ETKContext {
     public void setUsePkcs11(boolean usePkcs11) {
         preferences.put(ApplicationPreferences.USE_PKCS11.getKey(), Boolean.toString(usePkcs11));
     }
-
+    
+    /**
+     * Set the UI theme
+     * @param theme UI theme
+     */
+    public void setTheme(UIThemes theme) {
+    	preferences.put(ApplicationPreferences.UI_THEME.getKey(), theme.toString());
+    }
+    
+    /**
+     * Get the UI theme or default FLATLAF_MACOS_DARK
+     * @return UI theme
+     */
+    public UIThemes getTheme() {
+    	String theme = preferences.get(ApplicationPreferences.UI_THEME.getKey(), UIThemes.FLATLAF_MACOS_DARK.toString());
+    	return UIThemes.fromString(theme);
+    }
     
     
 	@Override
