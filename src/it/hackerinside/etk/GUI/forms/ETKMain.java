@@ -421,7 +421,7 @@ public class ETKMain {
 	    String password = DialogUtils.showInputBox(
 	        null,
 	        "Unlock Keystore",
-	        ctx.getKeyStorePath(),
+	         ctx.usePKCS11() ? "PKCS#11 DEVICE" : ctx.getKeyStorePath(),
 	        "Password:",
 	        true
 	    );
