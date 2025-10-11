@@ -4,10 +4,14 @@ import java.awt.EventQueue;
 
 import javax.swing.JFrame;
 
+import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
+import it.hackerinside.etk.Utils.X509Builder;
+
 import javax.swing.JSpinner;
 import java.awt.Font;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import java.awt.BorderLayout;
@@ -16,6 +20,12 @@ import javax.swing.JComboBox;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.JButton;
+import java.awt.event.ActionListener;
+import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
+import java.util.function.Consumer;
+import java.awt.event.ActionEvent;
 
 public class NewKeyPairForm {
 
@@ -24,21 +34,9 @@ public class NewKeyPairForm {
 	private JTextField txtbCountryCode;
 	private JTextField txtbState;
 	private JTextField txtbCommonName;
-	/**
-	 * Launch the application.
-	 */
-	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					NewKeyPairForm window = new NewKeyPairForm();
-					window.frmNewKeypair.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
-	}
+	private JComboBox cmbCurve;
+	private JSpinner spinnerExpDays;
+	private Runnable callback;
 
 	/**
 	 * Create the application.
@@ -51,6 +49,10 @@ public class NewKeyPairForm {
 	public void setVisible() {
 		this.frmNewKeypair.setVisible(true);
 	}
+	
+	public void setCallback(Runnable r) {
+		this.callback = r;
+	}
 
 	/**
 	 * Initialize the contents of the frame.
@@ -60,7 +62,6 @@ public class NewKeyPairForm {
 		frmNewKeypair.setResizable(false);
 		frmNewKeypair.setTitle("New Keypair");
 		frmNewKeypair.setBounds(100, 100, 651, 445);
-		frmNewKeypair.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmNewKeypair.getContentPane().setLayout(new BorderLayout(0, 0));
 		
 		JLabel lblNewLabel_1 = new JLabel("NEW KEYPAIR");
@@ -72,7 +73,7 @@ public class NewKeyPairForm {
 		frmNewKeypair.getContentPane().add(panel, BorderLayout.CENTER);
 		panel.setLayout(null);
 		
-		JSpinner spinnerExpDays = new JSpinner();
+		spinnerExpDays = new JSpinner();
 		spinnerExpDays.setModel(new SpinnerNumberModel(Integer.valueOf(1095), Integer.valueOf(1), null, Integer.valueOf(1)));
 		spinnerExpDays.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		spinnerExpDays.setEnabled(true);
@@ -125,7 +126,7 @@ public class NewKeyPairForm {
 		lblCurve.setBounds(10, 158, 146, 17);
 		panel.add(lblCurve);
 		
-		JComboBox cmbCurve = new JComboBox();
+		cmbCurve = new JComboBox();
 		cmbCurve.setModel(new DefaultComboBoxModel(new String[] {"secp256r1", "secp384r1", "secp521r1", "brainpoolP256r1", "brainpoolP384r1", "brainpoolP512r1"}));
 		cmbCurve.setSelectedIndex(1);
 		cmbCurve.setFont(new Font("Tahoma", Font.PLAIN, 14));
@@ -140,8 +141,89 @@ public class NewKeyPairForm {
 		panel.add(lblNewLabel_1_1);
 		
 		JButton btnGenerateCertificate = new JButton("GENERATE");
+		btnGenerateCertificate.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				generateCertificate();
+			}
+		});
 		btnGenerateCertificate.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		btnGenerateCertificate.setBounds(242, 278, 151, 52);
 		panel.add(btnGenerateCertificate);
+	}
+	
+	/**
+	 * Generate the certificate with the form data
+	 */
+	private void generateCertificate() {
+		String commonName = txtbCommonName.getText();
+		String state = txtbState.getText();
+		String country = txtbCountryCode.getText().toUpperCase();
+		int exp = (int) spinnerExpDays.getValue();
+		String alg = (String) cmbCurve.getSelectedItem();
+		
+		if(country.length() != 2) {
+            DialogUtils.showMessageBox(
+                    null,
+                    "Invalid parameters!",
+                    "Invalid country code!",
+                    "Country code must have 2 letters!",
+                    JOptionPane.ERROR_MESSAGE
+                );
+            return;
+		}
+		
+		KeyPair kp;
+		X509Certificate crt;
+		
+		boolean errors = false;
+		
+		try {
+			kp = X509Builder.generateECKeyPair(alg);
+			crt = X509Builder.buildCertificate(commonName, country, state, exp, kp.getPublic(), kp.getPrivate());
+			saveToKeystore(kp.getPrivate(),crt);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+            DialogUtils.showMessageBox(
+                    null,
+                    "Error during certificate generation!",
+                    "Error during certificate generation!",
+                    e.getMessage(),
+                    JOptionPane.ERROR_MESSAGE
+                );
+            errors = true;
+		}
+		
+		if(!errors) callback.run();
+		
+		
+	}
+	
+	/**
+	 * Save the key pair in the keystore
+	 * 
+	 * @param priv the private key
+	 * @param crt the x509 certificate
+	 * @throws Exception
+	 */
+	private void saveToKeystore(PrivateKey priv, X509Certificate crt) throws Exception {
+		String alias = DialogUtils.showInputBox(
+	            null,
+	            "Private key alias",
+	            "Private key alias",
+	            "Alias:",
+	            false
+	        );
+		
+		String pwd = DialogUtils.showInputBox(
+	            null,
+	            "Private key password",
+	            alias,
+	            "Password:",
+	            true
+	        );
+		
+        ctx.getKeystore().addPrivateKey(alias, priv, pwd.toCharArray(), new X509Certificate[]{crt});
+        ctx.getKeystore().save();
 	}
 }

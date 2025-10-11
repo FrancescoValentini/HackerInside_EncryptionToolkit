@@ -138,6 +138,9 @@ public class ETKMain {
 
 	    mnNewMenu.add(menuItemKeystoreLogin);
 	    
+	    JMenuItem menuItemNewKeypair = new JMenuItem("New Keypair");
+	    mnNewMenu.add(menuItemNewKeypair);
+	    
 	    JMenuItem menuItemImportKeypair = new JMenuItem("Import KeyPair");
 	    mnNewMenu.add(menuItemImportKeypair);
 	    
@@ -229,6 +232,14 @@ public class ETKMain {
 	    		about();
 	    	}
 	    });
+	    
+	    menuItemNewKeypair.addActionListener(new ActionListener() {
+	    	public void actionPerformed(ActionEvent e) {
+	    		newKeyPair();
+	    	}
+	    });
+	    
+	    
 	    
 	 // table tablemenu
 	    JPopupMenu tablePopup = new JPopupMenu();
@@ -329,6 +340,7 @@ public class ETKMain {
 
 	    startProcedure();
 	}
+
 
 
 	/**
@@ -773,6 +785,14 @@ public class ETKMain {
 	private void about() {
 		AboutForm abf = new AboutForm();
 		abf.setVisible();
+		
+	}
+	
+
+	private void newKeyPair() {
+		NewKeyPairForm nkf = new NewKeyPairForm();
+		nkf.setVisible();
+		nkf.setCallback(() -> {updateTable();});
 		
 	}
 }
