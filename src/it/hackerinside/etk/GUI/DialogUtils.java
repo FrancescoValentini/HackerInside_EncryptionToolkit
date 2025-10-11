@@ -85,4 +85,53 @@ public class DialogUtils {
         }
         return null;
 	}
+	
+	/**
+	 * Displays a large text input dialog with a title, header, and scrollable text area.
+	 * The dialog can be used both for entering and viewing large text, depending on the
+	 * editable flag. It shows OK/Cancel buttons and returns the resulting text if confirmed.
+	 *
+	 * @param parent   the parent component for the dialog; can be null
+	 * @param title    the title of the dialog window
+	 * @param header   the main header message (displayed in bold)
+	 * @param text     the initial text to display in the text area (can be null or empty)
+	 * @param editable true if the user can edit the text; false for read-only
+	 * @return the resulting text entered by the user, or null if canceled
+	 */
+	public static String showLargeInputBox(Component parent, String title, String header, String text, boolean editable) {
+	    JLabel headerLabel = new JLabel(header);
+	    headerLabel.putClientProperty(FlatClientProperties.STYLE, "font: +2 bold");
+
+	    JTextArea textArea = new JTextArea(text != null ? text : "");
+	    textArea.setEditable(editable);
+	    textArea.setLineWrap(true);
+	    textArea.setWrapStyleWord(true);
+
+	    JScrollPane scrollPane = new JScrollPane(textArea);
+	    scrollPane.setPreferredSize(new Dimension(320, 300));
+
+	    JPanel panel = new JPanel(new BorderLayout(10, 10));
+	    panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+	    panel.add(headerLabel, BorderLayout.NORTH);
+	    panel.add(scrollPane, BorderLayout.CENTER);
+
+	    JOptionPane optionPane = new JOptionPane(
+	        panel,
+	        JOptionPane.QUESTION_MESSAGE,
+	        JOptionPane.OK_CANCEL_OPTION
+	    );
+
+	    JDialog dialog = optionPane.createDialog(parent, title);
+	    dialog.setAlwaysOnTop(true);
+	    dialog.setVisible(true);
+
+	    Object selectedValue = optionPane.getValue();
+	    int result = (selectedValue instanceof Integer) ? (Integer) selectedValue : JOptionPane.CLOSED_OPTION;
+
+	    if (result == JOptionPane.OK_OPTION) {
+	        return textArea.getText();
+	    }
+	    return null;
+	}
+
 }

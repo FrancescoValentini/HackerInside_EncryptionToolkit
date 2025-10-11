@@ -284,6 +284,7 @@ public class ETKMain {
 	            maybeShowPopup(e);
 	        }
 	    });
+	    
 
 	    startProcedure();
 	}
