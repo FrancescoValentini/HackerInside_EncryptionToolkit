@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.security.KeyStoreException;
 import java.security.PrivateKey;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -251,8 +252,12 @@ public class ETKMain {
 	    });
 	    tablePopup.add(miDelete);
 
-	    JMenuItem miExport = new JMenuItem("Export");
-	    miExport.addActionListener(new ActionListener() {
+	 // "Certificate Export" submenu
+	    JMenu certificateExportMenu = new JMenu("Certificate Export");
+
+	    // "Export to file" menu item
+	    JMenuItem miExportToFile = new JMenuItem("Export to file");
+	    miExportToFile.addActionListener(new ActionListener() {
 	        @Override
 	        public void actionPerformed(ActionEvent e) {
 	            int viewRow = table.getSelectedRow();
@@ -268,7 +273,30 @@ public class ETKMain {
 	            }
 	        }
 	    });
-	    tablePopup.add(miExport);
+	    certificateExportMenu.add(miExportToFile);
+
+	    // "Export to string" menu item
+	    JMenuItem miExportToString = new JMenuItem("Export to string");
+	    miExportToString.addActionListener(new ActionListener() {
+	        @Override
+	        public void actionPerformed(ActionEvent e) {
+	            int viewRow = table.getSelectedRow();
+	            if (viewRow == -1) {
+	                DialogUtils.showMessageBox(null, "No selection", "No rows selected",
+	                        "Please select a certificate first.", JOptionPane.WARNING_MESSAGE);
+	                return;
+	            }
+	            int modelRow = table.convertRowIndexToModel(viewRow);
+	            CertificateTableRow row = tableModel.getRow(modelRow);
+	            if (row != null && row.original() != null) {
+	                exportCertificateToString(row);
+	            }
+	        }
+	    });
+	    certificateExportMenu.add(miExportToString);
+
+	    // Add the "Certificate Export" submenu to the popup menu
+	    tablePopup.add(certificateExportMenu);
 
 	    // Show popup menu on right click or platforms using isPopupTrigger
 	    table.addMouseListener(new MouseAdapter() {
@@ -363,7 +391,7 @@ public class ETKMain {
 	                .encodeToString(crt.getEncoded());
 	            fw.write(encoded);
 	            fw.write("\n-----END CERTIFICATE-----\n");
-	        } catch (IOException | java.security.cert.CertificateEncodingException e) {
+	        } catch (IOException | CertificateEncodingException e) {
 	            e.printStackTrace();
 	            DialogUtils.showMessageBox(
 	                null, 
@@ -374,6 +402,41 @@ public class ETKMain {
 	            );
 	        }
 	    }
+	}
+	
+	/**
+	 * Exports a certificate to a string in PEM format.
+	 * with proper PEM encoding (Base64 with headers and line breaks).
+	 * 
+	 * @param row the certificate table row containing the certificate to export
+	 */
+	private void exportCertificateToString(CertificateTableRow row) {
+	    X509Certificate crt = row.original();
+	    StringBuilder sb = new StringBuilder();
+	    try {
+		    sb.append("-----BEGIN CERTIFICATE-----\n");
+		    String cert = Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(crt.getEncoded());
+		    sb.append(cert);
+		    sb.append("\n-----END CERTIFICATE-----\n");
+		    
+		    DialogUtils.showLargeInputBox(
+		    	    null,
+		    	    "Export Certificate",
+		    	    "PEM Certificate: " + row.keystoreAlias(),
+		    	    sb.toString(),
+		    	    false
+		    	);
+		    
+	    }catch(CertificateEncodingException e) {
+            DialogUtils.showMessageBox(
+	                null, 
+	                "Error while exporting certificate", 
+	                "Error while exporting certificate", 
+	                e.getMessage(), 
+	                JOptionPane.ERROR_MESSAGE
+	            );
+	    }
+
 	}
 
 	/**
