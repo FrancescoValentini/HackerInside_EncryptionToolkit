@@ -21,8 +21,6 @@ import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.JPanel;
 import javax.swing.ComboBoxModel;
-import javax.swing.GroupLayout;
-import javax.swing.GroupLayout.Alignment;
 import javax.swing.JComboBox;
 import javax.swing.JButton;
 import javax.swing.JTextField;
@@ -30,6 +28,7 @@ import javax.swing.JTextField;
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
+import it.hackerinside.etk.GUI.TimeUtils;
 import it.hackerinside.etk.core.Encryption.CMSCryptoUtils;
 import it.hackerinside.etk.core.Encryption.CMSDecryptor;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
@@ -52,6 +51,8 @@ public class DecryptForm {
 	private static ETKContext ctx;
 	private File fileToDecrypt;
 	private JLabel lblStatus;
+    private long startTime;
+    private long endTime;
 
 	/**
 	 * Launch the application.
@@ -339,6 +340,7 @@ public class DecryptForm {
 	                "Password:",
 	                true
 	            );
+	            startTime = System.currentTimeMillis();
 	            PrivateKey priv = ctx.getKeystore().getPrivateKey(alias, pwd.toCharArray());
 	            EncodingOption encoding = PEMUtils.findFileEncoding(fileToDecrypt);
 
@@ -369,13 +371,16 @@ public class DecryptForm {
 
 	private void finishDecryptionUI(SwingWorker<?, ?> worker) {
 	    progressBar.setVisible(false);
+	    endTime = System.currentTimeMillis();
+
 	    try {
 	        if (worker == null) return;
 	        Object result = worker.get();
 	        lblStatus.setText("File Decrypted!");
 			DialogUtils.showMessageBox(null, "File Decrypted!", "File Decrypted!", 
 			        "File Decrypted!" +"\n\nSaved to: " 
-			        		+ txtbOutputFile.getText() , 
+			        		+ txtbOutputFile.getText() +
+			        		"\n\nElapsed: " + TimeUtils.formatElapsedTime(startTime, endTime), 
 			        JOptionPane.INFORMATION_MESSAGE);
 	    } catch (InterruptedException | ExecutionException e) {
 	        DialogUtils.showMessageBox(

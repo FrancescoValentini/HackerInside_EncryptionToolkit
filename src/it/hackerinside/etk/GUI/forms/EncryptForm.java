@@ -22,6 +22,7 @@ import javax.swing.SwingWorker;
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
+import it.hackerinside.etk.GUI.TimeUtils;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
 import it.hackerinside.etk.core.Encryption.CMSEncryptor;
@@ -52,6 +53,8 @@ public class EncryptForm {
 	private JComboBox cmbEncAlgorithm;
 	private JCheckBox chckbPemOutput;
 	private JProgressBar progressBarEncrypt;
+    private long startTime;
+    private long endTime;
 	
 	private File plaintextFile;
 	private File ciphertextFile;
@@ -432,6 +435,7 @@ public class EncryptForm {
 	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
 	        @Override
 	        protected Void doInBackground() throws Exception {
+	        	startTime = System.currentTimeMillis();
 	            encryptor.encrypt(plaintextFile, cipherFile);
 	            return null;
 	        }
@@ -462,12 +466,14 @@ public class EncryptForm {
 	 */
 	private void finishEncryptionUI(SwingWorker<?, ?> worker) {
 	    progressBarEncrypt.setVisible(false);
+	    endTime = System.currentTimeMillis();
 	    try {
 	        worker.get();
 	        lblStatus.setText("File Encrypted!");
 			DialogUtils.showMessageBox(null, "File encrypted!", "File encrypted!", 
 			        "File Encrypted\nFor: "+ this.recipient.getSubjectX500Principal().getName("RFC2253")  + "\n\nSaved to: " 
-			        		+ this.ciphertextFile.getAbsolutePath().toString() , 
+			        		+ this.ciphertextFile.getAbsolutePath().toString() +
+			        		"\n\nElapsed: " + TimeUtils.formatElapsedTime(startTime, endTime), 
 			        JOptionPane.INFORMATION_MESSAGE);
 	    } catch (InterruptedException | ExecutionException e) {
 			DialogUtils.showMessageBox(null, "Error during encryption", "Error during encryption!", 

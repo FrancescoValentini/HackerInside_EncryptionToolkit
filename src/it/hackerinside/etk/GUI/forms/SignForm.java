@@ -27,6 +27,7 @@ import javax.swing.border.TitledBorder;
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
+import it.hackerinside.etk.GUI.TimeUtils;
 import it.hackerinside.etk.core.CAdES.CAdESSigner;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
@@ -51,7 +52,8 @@ public class SignForm {
 	private JComboBox<String> cmbSignerCert;
 	private JCheckBox chckbPem;
 	private JCheckBox chckbDetachedSignature;
-	
+    private long startTime;
+    private long endTime;
 	
 	private static ETKContext ctx;
 	private File fileToSign;
@@ -419,6 +421,7 @@ public class SignForm {
 	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
 	        @Override
 	        protected Void doInBackground() throws Exception {
+	            startTime = System.currentTimeMillis();
 	        	signer.sign(fileToSign, signedFile);
 	            return null;
 	        }
@@ -450,12 +453,14 @@ public class SignForm {
 	 */
 	private void finishSignatureUI(SwingWorker<?, ?> worker) {
 	    progressSignature.setVisible(false);
+	    endTime = System.currentTimeMillis();
 	    try {
 	        worker.get();
 	        lblStatus.setText("File Signed!");
 			DialogUtils.showMessageBox(null, "File signed!", "File signed!", 
-			        "File signed\n\nnSaved to: " 
-			        		+ this.fileToSign.getAbsolutePath().toString() , 
+			        "File signed\n\nSaved to: " 
+			        		+ this.fileToSign.getAbsolutePath().toString() +
+			        		"\n\nElapsed: " + TimeUtils.formatElapsedTime(startTime, endTime), 
 			        JOptionPane.INFORMATION_MESSAGE);
 	    } catch (InterruptedException | ExecutionException e) {
 			DialogUtils.showMessageBox(null, "Error during digital signature", "Error during digital signature!", 
