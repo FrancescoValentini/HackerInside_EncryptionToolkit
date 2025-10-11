@@ -7,8 +7,6 @@ import javax.swing.UIManager;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-import com.formdev.flatlaf.themes.FlatMacDarkLaf;
-
 import it.hackerinside.etk.core.Models.ApplicationPreferences;
 import it.hackerinside.etk.core.Models.HashAlgorithm;
 import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
@@ -22,7 +20,7 @@ import it.hackerinside.etk.core.keystore.PKCS12Keystore;
  */
 public class ETKContext {
 	
-	public static final String ETK_VERSION = "1.0.0";
+	public static final String ETK_VERSION = "1.0.3";
 	
     /**
      * Singleton instance of ETKContext.
