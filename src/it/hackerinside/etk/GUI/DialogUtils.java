@@ -106,9 +106,10 @@ public class DialogUtils {
 	    textArea.setEditable(editable);
 	    textArea.setLineWrap(true);
 	    textArea.setWrapStyleWord(true);
+	    textArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
 
 	    JScrollPane scrollPane = new JScrollPane(textArea);
-	    scrollPane.setPreferredSize(new Dimension(320, 300));
+	    scrollPane.setPreferredSize(new Dimension(550, 300));
 
 	    JPanel panel = new JPanel(new BorderLayout(10, 10));
 	    panel.setBorder(new EmptyBorder(10, 10, 10, 10));

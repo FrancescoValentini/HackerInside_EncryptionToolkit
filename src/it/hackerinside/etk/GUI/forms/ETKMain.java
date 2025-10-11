@@ -137,11 +137,30 @@ public class ETKMain {
 
 	    mnNewMenu.add(menuItemKeystoreLogin);
 	    
-	    JMenuItem menuItemImportKnownCert = new JMenuItem("Import certificate");
-	    mnNewMenu.add(menuItemImportKnownCert);
-	    
 	    JMenuItem menuItemImportKeypair = new JMenuItem("Import KeyPair");
 	    mnNewMenu.add(menuItemImportKeypair);
+	    
+	    JMenu mnNewMenu_1 = new JMenu("Import Certificate");
+	    mnNewMenu.add(mnNewMenu_1);
+	    
+	    JMenuItem menuItemImportKnownCert = new JMenuItem("From file");
+	    mnNewMenu_1.add(menuItemImportKnownCert);
+	    
+	    JMenuItem menuItemImportKnownCertStr = new JMenuItem("From string");
+	    mnNewMenu_1.add(menuItemImportKnownCertStr);
+	    
+	    menuItemImportKnownCert.addActionListener(new ActionListener() {
+	    	public void actionPerformed(ActionEvent e) {
+	    		importKnownCert();
+	    	}
+	    });
+	    
+	    menuItemImportKnownCertStr.addActionListener(new ActionListener() {
+	    	public void actionPerformed(ActionEvent e) {
+	    		importKnownCertFromString();
+	    	}
+	    });
+	    
 
 	    btnSign.addActionListener(new ActionListener() {
 	        public void actionPerformed(ActionEvent e) {
@@ -189,12 +208,6 @@ public class ETKMain {
 	    		updateTable();
 	    		btnDecrypt.setEnabled(true);
 	    		btnSign.setEnabled(true);
-	    	}
-	    });
-	    
-	    menuItemImportKnownCert.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		importKnownCert();
 	    	}
 	    });
 	    
@@ -559,7 +572,46 @@ public class ETKMain {
 	    }
 	    updateTable();
 	    showCertificateInformation(cert);
-	}	
+	}
+	
+	/**
+	 * Imports a known certificate from a string into the known certificates keystore.
+	 * Prompts the user to enter the PEM data and provide an alias for the certificate.
+	 * After successful import, updates the table and displays the certificate details.
+	 */
+	private void importKnownCertFromString(){
+		X509Certificate cert = null;
+        String alias = DialogUtils.showInputBox(null, "Certificate Alias", "Enter Certificate Alias", "", false);
+        if(alias == null || alias.isEmpty()) return;
+        String certString = DialogUtils.showLargeInputBox(
+        	    null,
+        	    "Import Known Certificate",
+        	    "PEM CERTIFICATE",
+        	    "",
+        	    true
+        	);
+        if(certString == null || certString.isEmpty()) return;
+        try {
+            cert = X509CertificateLoader.loadFromString(certString);
+            ctx.getKnownCerts().addCertificate(alias, cert);
+            ctx.getKnownCerts().save();
+        } catch (CertificateException | IOException e) {
+            e.printStackTrace();
+            DialogUtils.showMessageBox(null, "Invalid certificate", "Invalid certificate!", 
+                e.getMessage(), 
+                JOptionPane.ERROR_MESSAGE);
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+            DialogUtils.showMessageBox(null, "Error importing certificate", "Error importing certificate!", 
+                e.getMessage(), 
+                JOptionPane.ERROR_MESSAGE);
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
+	    updateTable();
+	    showCertificateInformation(cert);
+	}
 	
 	/**
 	 * Imports key pairs from an external keystore file into the application's current keystore.
