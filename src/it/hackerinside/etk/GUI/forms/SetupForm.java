@@ -12,18 +12,11 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
-import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x509.Extension;
-import org.bouncycastle.asn1.x509.KeyUsage;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
+import it.hackerinside.etk.Utils.X509Builder;
 import it.hackerinside.etk.core.Models.ApplicationPreferences;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
@@ -31,18 +24,11 @@ import it.hackerinside.etk.core.keystore.PKCS12Keystore;
 
 import java.awt.Font;
 import java.io.File;
-import java.math.BigInteger;
 import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.SecureRandom;
 import java.security.Security;
 import java.security.cert.X509Certificate;
-import java.security.spec.ECGenParameterSpec;
-import java.util.Calendar;
-import java.util.Date;
-
 import javax.swing.JTextField;
 import javax.swing.JCheckBox;
 import javax.swing.JSpinner;
@@ -493,12 +479,12 @@ public class SetupForm {
             Security.addProvider(new BouncyCastleProvider());
 
             // Generate EC P-384 key pair
-            KeyPair keyPair = generateECKeyPair();
+            KeyPair keyPair = X509Builder.generateECKeyPair("secp384r1");
             PrivateKey privk = keyPair.getPrivate();
             PublicKey pubk = keyPair.getPublic();
 
             // Build X509 certificate
-            X509Certificate crt = buildCertificate(name, cc, state, expDays, pubk, privk);
+            X509Certificate crt = X509Builder.buildCertificate(name, cc, state, expDays, pubk, privk);
 
             // Save certificate into keystore
             saveCertificateToKeystore(ksMaster, alias, pwd, privk, crt);
@@ -560,55 +546,6 @@ public class SetupForm {
             "Password:",
             true
         );
-    }
-
-    /**
-     * Generates an EC P-384 key pair using BouncyCastle provider.
-     */
-    private KeyPair generateECKeyPair() throws Exception {
-        KeyPairGenerator kpg = KeyPairGenerator.getInstance("EC", "BC");
-        kpg.initialize(new ECGenParameterSpec("secp384r1"), new SecureRandom());
-        return kpg.generateKeyPair();
-    }
-
-    /**
-     * Builds an X509 certificate with the provided subject details, validity, and keys.
-     */
-    private X509Certificate buildCertificate(
-            String commonName,
-            String countryCode,
-            String state,
-            int expDays,
-            PublicKey pubk,
-            PrivateKey privk) throws Exception {
-
-        X500Name subject = new X500Name("CN=" + commonName + ", C=" + countryCode + ", ST=" + state);
-
-        Date notBefore = new Date();
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(notBefore);
-        cal.add(Calendar.DAY_OF_YEAR, expDays);
-        Date notAfter = cal.getTime();
-
-        BigInteger serial = new BigInteger(64, new SecureRandom());
-
-        JcaX509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
-            subject, serial, notBefore, notAfter, subject, pubk
-        );
-
-        certBuilder.addExtension(
-            Extension.keyUsage,
-            true,
-            new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation | KeyUsage.dataEncipherment)
-        );
-
-        ContentSigner signer = new JcaContentSignerBuilder("SHA384withECDSA")
-            .setProvider("BC")
-            .build(privk);
-
-        return new JcaX509CertificateConverter()
-            .setProvider("BC")
-            .getCertificate(certBuilder.build(signer));
     }
 
     /**
