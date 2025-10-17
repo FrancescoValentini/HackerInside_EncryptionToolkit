@@ -37,6 +37,7 @@ public class CMSEncryptor {
     private X509Certificate recipient;
     private SymmetricAlgorithms encryptionAlgorithm;
     private EncodingOption encoding;
+    private int bufferSize;
     
     /**
      * Constructs a new CMSEncryptor with the specified parameters.
@@ -44,11 +45,13 @@ public class CMSEncryptor {
      * @param recipient the recipient's X.509 certificate used for encryption
      * @param encryptionAlgorithm the symmetric encryption algorithm to use
      * @param encoding the encoding option for the output (DER or PEM)
+     * @param bufferSize the buffer size
      */
-    public CMSEncryptor(X509Certificate recipient, SymmetricAlgorithms encryptionAlgorithm, EncodingOption encoding) {
+    public CMSEncryptor(X509Certificate recipient, SymmetricAlgorithms encryptionAlgorithm, EncodingOption encoding, int bufferSize) {
         this.recipient = recipient;
         this.encryptionAlgorithm = encryptionAlgorithm;
         this.encoding = encoding;
+        this.bufferSize = bufferSize;
     }
 
     /**

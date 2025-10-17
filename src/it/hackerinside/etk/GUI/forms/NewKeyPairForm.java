@@ -127,7 +127,7 @@ public class NewKeyPairForm {
 		panel.add(lblCurve);
 		
 		cmbCurve = new JComboBox();
-		cmbCurve.setModel(new DefaultComboBoxModel(new String[] {"secp256r1", "secp384r1", "secp521r1", "brainpoolP256r1", "brainpoolP384r1", "brainpoolP512r1"}));
+		cmbCurve.setModel(new DefaultComboBoxModel(new String[] {"secp256r1", "secp384r1", "secp521r1"}));
 		cmbCurve.setSelectedIndex(1);
 		cmbCurve.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		cmbCurve.setBounds(166, 155, 169, 22);

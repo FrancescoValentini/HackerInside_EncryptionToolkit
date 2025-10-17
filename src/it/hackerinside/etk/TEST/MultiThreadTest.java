@@ -25,7 +25,7 @@ public class MultiThreadTest {
             rsaCert,
             EncodingOption.ENCODING_DER,
             HashAlgorithm.SHA256,
-            false
+            false,8192
         );
 
         ExecutorService executor = Executors.newSingleThreadExecutor();

@@ -430,7 +430,7 @@ public class EncryptForm {
 	            : EncodingOption.ENCODING_DER;
 	    File cipherFile = new File(txtbOutputFile.getText());
 
-	    CMSEncryptor encryptor = new CMSEncryptor(recipient, cipher, encoding);
+	    CMSEncryptor encryptor = new CMSEncryptor(recipient, cipher, encoding,ctx.getBufferSize());
 
 	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
 	        @Override

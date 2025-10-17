@@ -347,6 +347,23 @@ public class ETKContext {
     	return UIThemes.fromString(theme);
     }
     
+    /**
+     * Get the buffer size
+     * @return the buffer size
+     */
+    public int getBufferSize() {
+    	String size = preferences.get(ApplicationPreferences.BUFFER_SIZE.getKey(), ApplicationPreferences.BUFFER_SIZE.getValue());
+    	return Integer.parseInt(size);
+    }
+    
+    /**
+     * Set the buffer size
+     * @param size the buffer size
+     */
+    public void setBufferSize(int size) {
+    	preferences.put(ApplicationPreferences.BUFFER_SIZE.getKey(), String.valueOf(size));
+    }
+    
     
 	@Override
 	public String toString() {

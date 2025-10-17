@@ -38,6 +38,7 @@ import org.bouncycastle.util.io.pem.PemReader;
 public class CAdESVerifier {
     private final EncodingOption encoding;
     private final boolean detachedSignature;
+    private int bufferSize;
 
     /**
      * Constructs a new CAdESVerifier with the specified encoding option and signature type.
@@ -45,10 +46,12 @@ public class CAdESVerifier {
      * @param encoding the encoding format of the signature (DER or PEM)
      * @param detachedSignature true if the signature is detached (separate from data),
      *                          false if attached (data encapsulated within signature)
+     * @param bufferSize the buffer size
      */
-    public CAdESVerifier(EncodingOption encoding, boolean detachedSignature) {
+    public CAdESVerifier(EncodingOption encoding, boolean detachedSignature, int bufferSize) {
         this.encoding = encoding;
         this.detachedSignature = detachedSignature;
+        this.bufferSize = bufferSize;
     }
 
 
@@ -273,8 +276,8 @@ public class CAdESVerifier {
      * @param out the output stream to write to
      * @throws IOException if copying fails
      */
-    private static void copy(InputStream in, OutputStream out) throws IOException {
-        byte[] buf = new byte[8192];
+    private void copy(InputStream in, OutputStream out) throws IOException {
+        byte[] buf = new byte[bufferSize];
         int n;
         while ((n = in.read(buf)) >= 0) {
             out.write(buf, 0, n);

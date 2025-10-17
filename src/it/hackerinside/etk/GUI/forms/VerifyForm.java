@@ -260,7 +260,7 @@ public class VerifyForm {
 	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
 	        @Override
 	        protected Void doInBackground() throws Exception {
-	            new CAdESVerifier(encoding, false).extractContent(fileToVerify, outputFile);
+	            new CAdESVerifier(encoding, false,ctx.getBufferSize()).extractContent(fileToVerify, outputFile);
 	            return null;
 	        }
 
@@ -301,7 +301,7 @@ public class VerifyForm {
 	 */
 	private void verifyEnveloping(EncodingOption encoding) {
 	    btnExportContent.setEnabled(true);
-	    CAdESVerifier verifier = new CAdESVerifier(encoding, false);
+	    CAdESVerifier verifier = new CAdESVerifier(encoding, false,ctx.getBufferSize());
 
 	    runVerificationWorker(() -> verifier.verify(fileToVerify));
 	}
@@ -321,7 +321,7 @@ public class VerifyForm {
 
 	    if (dataFile == null) return; // user canceled
 
-	    CAdESVerifier verifier = new CAdESVerifier(encoding, true);
+	    CAdESVerifier verifier = new CAdESVerifier(encoding, true,ctx.getBufferSize());
 	    runVerificationWorker(() -> verifier.verifyDetached(fileToVerify, dataFile));
 	}
 

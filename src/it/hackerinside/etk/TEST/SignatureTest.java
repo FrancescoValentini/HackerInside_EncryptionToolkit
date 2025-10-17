@@ -34,16 +34,16 @@ public class SignatureTest {
 		PrivateKey eccPriv = ks.pkcs12_ecc.getPrivateKey(eccAlias, "123".toCharArray());
 		
 		System.out.println("RSA SIGNATURE");
-		CAdESSigner rsaSigner = new CAdESSigner(rsaPriv, rsaCert, EncodingOption.ENCODING_DER, HashAlgorithm.SHA256, false);
+		CAdESSigner rsaSigner = new CAdESSigner(rsaPriv, rsaCert, EncodingOption.ENCODING_DER, HashAlgorithm.SHA256, false,8192);
 		rsaSigner.sign(toSign, new File("rsa_signed.test"));
 		
 		
 		System.out.println("ECC SIGNATURE");
-		CAdESSigner eccSigner = new CAdESSigner(eccPriv, eccCert, EncodingOption.ENCODING_PEM, HashAlgorithm.SHA384, false);
+		CAdESSigner eccSigner = new CAdESSigner(eccPriv, eccCert, EncodingOption.ENCODING_PEM, HashAlgorithm.SHA384, false,8192);
 		eccSigner.sign(toSign, new File("ecc_signed.test"));
 
 		System.out.println("ECC SIGNATURE DETACHED");
-		CAdESSigner eccSignerDetached = new CAdESSigner(eccPriv, eccCert, EncodingOption.ENCODING_PEM, HashAlgorithm.SHA384, true);
+		CAdESSigner eccSignerDetached = new CAdESSigner(eccPriv, eccCert, EncodingOption.ENCODING_PEM, HashAlgorithm.SHA384, true,8192);
 		eccSignerDetached.sign(toSign, new File("ecc_signed_detached.test"));
 		
 		System.out.println(CAdESUtils.isDetached(new File("ecc_signed_detached.test"), EncodingOption.ENCODING_PEM));
@@ -51,7 +51,7 @@ public class SignatureTest {
 		
 		// Verify TEST
 		
-		CAdESVerifier verifier = new CAdESVerifier(EncodingOption.ENCODING_PEM, false);
+		CAdESVerifier verifier = new CAdESVerifier(EncodingOption.ENCODING_PEM, false,8192);
 		VerificationResult result = verifier.verify(new File("ecc_signed.test"));
 		verifier.extractContent(new File("ecc_signed.test"), new File("ecc_extracted.test"));
 		System.out.println(result);

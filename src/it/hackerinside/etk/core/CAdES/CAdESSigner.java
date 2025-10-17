@@ -57,6 +57,7 @@ public class CAdESSigner {
 	private EncodingOption encoding;
 	private HashAlgorithm hashAlgorithm;
 	private boolean detachedSignature;
+	private int bufferSize;
 	
     /**
      * Constructs a new CAdESSigner with the specified configuration parameters.
@@ -66,13 +67,15 @@ public class CAdESSigner {
      * @param hashAlgorithm the hash algorithm to use for signature generation
      * @param detachedSignature if true, creates a detached signature; if false, creates
      *                          an attached signature that includes the original data
+     * @param bufferSize the buffer size
      */
-	public CAdESSigner(PrivateKey privateKey, X509Certificate signer, EncodingOption encoding, HashAlgorithm hashAlgorithm, boolean detachedSignature) {
+	public CAdESSigner(PrivateKey privateKey, X509Certificate signer, EncodingOption encoding, HashAlgorithm hashAlgorithm, boolean detachedSignature, int bufferSize) {
 		this.privateKey = privateKey;
 		this.signer = signer;
 		this.encoding = encoding;
 		this.hashAlgorithm = hashAlgorithm;
 		this.detachedSignature = detachedSignature;
+		this.bufferSize = bufferSize;
 	}
 	
     /**
@@ -214,7 +217,7 @@ public class CAdESSigner {
      * @throws IOException if any I/O error occurs during reading or writing operations
      */
     private void writeSignature(InputStream input, OutputStream sigOut) throws IOException {
-        byte[] buffer = new byte[8192];
+        byte[] buffer = new byte[bufferSize];
         int n;
         while ((n = input.read(buffer)) != -1) {
             sigOut.write(buffer, 0, n);

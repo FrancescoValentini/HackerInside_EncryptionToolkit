@@ -51,7 +51,12 @@ public enum ApplicationPreferences {
 	/**
 	 * UI Theme
 	 */
-	UI_THEME("UI_THEME","FlatLaf MacOS Dark");
+	UI_THEME("UI_THEME","FlatLaf MacOS Dark"),
+	
+	/**
+	 * I/O Buffer size
+	 */
+	BUFFER_SIZE("BUFFER_SIZE","8192");
     
     private final String key;
     private final String value;

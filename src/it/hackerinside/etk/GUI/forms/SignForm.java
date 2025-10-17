@@ -416,7 +416,7 @@ public class SignForm {
 	    
 	    startSignatureUI();
 	    
-	    CAdESSigner signer = new CAdESSigner(priv, signerCert, encoding, hash, detached);
+	    CAdESSigner signer = new CAdESSigner(priv, signerCert, encoding, hash, detached,ctx.getBufferSize());
 	    
 	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
 	        @Override

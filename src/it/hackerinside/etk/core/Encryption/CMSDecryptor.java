@@ -30,15 +30,18 @@ import it.hackerinside.etk.core.PEM.PemInputStream;
 public class CMSDecryptor {
 	private PrivateKey privateKey;
 	private EncodingOption encoding;
+	private int bufferSize;
 	/**
 	 * Constructs a new CMSDecryptor with the specified parameters.
 	 * 
 	 * @param privateKey
 	 * @param encoding the encoding option for the output (DER or PEM)
+	 * @param bufferSize the buffer size
 	 */
-	public CMSDecryptor(PrivateKey privateKey, EncodingOption encoding) {
+	public CMSDecryptor(PrivateKey privateKey, EncodingOption encoding, int bufferSize) {
 		this.privateKey = privateKey;
 		this.encoding = encoding;
+		this.bufferSize = bufferSize;
 	}
 	
     /**
@@ -60,7 +63,7 @@ public class CMSDecryptor {
     		try {
     			InputStream decryptedStream = createRecipientContentStream(recipient);
     			
-    			 byte[] buffer = new byte[8192];
+    			 byte[] buffer = new byte[bufferSize];
                  int bytesRead;
                  while ((bytesRead = decryptedStream.read(buffer)) != -1) {
                      output.write(buffer, 0, bytesRead);

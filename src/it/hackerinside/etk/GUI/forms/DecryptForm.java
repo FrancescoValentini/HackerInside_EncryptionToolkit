@@ -344,7 +344,7 @@ public class DecryptForm {
 	            PrivateKey priv = ctx.getKeystore().getPrivateKey(alias, pwd.toCharArray());
 	            EncodingOption encoding = PEMUtils.findFileEncoding(fileToDecrypt);
 
-	            CMSDecryptor decryptor = new CMSDecryptor(priv, encoding);
+	            CMSDecryptor decryptor = new CMSDecryptor(priv, encoding, ctx.getBufferSize());
 	            decryptor.decrypt(fileToDecrypt, output);
 	            return null;
 	        }

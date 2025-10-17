@@ -30,6 +30,8 @@ import java.awt.event.ActionEvent;
 import javax.swing.DefaultComboBoxModel;
 import it.hackerinside.etk.GUI.UIThemes;
 import javax.swing.SwingConstants;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
 
 public class SettingsForm {
 
@@ -43,6 +45,7 @@ public class SettingsForm {
 	private JComboBox<HashAlgorithm> cmbHashAlgPath;
 	private JComboBox<SymmetricAlgorithms> cmbEncAlgPath;
 	private JComboBox<UIThemes> cmbTheme;
+	private JSpinner spnBufferSize;
 
 	/**
 	 * Launch the application.
@@ -113,16 +116,26 @@ public class SettingsForm {
 		
 		chckbUsePem = new JCheckBox("PEM Encoding");
 		chckbUsePem.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		
+		JLabel lblNewLabel_3 = new JLabel("Buffer size (bytes):");
+		lblNewLabel_3.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		spnBufferSize = new JSpinner();
+		spnBufferSize.setModel(new SpinnerNumberModel(Integer.valueOf(8192), Integer.valueOf(1024), null, Integer.valueOf(1024)));
+		spnBufferSize.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		GroupLayout gl_panel = new GroupLayout(panel);
 		gl_panel.setHorizontalGroup(
 			gl_panel.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panel.createSequentialGroup()
 					.addContainerGap()
-					.addGroup(gl_panel.createParallelGroup(Alignment.TRAILING)
-						.addComponent(lblKnownCertificatesPath)
-						.addComponent(lblNewLabel))
+					.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_panel.createParallelGroup(Alignment.TRAILING)
+							.addComponent(lblKnownCertificatesPath)
+							.addComponent(lblNewLabel))
+						.addComponent(lblNewLabel_3, GroupLayout.PREFERRED_SIZE, 149, GroupLayout.PREFERRED_SIZE))
 					.addGap(18)
-					.addGroup(gl_panel.createParallelGroup(Alignment.LEADING, false)
+					.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
+						.addComponent(spnBufferSize, GroupLayout.PREFERRED_SIZE, 86, GroupLayout.PREFERRED_SIZE)
 						.addComponent(chckbUsePem)
 						.addGroup(gl_panel.createSequentialGroup()
 							.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
@@ -151,9 +164,13 @@ public class SettingsForm {
 							.addGroup(gl_panel.createParallelGroup(Alignment.LEADING, false)
 								.addComponent(btnOpenKnownCerts, 0, 0, Short.MAX_VALUE)
 								.addComponent(txtbKnownCertsPath, GroupLayout.DEFAULT_SIZE, 23, Short.MAX_VALUE))))
-					.addPreferredGap(ComponentPlacement.RELATED, 31, Short.MAX_VALUE)
+					.addGap(18)
+					.addGroup(gl_panel.createParallelGroup(Alignment.BASELINE)
+						.addComponent(spnBufferSize, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+						.addComponent(lblNewLabel_3))
+					.addGap(30)
 					.addComponent(chckbUsePem)
-					.addContainerGap(467, Short.MAX_VALUE))
+					.addContainerGap(439, Short.MAX_VALUE))
 		);
 		panel.setLayout(gl_panel);
 		
@@ -323,6 +340,7 @@ public class SettingsForm {
 		cmbEncAlgPath.setSelectedItem(ctx.getCipher());
 		cmbHashAlgPath.setSelectedItem(ctx.getHashAlgorithm());
 		cmbTheme.setSelectedItem(ctx.getTheme());
+		spnBufferSize.setValue(ctx.getBufferSize());
 	}
 	
 	
@@ -338,6 +356,7 @@ public class SettingsForm {
 		ctx.setUsePkcs11(chckbUsePkcs11.isSelected());
 		ctx.setUsePEM(chckbUsePem.isSelected());
 		ctx.setTheme((UIThemes)cmbTheme.getSelectedItem());
+		ctx.setBufferSize((int) spnBufferSize.getValue());
 	}
 	
 	/**

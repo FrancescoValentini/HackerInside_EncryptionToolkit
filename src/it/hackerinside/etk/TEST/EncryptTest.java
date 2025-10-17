@@ -27,11 +27,11 @@ public class EncryptTest {
 		
 		// Encrypt 
 		System.out.println("RSA ENCRYPT");
-		CMSEncryptor rsaEncryptor = new CMSEncryptor(rsaCert, SymmetricAlgorithms.AES_256_CBC, EncodingOption.ENCODING_DER);
+		CMSEncryptor rsaEncryptor = new CMSEncryptor(rsaCert, SymmetricAlgorithms.AES_256_CBC, EncodingOption.ENCODING_DER,8192);
 		rsaEncryptor.encrypt(toEncrypt, new File("enc_rsa.test"));
 		
 		System.out.println("ECC ENCRYPT");
-		CMSEncryptor eccEncryptor = new CMSEncryptor(eccCert, SymmetricAlgorithms.AES_256_CBC, EncodingOption.ENCODING_PEM);
+		CMSEncryptor eccEncryptor = new CMSEncryptor(eccCert, SymmetricAlgorithms.AES_256_CBC, EncodingOption.ENCODING_PEM,8192);
 		eccEncryptor.encrypt(toEncrypt, new File("enc_ecc.test"));
 		
 		// Decrypt
@@ -40,11 +40,11 @@ public class EncryptTest {
 		PrivateKey eccPriv = ks.pkcs12_ecc.getPrivateKey(eccAlias, "123".toCharArray());
 		
 		System.out.println("RSA DECRYPT");
-		CMSDecryptor rsaDecryptor = new CMSDecryptor(rsaPriv, EncodingOption.ENCODING_DER);
+		CMSDecryptor rsaDecryptor = new CMSDecryptor(rsaPriv, EncodingOption.ENCODING_DER,8192);
 		rsaDecryptor.decrypt(new File("enc_rsa.test"), new File("dec_rsa.test"));
 		
 		System.out.println("ECC DECRYPT");
-		CMSDecryptor eccDecryptor = new CMSDecryptor(eccPriv, EncodingOption.ENCODING_PEM);
+		CMSDecryptor eccDecryptor = new CMSDecryptor(eccPriv, EncodingOption.ENCODING_PEM,8192);
 		eccDecryptor.decrypt(new File("enc_ecc.test"), new File("dec_ecc.test"));
 		
 	}
