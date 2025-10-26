@@ -43,7 +43,7 @@ It supports **encryption, decryption, key management, and digital signature** wi
 >
 > - **Encryption:** `AES-256-GCM` or `ChaCha20-Poly1305`
 > - **Hash:** `SHA-384` or `SHA-512`
-> - **Asymmetric keys:** `NIST P-384` or `NIST P-512`
+> - **Asymmetric keys:** `NIST P-384` or `NIST P-521`
 >
 > 🔄 *Greater Compatibility*
 >

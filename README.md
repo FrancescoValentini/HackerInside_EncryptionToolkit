@@ -42,7 +42,7 @@ Supporta operazioni di **cifratura, decifratura, gestione delle chiavi e firme d
 >
 > - **Cifratura:** `AES-256-GCM` o `ChaCha20-Poly1305`
 > - **Hash:** `SHA-384` o `SHA-512`
-> - **Chiavi asimmetriche:** `NIST P-384` o `NIST P-512`
+> - **Chiavi asimmetriche:** `NIST P-384` o `NIST P-521`
 >
 > 🔄 *Maggiore compatibilità*
 >
