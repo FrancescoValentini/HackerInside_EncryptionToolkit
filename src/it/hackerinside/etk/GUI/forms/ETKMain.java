@@ -128,6 +128,9 @@ public class ETKMain {
 	    JMenuItem settingsMenuItem = new JMenuItem("Settings");
 	    fileMenu.add(settingsMenuItem);
 	    
+	    JMenuItem mntmTextPad = new JMenuItem("TextPad");
+	    fileMenu.add(mntmTextPad);
+	    
 	    JMenuItem mntmAbout = new JMenuItem("About");
 	    fileMenu.add(mntmAbout);
 	    
@@ -237,6 +240,13 @@ public class ETKMain {
 	    	public void actionPerformed(ActionEvent e) {
 	    		newKeyPair();
 	    	}
+	    });
+	    
+	    mntmTextPad.addActionListener(new ActionListener() {
+	    	public void actionPerformed(ActionEvent e) {
+	    		textPad();
+	    	}
+
 	    });
 	    
 	    
@@ -788,6 +798,11 @@ public class ETKMain {
 		
 	}
 	
+
+	private void textPad() {
+		TextPadForm tpf = new TextPadForm();
+		tpf.setVisible();
+	}
 
 	private void newKeyPair() {
 		NewKeyPairForm nkf = new NewKeyPairForm();
