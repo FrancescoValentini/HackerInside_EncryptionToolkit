@@ -82,7 +82,7 @@ public class CMSEncryptor {
         try (OutputStream encodedOut = wrapEncoding(output);
              OutputStream cmsOut = generator.open(encodedOut, encryptor)) {
 
-            byte[] buffer = new byte[8192];
+            byte[] buffer = new byte[bufferSize];
             int bytesRead;
             while ((bytesRead = input.read(buffer)) != -1) {
                 cmsOut.write(buffer, 0, bytesRead);
