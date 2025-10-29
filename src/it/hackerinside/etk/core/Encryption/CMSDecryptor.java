@@ -58,11 +58,11 @@ public class CMSDecryptor {
     	boolean success = false;
     	
     	Collection<RecipientInformation> recipients = findReciepients(cmsInput);
-    	
+
     	for (RecipientInformation recipient : recipients) {
     		try {
     			InputStream decryptedStream = createRecipientContentStream(recipient);
-    			
+
     			 byte[] buffer = new byte[bufferSize];
                  int bytesRead;
                  while ((bytesRead = decryptedStream.read(buffer)) != -1) {

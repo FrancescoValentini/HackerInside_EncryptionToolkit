@@ -14,6 +14,8 @@ import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPublicKey;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import org.bouncycastle.cms.CMSAlgorithm;
 import org.bouncycastle.cms.CMSEnvelopedDataStreamGenerator;
@@ -33,25 +35,36 @@ import it.hackerinside.etk.core.PEM.PemOutputStream;
  * 
  * @author Francesco Valentini
  */
-public class CMSEncryptor {
-    private X509Certificate recipient;
+public class CMSEncryptor implements Encryptor {
     private SymmetricAlgorithms encryptionAlgorithm;
     private EncodingOption encoding;
     private int bufferSize;
+    private ArrayList<X509Certificate> recipients;
     
     /**
      * Constructs a new CMSEncryptor with the specified parameters.
      *
-     * @param recipient the recipient's X.509 certificate used for encryption
      * @param encryptionAlgorithm the symmetric encryption algorithm to use
      * @param encoding the encoding option for the output (DER or PEM)
      * @param bufferSize the buffer size
      */
-    public CMSEncryptor(X509Certificate recipient, SymmetricAlgorithms encryptionAlgorithm, EncodingOption encoding, int bufferSize) {
-        this.recipient = recipient;
+    public CMSEncryptor(SymmetricAlgorithms encryptionAlgorithm, EncodingOption encoding, int bufferSize) {
         this.encryptionAlgorithm = encryptionAlgorithm;
         this.encoding = encoding;
         this.bufferSize = bufferSize;
+        this.recipients = new ArrayList<>();
+    }
+    
+    /**
+     * Adds one or more recipient certificates to the list of recipients for the encryption process.
+     * This method allows for adding multiple recipients at once using varargs.
+     *
+     * @param recipient one or more X.509 certificates representing the recipients
+     *                  to be included in the encryption process.
+     *                  The certificates will be used to encrypt the data for each recipient.
+     */
+    public void addRecipients(X509Certificate... recipient) {
+        recipients.addAll(Arrays.asList(recipient));
     }
 
     /**
@@ -65,13 +78,8 @@ public class CMSEncryptor {
      *                   or unsupported algorithms
      */
     public void encrypt(InputStream input, OutputStream output) throws Exception  {
-        CMSEnvelopedDataStreamGenerator generator = new CMSEnvelopedDataStreamGenerator();
+        CMSEnvelopedDataStreamGenerator generator = getGenerator();
         
-        // Add recipient
-        RecipientInfoGenerator recipientInfo = createRecipientInfoGenerator(recipient);
-        
-        generator.addRecipientInfoGenerator(recipientInfo);
-
         // Configure encryptor
         OutputEncryptor encryptor = new JceCMSContentEncryptorBuilder(encryptionAlgorithm.getCipherASN1())
                 .setProvider("BC")
@@ -122,6 +130,27 @@ public class CMSEncryptor {
             return output;
         }
     }
+    
+    /**
+     * Creates a {@link CMSEnvelopedDataStreamGenerator} for generating the CMS (Cryptographic Message Syntax)
+     * enveloped data stream. This method configures the generator with the recipient information
+     * (including the recipient's certificate) to ensure the data is encrypted for the correct recipients.
+     * It iterates over the list of recipients and adds the appropriate recipient information for each.
+     *
+     * @return a configured {@link CMSEnvelopedDataStreamGenerator} that will be used
+     *         to encrypt data for the recipients.
+     * @throws Exception if an error occurs while generating recipient information
+     *                   or if the recipient's certificate cannot be processed.
+     *                   This could happen if the recipient's public key algorithm is unsupported.
+     */
+    private CMSEnvelopedDataStreamGenerator getGenerator() throws Exception {
+        CMSEnvelopedDataStreamGenerator generator = new CMSEnvelopedDataStreamGenerator();
+        // Add recipients
+        for(X509Certificate recipient : recipients) {
+        	generator.addRecipientInfoGenerator(createRecipientInfoGenerator(recipient));
+        }
+        return generator;
+    }
 
     /**
      * Creates an appropriate RecipientInfoGenerator based on the recipient certificate's
@@ -142,7 +171,7 @@ public class CMSEncryptor {
         } 
         else if ("EC".equalsIgnoreCase(algorithm) || "ECDH".equalsIgnoreCase(algorithm) || "ECDSA".equalsIgnoreCase(algorithm)) {
             // Elliptic Curve Diffie-Hellman (ECDH)
-            KeyPair eph = getEphemeralECCKeys();
+            KeyPair eph = getEphemeralECCKeys(recipientCert);
             
             return new JceKeyAgreeRecipientInfoGenerator(
                     CMSAlgorithm.ECDH_SHA256KDF,
@@ -165,7 +194,7 @@ public class CMSEncryptor {
      * @throws NoSuchProviderException if the BC provider is not available
      * @throws InvalidAlgorithmParameterException if the key parameters are invalid
      */
-    private KeyPair getEphemeralECCKeys() throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {
+    private KeyPair getEphemeralECCKeys(X509Certificate recipient) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("EC", "BC");
         kpg.initialize(((ECPublicKey)recipient.getPublicKey()).getParams());
         return kpg.generateKeyPair();

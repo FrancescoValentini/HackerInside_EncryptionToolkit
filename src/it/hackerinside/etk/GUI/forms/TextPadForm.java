@@ -391,7 +391,9 @@ public class TextPadForm {
 	 */
 	private void encrypt() {
 		SymmetricAlgorithms cipher = (SymmetricAlgorithms) cmbEncAlgorithm.getSelectedItem();
-		CMSEncryptor encryptor = new CMSEncryptor(recipient, cipher, EncodingOption.ENCODING_PEM, ctx.getBufferSize());
+		CMSEncryptor encryptor = new CMSEncryptor(cipher, EncodingOption.ENCODING_PEM, ctx.getBufferSize());
+		encryptor.addRecipients(recipient);
+		
 		String text = txtbData.getText();
 	    ByteArrayInputStream input = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
 	    ByteArrayOutputStream output = new ByteArrayOutputStream();

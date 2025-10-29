@@ -27,12 +27,15 @@ public class EncryptTest {
 		
 		// Encrypt 
 		System.out.println("RSA ENCRYPT");
-		CMSEncryptor rsaEncryptor = new CMSEncryptor(rsaCert, SymmetricAlgorithms.AES_256_CBC, EncodingOption.ENCODING_DER,8192);
+		CMSEncryptor rsaEncryptor = new CMSEncryptor(SymmetricAlgorithms.AES_256_CBC, EncodingOption.ENCODING_DER,8192);
+		rsaEncryptor.addRecipients(rsaCert);
 		rsaEncryptor.encrypt(toEncrypt, new File("enc_rsa.test"));
 		
 		System.out.println("ECC ENCRYPT");
-		CMSEncryptor eccEncryptor = new CMSEncryptor(eccCert, SymmetricAlgorithms.AES_256_CBC, EncodingOption.ENCODING_PEM,8192);
-		eccEncryptor.encrypt(toEncrypt, new File("enc_ecc.test"));
+		CMSEncryptor eccEncryptor = new CMSEncryptor(SymmetricAlgorithms.AES_256_CBC, EncodingOption.ENCODING_PEM,8192);
+		eccEncryptor.addRecipients(eccCert);
+		eccEncryptor.addRecipients(rsaCert);
+		eccEncryptor.encrypt(toEncrypt, new File("enc_ecc_multi.test"));
 		
 		// Decrypt
 		
@@ -45,7 +48,7 @@ public class EncryptTest {
 		
 		System.out.println("ECC DECRYPT");
 		CMSDecryptor eccDecryptor = new CMSDecryptor(eccPriv, EncodingOption.ENCODING_PEM,8192);
-		eccDecryptor.decrypt(new File("enc_ecc.test"), new File("dec_ecc.test"));
+		eccDecryptor.decrypt(new File("enc_ecc_multi.test"), new File("dec_ecc_multi.test"));
 		
 	}
 
