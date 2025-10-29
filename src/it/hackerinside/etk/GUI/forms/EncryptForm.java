@@ -111,7 +111,7 @@ public class EncryptForm {
 		panel.setLayout(null);
 		
 		JLabel lblNewLabel_1 = new JLabel("Recipient Certificate");
-		lblNewLabel_1.setBounds(10, 28, 151, 20);
+		lblNewLabel_1.setBounds(10, 28, 557, 20);
 		lblNewLabel_1.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		panel.add(lblNewLabel_1);
 		
@@ -151,7 +151,7 @@ public class EncryptForm {
 		
 		JLabel lblInputFile = new JLabel("Output File");
 		lblInputFile.setFont(new Font("Tahoma", Font.PLAIN, 16));
-		lblInputFile.setBounds(10, 154, 120, 20);
+		lblInputFile.setBounds(10, 154, 541, 20);
 		panel.add(lblInputFile);
 		
 		txtbOutputFile = new JTextField();
@@ -163,7 +163,7 @@ public class EncryptForm {
 		JButton btnOpenOutputFile = new JButton("...");
 
 		btnOpenOutputFile.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		btnOpenOutputFile.setBounds(476, 185, 85, 25);
+		btnOpenOutputFile.setBounds(476, 185, 85, 26);
 		panel.add(btnOpenOutputFile);
 		
 		JPanel panel_1_1 = new JPanel();
@@ -180,12 +180,12 @@ public class EncryptForm {
 		
 		cmbEncAlgorithm = new JComboBox();
 		cmbEncAlgorithm.setFont(new Font("Tahoma", Font.PLAIN, 16));
-		cmbEncAlgorithm.setBounds(176, 25, 214, 28);
+		cmbEncAlgorithm.setBounds(192, 25, 214, 28);
 		panel_1_1.add(cmbEncAlgorithm);
 		
 		chckbPemOutput = new JCheckBox("PEM output");
 		chckbPemOutput.setFont(new Font("Tahoma", Font.PLAIN, 18));
-		chckbPemOutput.setBounds(396, 27, 133, 23);
+		chckbPemOutput.setBounds(412, 27, 133, 23);
 		panel_1_1.add(chckbPemOutput);
 		
 		progressBarEncrypt = new JProgressBar();
@@ -429,7 +429,7 @@ public class EncryptForm {
 	            ? EncodingOption.ENCODING_PEM
 	            : EncodingOption.ENCODING_DER;
 	    File cipherFile = new File(txtbOutputFile.getText());
-
+	    if(!FileDialogUtils.overwriteIfExists(cipherFile)) return;
 	    CMSEncryptor encryptor = new CMSEncryptor(recipient, cipher, encoding,ctx.getBufferSize());
 
 	    SwingWorker<Void, Void> worker = new SwingWorker<>() {

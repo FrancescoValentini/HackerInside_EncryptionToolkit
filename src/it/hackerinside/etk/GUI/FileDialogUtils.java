@@ -153,4 +153,22 @@ public class FileDialogUtils {
     public static File saveFileDialog(Component parent, String title, String path, DefaultExtensions filter) {
         return saveFileDialog(parent, title, path, new DefaultExtensions[]{filter});
     }
+    
+    /**
+     * Checks if a file already exists and displays an information message
+     * @param f the file to check
+     * @return true if the file does not exist or if the user want to overwrite it
+     */
+    public static boolean overwriteIfExists(File f) {
+    	if(f.exists()) {
+    		return DialogUtils.showConfirmBox(
+    				null,
+    				"File already exists!", 
+    				"File already exists, do you want to overwrite it?", 
+    		        "File: " + f.getAbsolutePath() + "\nSize: " + f.length(), 
+    		        JOptionPane.WARNING_MESSAGE
+    		);
+    	}
+		return true;
+    }
 }

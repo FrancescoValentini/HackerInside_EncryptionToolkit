@@ -209,12 +209,12 @@ public class SignForm {
 		
 		chckbDetachedSignature = new JCheckBox("Detached Signature");
 		chckbDetachedSignature.setFont(new Font("Tahoma", Font.PLAIN, 18));
-		chckbDetachedSignature.setBounds(10, 67, 187, 23);
+		chckbDetachedSignature.setBounds(10, 67, 211, 23);
 		panel_1.add(chckbDetachedSignature);
 		
 		chckbPem = new JCheckBox("PEM output");
 		chckbPem.setFont(new Font("Tahoma", Font.PLAIN, 18));
-		chckbPem.setBounds(210, 67, 141, 23);
+		chckbPem.setBounds(223, 67, 141, 23);
 		panel_1.add(chckbPem);
 		panel.setLayout(gl_panel);
 		
@@ -403,14 +403,20 @@ public class SignForm {
 	        return;
 	    }
 	    
+	    
+	    boolean detached = chckbDetachedSignature.isSelected();
+	    
+	    File signedFile = new File(txtbOutputFile.getText());
+	    
+	    if(!FileDialogUtils.overwriteIfExists(signedFile)) return;
+	    
+	    
 	    EncodingOption encoding = chckbPem.isSelected()
 	            ? EncodingOption.ENCODING_PEM
 	            : EncodingOption.ENCODING_DER;
 	    
 	    HashAlgorithm hash = (HashAlgorithm) cmbAlgorithm.getSelectedItem();
 	    
-	    boolean detached = chckbDetachedSignature.isSelected();
-	    File signedFile = new File(txtbOutputFile.getText());
 	    PrivateKey priv = getPrivateKey();
 	    X509Certificate signerCert = getCertificate();
 	    

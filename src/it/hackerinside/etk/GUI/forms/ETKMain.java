@@ -40,7 +40,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
 import java.security.KeyStoreException;
@@ -49,7 +48,6 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.awt.event.ActionEvent;
@@ -377,7 +375,7 @@ public class ETKMain {
 		            null, 
 		            "DELETING PRIVATE KEY!", 
 		            "DELETING: " + row.keystoreAlias(), 
-		            "You are about to delete my private key; you will no longer be able to sign or decrypt with it.\r\n"
+		            "You are about to delete the private key; you will no longer be able to sign or decrypt with it.\r\n"
 		            + "\r\n"
 		            + "The deletion is irreversible; the key cannot be recovered.", 
 		            JOptionPane.WARNING_MESSAGE
@@ -386,10 +384,15 @@ public class ETKMain {
 		        try {
 		            ctx.getKeystore().deleteKeyOrCertificate(row.keystoreAlias());
 		            ctx.getKeystore().save();
-		        } catch (KeyStoreException e) {
+		        }catch (Exception e) {
 		            e.printStackTrace();
-		        } catch (Exception e) {
-		            e.printStackTrace();
+		            DialogUtils.showMessageBox(
+			                null, 
+			                "Error while deleting certificate", 
+			                "Error while deleting certificate", 
+			                e.getMessage(), 
+			                JOptionPane.ERROR_MESSAGE
+			            );
 		        }
 	    	}
 
@@ -397,10 +400,15 @@ public class ETKMain {
 	        try {
 	            ctx.getKnownCerts().deleteKeyOrCertificate(row.keystoreAlias());
 	            ctx.getKnownCerts().save();
-	        } catch (KeyStoreException e) {
+	        }catch (Exception e) {
 	            e.printStackTrace();
-	        } catch (Exception e) {
-	            e.printStackTrace();
+	            DialogUtils.showMessageBox(
+		                null, 
+		                "Error while deleting certificate", 
+		                "Error while deleting certificate", 
+		                e.getMessage(), 
+		                JOptionPane.ERROR_MESSAGE
+		            );
 	        }
 	    }
 	    updateTable();

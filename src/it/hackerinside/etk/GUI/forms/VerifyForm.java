@@ -123,7 +123,7 @@ public class VerifyForm {
 	    btnExportContent = new JButton("EXPORT CONTENT");
 
 	    btnExportContent.setEnabled(false);
-	    btnExportContent.setFont(new Font("Tahoma", Font.PLAIN, 14));
+	    btnExportContent.setFont(new Font("Tahoma", Font.PLAIN, 16));
 	    
 	    lblStatus = new JLabel("New label");
 	    lblStatus.setFont(new Font("Tahoma", Font.BOLD, 16));
@@ -138,22 +138,23 @@ public class VerifyForm {
 	    			.addGap(10)
 	    			.addGroup(gl_bottomPanel.createParallelGroup(Alignment.LEADING)
 	    				.addComponent(progressBar, GroupLayout.PREFERRED_SIZE, 380, GroupLayout.PREFERRED_SIZE)
-	    				.addComponent(lblStatus, GroupLayout.PREFERRED_SIZE, 590, GroupLayout.PREFERRED_SIZE))
-	    			.addPreferredGap(ComponentPlacement.RELATED, 10, Short.MAX_VALUE)
-	    			.addComponent(btnExportContent, GroupLayout.PREFERRED_SIZE, 156, GroupLayout.PREFERRED_SIZE)
+	    				.addComponent(lblStatus, GroupLayout.DEFAULT_SIZE, 533, Short.MAX_VALUE))
+	    			.addPreferredGap(ComponentPlacement.UNRELATED)
+	    			.addComponent(btnExportContent, GroupLayout.PREFERRED_SIZE, 213, GroupLayout.PREFERRED_SIZE)
 	    			.addContainerGap())
 	    );
 	    gl_bottomPanel.setVerticalGroup(
 	    	gl_bottomPanel.createParallelGroup(Alignment.LEADING)
 	    		.addGroup(gl_bottomPanel.createSequentialGroup()
 	    			.addGap(21)
-	    			.addGroup(gl_bottomPanel.createParallelGroup(Alignment.TRAILING)
-	    				.addComponent(btnExportContent, GroupLayout.PREFERRED_SIZE, 50, GroupLayout.PREFERRED_SIZE)
-	    				.addGroup(gl_bottomPanel.createSequentialGroup()
-	    					.addComponent(progressBar, GroupLayout.PREFERRED_SIZE, 27, GroupLayout.PREFERRED_SIZE)
-	    					.addGap(11)
-	    					.addComponent(lblStatus, GroupLayout.PREFERRED_SIZE, 30, GroupLayout.PREFERRED_SIZE)))
-	    			.addGap(11))
+	    			.addComponent(progressBar, GroupLayout.PREFERRED_SIZE, 27, GroupLayout.PREFERRED_SIZE)
+	    			.addPreferredGap(ComponentPlacement.RELATED)
+	    			.addComponent(lblStatus, GroupLayout.PREFERRED_SIZE, 30, GroupLayout.PREFERRED_SIZE)
+	    			.addContainerGap())
+	    		.addGroup(Alignment.TRAILING, gl_bottomPanel.createSequentialGroup()
+	    			.addContainerGap(39, Short.MAX_VALUE)
+	    			.addComponent(btnExportContent, GroupLayout.PREFERRED_SIZE, 50, GroupLayout.PREFERRED_SIZE)
+	    			.addContainerGap())
 	    );
 	    bottomPanel.setLayout(gl_bottomPanel);
 	    

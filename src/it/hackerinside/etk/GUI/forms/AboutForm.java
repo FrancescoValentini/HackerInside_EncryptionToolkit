@@ -102,7 +102,6 @@ public class AboutForm {
         info.append(getProvidersInfo());
         info.append(getAlgorithmInfo());
         info.append(getKeyLengthInfo());
-        info.append(getECCInfo());
         info.append(getHashingInfo());
 
         return info.toString();
@@ -169,40 +168,11 @@ public class AboutForm {
             sb.append("AES  : ").append(formatKeyLength(Cipher.getMaxAllowedKeyLength("AES"))).append("\n");
             sb.append("RSA  : ").append(formatKeyLength(Cipher.getMaxAllowedKeyLength("RSA"))).append("\n");
             sb.append("DES  : ").append(formatKeyLength(Cipher.getMaxAllowedKeyLength("DES"))).append("\n");
-            sb.append("ECIES: ").append(formatKeyLength(Cipher.getMaxAllowedKeyLength("AES"))).append("\n");
 
 
 
         } catch (Exception e) {
             sb.append("Error retrieving key length info: ").append(e.getMessage()).append("\n");
-        }
-        sb.append("\n");
-        return sb.toString();
-    }
-
-    // --- ECC Info ---
-    private String getECCInfo() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("=== ECC (Elliptic Curve Cryptography) SUPPORT ===\n");
-        boolean eccFound = false;
-        for (Provider provider : Security.getProviders()) {
-            for (Provider.Service service : provider.getServices()) {
-                String algo = service.getAlgorithm().toUpperCase();
-                if (algo.contains("EC") || algo.contains("ECDH") || algo.contains("ECDSA") || algo.contains("ECIES")) {
-                    eccFound = true;
-                    sb.append(provider.getName())
-                      .append(" -> ")
-                      .append(service.getType())
-                      .append(": ")
-                      .append(service.getAlgorithm())
-                      .append("\n");
-                }
-            }
-        }
-        if (!eccFound) {
-            sb.append("No ECC algorithms found in registered providers.\n");
-        } else {
-            sb.append("\nECC algorithms detected successfully.\n");
         }
         sb.append("\n");
         return sb.toString();

@@ -323,6 +323,8 @@ public class DecryptForm {
 	
 	private void decrypt() {
 	    File output = new File(txtbOutputFile.getText());
+	    if(!FileDialogUtils.overwriteIfExists(output)) return;
+	    
 	    startDecryptionUI();
 
 	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
