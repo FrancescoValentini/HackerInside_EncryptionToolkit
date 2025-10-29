@@ -21,6 +21,7 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.JButton;
 import java.awt.event.ActionListener;
+import java.security.InvalidParameterException;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
@@ -178,6 +179,8 @@ public class NewKeyPairForm {
 		boolean errors = false;
 		
 		try {
+        	if(commonName.isBlank() || country.isBlank() || state.isBlank()) throw new InvalidParameterException("Please fill in all the fields!");
+
 			kp = X509Builder.generateECKeyPair(alg);
 			crt = X509Builder.buildCertificate(commonName, country, state, exp, kp.getPublic(), kp.getPrivate());
 			saveToKeystore(kp.getPrivate(),crt);

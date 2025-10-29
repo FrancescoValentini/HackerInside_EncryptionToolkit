@@ -1,5 +1,6 @@
 package it.hackerinside.etk.GUI;
 
+import java.io.File;
 import java.security.Security;
 import java.util.prefs.Preferences;
 
@@ -20,7 +21,7 @@ import it.hackerinside.etk.core.keystore.PKCS12Keystore;
  */
 public class ETKContext {
 	
-	public static final String ETK_VERSION = "1.0.3";
+	public static final String ETK_VERSION = "1.0.4";
 	
     /**
      * Singleton instance of ETKContext.
@@ -124,11 +125,36 @@ public class ETKContext {
      * @throws Exception if loading the keystore fails
      */
     private void initOrLoadKnownCerts(String path) throws Exception {
+    	ensureDirectoryExists(path);
         this.knownCerts = new PKCS12Keystore(path, "".toCharArray());
         knownCerts.load();
+
+    }
+    
+    /**
+     * Ensures that the specified directory path exists. If the directory does not exist,
+     * it attempts to create it, including any necessary parent directories.
+     *
+     * @param path the file system path to the directory that should exist
+     * @throws Exception if the directory cannot be created
+     */
+    private void ensureDirectoryExists(String path) throws Exception {
+        File f = new File(path);
+
+        // Check if the directory exists
+        if (!f.exists()) {
+            // If it doesn't, create the parent directories
+            File parentDir = f.getParentFile();
+            if (parentDir != null && !parentDir.exists()) {
+                boolean dirsCreated = parentDir.mkdirs(); // Create all necessary parent directories
+                if (!dirsCreated) {
+                    throw new Exception("Unable to create the directory: " + parentDir.getAbsolutePath());
+                }
+            }
+        }
     }
 
-
+    
     /**
      * Loads the main keystore using the provided password.
      * The type of keystore (PKCS11 or PKCS12) is determined by the application preferences.
@@ -140,8 +166,11 @@ public class ETKContext {
     public boolean loadKeystore(String pwd) throws Exception {
         if(this.usePKCS11())
             this.keystore = new PKCS11Keystore(this.getPkcs11Driver(), pwd.toCharArray());
-        else
-            this.keystore = new PKCS12Keystore(this.getKeyStorePath(), pwd.toCharArray());
+        else {
+        	ensureDirectoryExists(this.getKeyStorePath());
+        	this.keystore = new PKCS12Keystore(this.getKeyStorePath(), pwd.toCharArray());
+        }
+            
         
         this.keystore.load();
         return !this.keystore.isNull();

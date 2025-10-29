@@ -40,6 +40,52 @@ public class DialogUtils {
         dialog.setAlwaysOnTop(true); 
         dialog.setVisible(true);
 	}
+	
+    /**
+     * Displays a confirmation dialog with a title, header message, and detailed content.
+     * The dialog features a bold header and a scrollable text area for long messages.
+     * Returns true if the user clicks OK, false if the user clicks Cancel.
+     * 
+     * @param parent      the parent component for the dialog; can be null
+     * @param title       the title of the dialog window
+     * @param header      the main header message (displayed in bold)
+     * @param message     the detailed descriptive text (can be long)
+     * @param messageType the type of message (JOptionPane.INFORMATION_MESSAGE, 
+     *                    WARNING_MESSAGE, or ERROR_MESSAGE)
+     * @return            true if OK is clicked, false if Cancel is clicked
+     */
+    public static boolean showConfirmBox(Component parent, String title, String header, String message, int messageType) {
+        JLabel headerLabel = new JLabel(header);
+        headerLabel.putClientProperty(FlatClientProperties.STYLE, "font: +2 bold");
+
+        JTextArea textArea = new JTextArea(message);
+        textArea.setEditable(false);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setPreferredSize(new Dimension(400, 150));
+
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        panel.add(headerLabel, BorderLayout.NORTH);
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        // Create options for the confirmation dialog
+        Object[] options = {"OK", "Cancel"};
+        int choice = JOptionPane.showOptionDialog(
+            parent, 
+            panel, 
+            title, 
+            JOptionPane.DEFAULT_OPTION, 
+            messageType, 
+            null, 
+            options, 
+            options[0]  // Default to "OK"
+        );
+
+        // Return true if OK was clicked, false if Cancel was clicked
+        return choice == 0;
+    }
 
 	/**
 	 * Displays an input dialog with a title, header message, and input field.

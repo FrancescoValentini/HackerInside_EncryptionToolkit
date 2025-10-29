@@ -24,6 +24,7 @@ import it.hackerinside.etk.core.keystore.PKCS12Keystore;
 
 import java.awt.Font;
 import java.io.File;
+import java.security.InvalidParameterException;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -354,9 +355,15 @@ public class SetupForm {
 
         boolean success = true;
         StringBuilder errors = new StringBuilder();
-
+        
+        //File prKeystore = new File(ctx.getKeyStorePath());
+        //File pbKeystore = new File(ctx.getKnownCertsPath());
+        
+        //if(!pbKeystore.exists()) pbKeystore.mkdirs();
+        
         try {
             if (!chckbPkcs11.isSelected()) {
+            //	if(!prKeystore.exists()) prKeystore.mkdirs();
                 initializePersonalKeystore();
                 
                 createX509Cert();
@@ -419,6 +426,7 @@ public class SetupForm {
             txtbPKCS11Config.setText(file.getAbsolutePath());
         }
     }
+    
 
     /**
      * Loads the default application settings into the corresponding UI fields.
@@ -436,8 +444,10 @@ public class SetupForm {
      * Initializes the personal keystore if it doesn't exist.
      * Prompts the user for a master password and creates a new PKCS12 keystore.
      * Displays error messages if the keystore creation fails.
+     * @throws Exception 
      */
-    private void initializePersonalKeystore() {
+    private void initializePersonalKeystore() throws Exception {
+    	ensureDirectoryExists(txtbKeystorePath.getText());
         File keystore = new File(txtbKeystorePath.getText());
         if(!keystore.exists()) {
             String pwd = askKeystorePassword();
@@ -457,6 +467,29 @@ public class SetupForm {
             }
         }
     }
+    
+    /**
+     * Ensures that the specified directory path exists. If the directory does not exist,
+     * it attempts to create it, including any necessary parent directories.
+     *
+     * @param path the file system path to the directory that should exist
+     * @throws Exception if the directory cannot be created
+     */
+    private void ensureDirectoryExists(String path) throws Exception {
+        File f = new File(path);
+
+        // Check if the directory exists
+        if (!f.exists()) {
+            // If it doesn't, create the parent directories
+            File parentDir = f.getParentFile();
+            if (parentDir != null && !parentDir.exists()) {
+                boolean dirsCreated = parentDir.mkdirs(); // Create all necessary parent directories
+                if (!dirsCreated) {
+                    throw new Exception("Unable to create the directory: " + parentDir.getAbsolutePath());
+                }
+            }
+        }
+    }
 
     /**
      * Creates an X509 certificate with the specified parameters.
@@ -469,7 +502,21 @@ public class SetupForm {
         String state = txtbStateName.getText();
         int expDays = (int) spinnerExpDays.getValue();
 
+		if(cc.length() != 2) {
+            DialogUtils.showMessageBox(
+                    null,
+                    "Invalid parameters!",
+                    "Invalid country code!",
+                    "Country code must have 2 letters!",
+                    JOptionPane.ERROR_MESSAGE
+                );
+            return;
+		}
+        
         try {
+        	
+        	if(name.isBlank() || cc.isBlank() || state.isBlank()) throw new InvalidParameterException("Please fill in all the fields!");
+        	
             // Collect user input
             String ksMaster = askKeystorePassword();
             String alias = askAlias();

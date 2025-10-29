@@ -1,5 +1,8 @@
 package it.hackerinside.etk.core.Models;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 /**
  * ApplicationPreferences enum defines configuration keys and their default values
  * used throughout the application.
@@ -11,13 +14,13 @@ public enum ApplicationPreferences {
      * Path to the keystore file used for storing cryptographic keys.
      * Default value: "keystore.pfx"
      */
-    KEYSTORE_PATH("KEYSTORE_PATH", "keystore.pfx"),
+    KEYSTORE_PATH("KEYSTORE_PATH", getHomeFilePath("keystore.pfx")),
     
     /**
      * Path to the keystore file containing known/trusted certificates.
      * Default value: "knowncerts.pfx"
      */
-    KNOWN_CERTS_PATH("KNOWN_CERTS_PATH", "knowncerts.pfx"),
+    KNOWN_CERTS_PATH("KNOWN_CERTS_PATH", getHomeFilePath("knowncerts.pfx")),
     
     /**
      * Default hash algorithm used for cryptographic operations.
@@ -89,4 +92,17 @@ public enum ApplicationPreferences {
     public String getValue() {
         return value;
     }
+    
+    /**
+     * Returns the full file path for a given file name located in the user's home directory.
+     * 
+     * @param fileName The name of the file for which the path is to be generated.
+     * @return The full path as a string to the specified file in the user's home directory.
+     */
+    private static String getHomeFilePath(String fileName) {
+        String userHome = System.getProperty("user.home");
+        Path filePath = Paths.get(userHome,".ETK", fileName);
+        return filePath.toString();
+    }
+
 }

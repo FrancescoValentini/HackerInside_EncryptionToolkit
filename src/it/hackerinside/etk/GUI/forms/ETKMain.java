@@ -61,6 +61,7 @@ public class ETKMain {
 	private CertificateTableModel tableModel;
 	private JButton btnDecrypt;
 	private JButton btnSign;
+	private JButton btnEncrypt;
 	/**
 	 * Launch the application.
 	 */
@@ -100,7 +101,7 @@ public class ETKMain {
 
 	    btnSign = createSquareButton("SIGN","/it/hackerinside/etk/GUI/icons/sign.png");
 	    JButton btnVerify = createSquareButton("VERIFY","/it/hackerinside/etk/GUI/icons/verify.png");
-	    JButton btnEncrypt = createSquareButton("ENCRYPT","/it/hackerinside/etk/GUI/icons/encrypt.png");
+	    btnEncrypt = createSquareButton("ENCRYPT","/it/hackerinside/etk/GUI/icons/encrypt.png");
 	    btnDecrypt = createSquareButton("DECRYPT","/it/hackerinside/etk/GUI/icons/decrypt.png");
 
 	    topBarPanel.add(btnSign);
@@ -370,14 +371,27 @@ public class ETKMain {
 	        );
 	        return;
 	    } else if (row.location() == KeysLocations.PKCS12) {
-	        try {
-	            ctx.getKeystore().deleteKeyOrCertificate(row.keystoreAlias());
-	            ctx.getKeystore().save();
-	        } catch (KeyStoreException e) {
-	            e.printStackTrace();
-	        } catch (Exception e) {
-	            e.printStackTrace();
-	        }
+	    	
+	        boolean ok = DialogUtils.showConfirmBox(
+		            null, 
+		            "DELETING PRIVATE KEY!", 
+		            "DELETING: " + row.keystoreAlias(), 
+		            "You are about to delete my private key; you will no longer be able to sign or decrypt with it.\r\n"
+		            + "\r\n"
+		            + "The deletion is irreversible; the key cannot be recovered.", 
+		            JOptionPane.WARNING_MESSAGE
+		        );
+	    	if(ok) {
+		        try {
+		            ctx.getKeystore().deleteKeyOrCertificate(row.keystoreAlias());
+		            ctx.getKeystore().save();
+		        } catch (KeyStoreException e) {
+		            e.printStackTrace();
+		        } catch (Exception e) {
+		            e.printStackTrace();
+		        }
+	    	}
+
 	    } else if (row.location() == KeysLocations.KNWOWN_CERTIFICATES) {
 	        try {
 	            ctx.getKnownCerts().deleteKeyOrCertificate(row.keystoreAlias());
@@ -508,6 +522,15 @@ public class ETKMain {
 		}else {
 		    unlockKeystore();
 		    updateTable();
+		}
+		
+		/*
+		 * At the moment the software does not properly support encryption and decryption 
+		 * with pkcs11 devices, so it is better to disable the option to prevent data loss.
+		 */
+		if(ctx.usePKCS11()) {
+			btnDecrypt.setEnabled(false);
+			btnEncrypt.setEnabled(false);
 		}
 	}
 
