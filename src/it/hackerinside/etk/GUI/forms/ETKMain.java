@@ -30,6 +30,7 @@ import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableModel;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
 import it.hackerinside.etk.GUI.DTOs.KeysLocations;
+import it.hackerinside.etk.Utils.X509CertificateExporter;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
@@ -421,13 +422,18 @@ public class ETKMain {
 	        DefaultExtensions.CRYPTO_PEM
 	    );
 	    if (file != null) {
-	        try (FileWriter fw = new FileWriter(file)) {
-	            fw.write("-----BEGIN CERTIFICATE-----\n");
-	            String encoded = Base64.getMimeEncoder(64, new byte[]{'\n'})
-	                .encodeToString(crt.getEncoded());
-	            fw.write(encoded);
-	            fw.write("\n-----END CERTIFICATE-----\n");
-	        } catch (IOException | CertificateEncodingException e) {
+	    	try {
+	    		boolean res = X509CertificateExporter.exportCertificate(crt, file);
+	    		if(res) {
+	    		    DialogUtils.showLargeInputBox(
+	    		    	    null,
+	    		    	    "Export Certificate",
+	    		    	    "Exported: " + row.keystoreAlias(),
+	    		    	    file.getAbsolutePath(),
+	    		    	    false
+	    		    	);
+	    		}
+	    	}catch (IOException | CertificateEncodingException e) {
 	            e.printStackTrace();
 	            DialogUtils.showMessageBox(
 	                null, 
@@ -448,21 +454,15 @@ public class ETKMain {
 	 */
 	private void exportCertificateToString(CertificateTableRow row) {
 	    X509Certificate crt = row.original();
-	    StringBuilder sb = new StringBuilder();
 	    try {
-		    sb.append("-----BEGIN CERTIFICATE-----\n");
-		    String cert = Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(crt.getEncoded());
-		    sb.append(cert);
-		    sb.append("\n-----END CERTIFICATE-----\n");
-		    
+	    	String cert = X509CertificateExporter.exportCertificateToString(crt);
 		    DialogUtils.showLargeInputBox(
 		    	    null,
 		    	    "Export Certificate",
 		    	    "PEM Certificate: " + row.keystoreAlias(),
-		    	    sb.toString(),
+		    	    cert,
 		    	    false
 		    	);
-		    
 	    }catch(CertificateEncodingException e) {
             DialogUtils.showMessageBox(
 	                null, 
