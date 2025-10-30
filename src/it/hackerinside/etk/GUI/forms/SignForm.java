@@ -28,6 +28,7 @@ import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.TimeUtils;
+import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.core.CAdES.CAdESSigner;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
@@ -417,8 +418,10 @@ public class SignForm {
 	    
 	    HashAlgorithm hash = (HashAlgorithm) cmbAlgorithm.getSelectedItem();
 	    
-	    PrivateKey priv = getPrivateKey();
 	    X509Certificate signerCert = getCertificate();
+	    if(!Utils.acceptX509Certificate(signerCert)) return;
+	    
+	    PrivateKey priv = getPrivateKey();
 	    
 	    startSignatureUI();
 	    

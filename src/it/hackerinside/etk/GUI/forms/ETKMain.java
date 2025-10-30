@@ -27,6 +27,7 @@ import javax.swing.SwingConstants;
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
+import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableModel;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
 import it.hackerinside.etk.GUI.DTOs.KeysLocations;
@@ -665,12 +666,20 @@ public class ETKMain {
 	        DefaultExtensions.STD_ANY
 	    );
 	    X509Certificate cert = null;
+	    boolean accepted = false;
 	    if (certFile != null) {
 	        String alias = DialogUtils.showInputBox(null, "Certificate Alias", "Enter Certificate Alias", "", false);
 	        try {
 	            cert = X509CertificateLoader.loadFromFile(certFile);
-	            ctx.getKnownCerts().addCertificate(alias, cert);
-	            ctx.getKnownCerts().save();
+	            accepted = Utils.acceptX509Certificate(cert);
+	            
+	            if(accepted) {
+		            ctx.getKnownCerts().addCertificate(alias, cert);
+		            ctx.getKnownCerts().save();
+				    updateTable();
+				    showCertificateInformation(cert);
+	            }
+
 	        } catch (CertificateException | IOException e) {
 	            e.printStackTrace();
 	            DialogUtils.showMessageBox(null, "Invalid certificate", "Invalid certificate!", 
@@ -686,8 +695,6 @@ public class ETKMain {
 	            e.printStackTrace();
 	        }
 	    }
-	    updateTable();
-	    showCertificateInformation(cert);
 	}
 	
 	/**
@@ -709,8 +716,13 @@ public class ETKMain {
         if(certString == null || certString.isEmpty()) return;
         try {
             cert = X509CertificateLoader.loadFromString(certString);
-            ctx.getKnownCerts().addCertificate(alias, cert);
-            ctx.getKnownCerts().save();
+            if(Utils.acceptX509Certificate(cert)) {
+                ctx.getKnownCerts().addCertificate(alias, cert);
+                ctx.getKnownCerts().save();
+        	    updateTable();
+        	    showCertificateInformation(cert);
+            }
+
         } catch (CertificateException | IOException e) {
             e.printStackTrace();
             DialogUtils.showMessageBox(null, "Invalid certificate", "Invalid certificate!", 
@@ -725,8 +737,7 @@ public class ETKMain {
 
             e.printStackTrace();
         }
-	    updateTable();
-	    showCertificateInformation(cert);
+
 	}
 	
 	/**
@@ -768,6 +779,7 @@ public class ETKMain {
 					    );
 				    
 				    X509Certificate crt = src.getCertificate(alias);
+				    if(!Utils.acceptX509Certificate(crt)) return;
 				    PrivateKey key = src.getPrivateKey(alias, keyPwd.toCharArray());
 				    ctx.getKeystore().addPrivateKey(alias, key, keyPwd.toCharArray(), new X509Certificate[] {crt});
 				    ctx.getKeystore().save();

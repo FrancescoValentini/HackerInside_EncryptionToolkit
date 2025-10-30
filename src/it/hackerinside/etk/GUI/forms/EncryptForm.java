@@ -29,6 +29,7 @@ import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.TimeUtils;
+import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
@@ -293,7 +294,7 @@ public class EncryptForm {
 
 		btnAddRecipient.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				if(recipient != null) {
+				if(recipient != null && Utils.acceptX509Certificate(recipient)) {
 					recipients.add(recipient);
 					Object selectedCert = cmbRecipientCert.getSelectedItem();
 					if(selectedCert != null) {
