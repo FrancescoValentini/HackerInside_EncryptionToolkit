@@ -443,6 +443,7 @@ public class ETKMain {
 	 */
 	protected void exportCertificate(CertificateTableRow row) {
 	    X509Certificate crt = row.original();
+	    if(!Utils.acceptX509Certificate(crt)) return;
 	    File file = FileDialogUtils.saveFileDialog(
 	        null,
 	        "X.509 Certificate",
@@ -484,13 +485,15 @@ public class ETKMain {
 	    X509Certificate crt = row.original();
 	    try {
 	    	String cert = X509CertificateExporter.exportCertificateToString(crt);
-		    DialogUtils.showLargeInputBox(
-		    	    null,
-		    	    "Export Certificate",
-		    	    "PEM Certificate: " + row.keystoreAlias(),
-		    	    cert,
-		    	    false
-		    	);
+	    	if(Utils.acceptX509Certificate(crt)) {
+			    DialogUtils.showLargeInputBox(
+			    	    null,
+			    	    "Export Certificate",
+			    	    "PEM Certificate: " + row.keystoreAlias(),
+			    	    cert,
+			    	    false
+			    	);
+	    	}
 	    }catch(CertificateEncodingException e) {
             DialogUtils.showMessageBox(
 	                null, 

@@ -3,6 +3,7 @@ package it.hackerinside.etk.GUI;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.security.MessageDigest;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 
 import javax.swing.JPanel;
@@ -14,6 +15,8 @@ import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
+
+import it.hackerinside.etk.Utils.X509CertificateExporter;
 
 import java.awt.Font;
 
@@ -106,6 +109,14 @@ public class CertificateDetailsPanel extends JPanel {
         addRow("Key usage", cert.getKeyUsage() != null ? keyUsageToString(cert.getKeyUsage()) : "N/A");
         addRow("Signature Algorithm", cert.getSigAlgName());
         addRow("Version", String.valueOf(cert.getVersion()));
+        try {
+			addRow("PEM Certificate",X509CertificateExporter.exportCertificateToString(cert));
+	        addRow("PEM Public Key",X509CertificateExporter.exportPublicKeyToString(cert));
+
+		} catch (CertificateEncodingException e) {
+			e.printStackTrace();
+		}
+        
         
         autoResizeColumnWidths();
     }

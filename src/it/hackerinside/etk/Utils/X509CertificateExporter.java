@@ -55,4 +55,21 @@ public class X509CertificateExporter {
 	    sb.append("\n-----END CERTIFICATE-----\n");
 	    return sb.toString();
 	}
+	
+	/**
+	 * Exports a certificate public key to a string in PEM format.
+	 * With proper PEM encoding (Base64 with headers and line breaks).
+	 * @param crt The certificate from which to export the public key
+	 * @return the PEM encoded public key
+	 * @throws CertificateEncodingException
+	 */
+	public static String exportPublicKeyToString(X509Certificate crt) throws CertificateEncodingException {
+	    StringBuilder sb = new StringBuilder();
+	    sb.append("-----BEGIN PUBLIC KEY-----\n");
+	    String cert = Base64.getMimeEncoder(64, new byte[]{'\n'})
+	    		.encodeToString(crt.getPublicKey().getEncoded());
+	    sb.append(cert);
+	    sb.append("\n-----BEGIN PUBLIC KEY-----\n");
+	    return sb.toString();
+	}
 }
