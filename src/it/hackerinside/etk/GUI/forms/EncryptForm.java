@@ -4,16 +4,22 @@ import java.awt.EventQueue;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 
 import java.awt.BorderLayout;
 import java.awt.Font;
+import java.awt.GridLayout;
 import java.io.File;
 import java.io.IOException;
 import java.security.KeyStoreException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -23,6 +29,7 @@ import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.TimeUtils;
+import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
 import it.hackerinside.etk.core.Encryption.CMSEncryptor;
@@ -33,17 +40,22 @@ import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JComboBox;
+import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
 import javax.swing.border.TitledBorder;
 
 import javax.swing.JCheckBox;
 import javax.swing.border.EtchedBorder;
 import java.awt.Color;
 import javax.swing.JProgressBar;
+import javax.swing.JScrollPane;
+
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.Toolkit;
+
 
 public class EncryptForm {
 
@@ -55,6 +67,11 @@ public class EncryptForm {
 	private JProgressBar progressBarEncrypt;
     private long startTime;
     private long endTime;
+    JList<CertificateTableRow> recipientsList;
+    DefaultListModel<CertificateTableRow> listModel = new DefaultListModel<>();
+    List<X509Certificate> recipients;
+
+    
 	
 	private File plaintextFile;
 	private File ciphertextFile;
@@ -95,6 +112,7 @@ public class EncryptForm {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
+		recipients = new ArrayList<>();
 		frmEncrypt = new JFrame();
 		frmEncrypt.setIconImage(Toolkit.getDefaultToolkit().getImage(EncryptForm.class.getResource("/it/hackerinside/etk/GUI/icons/encrypt.png")));
 		frmEncrypt.setResizable(false);
@@ -151,26 +169,26 @@ public class EncryptForm {
 		
 		JLabel lblInputFile = new JLabel("Output File");
 		lblInputFile.setFont(new Font("Tahoma", Font.PLAIN, 16));
-		lblInputFile.setBounds(10, 154, 541, 20);
+		lblInputFile.setBounds(10, 285, 541, 20);
 		panel.add(lblInputFile);
 		
 		txtbOutputFile = new JTextField();
 		txtbOutputFile.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		txtbOutputFile.setColumns(10);
-		txtbOutputFile.setBounds(10, 185, 448, 26);
+		txtbOutputFile.setBounds(10, 316, 448, 26);
 		panel.add(txtbOutputFile);
 		
 		JButton btnOpenOutputFile = new JButton("...");
 
 		btnOpenOutputFile.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		btnOpenOutputFile.setBounds(476, 185, 85, 26);
+		btnOpenOutputFile.setBounds(476, 316, 85, 26);
 		panel.add(btnOpenOutputFile);
 		
 		JPanel panel_1_1 = new JPanel();
 		panel_1_1.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		panel_1_1.setLayout(null);
 		panel_1_1.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, new Color(255, 255, 255), new Color(160, 160, 160)), "Encryption Settings", TitledBorder.LEADING, TitledBorder.TOP, null, null));
-		panel_1_1.setBounds(10, 233, 551, 68);
+		panel_1_1.setBounds(10, 364, 551, 68);
 		panel.add(panel_1_1);
 		
 		JLabel lblEncryptionAlgorithm = new JLabel("Encryption Algorithm:");
@@ -192,21 +210,50 @@ public class EncryptForm {
 		progressBarEncrypt.setIndeterminate(true);
 		progressBarEncrypt.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		progressBarEncrypt.setEnabled(false);
-		progressBarEncrypt.setBounds(141, 446, 295, 14);
+		progressBarEncrypt.setBounds(141, 534, 295, 14);
 		progressBarEncrypt.setVisible(false);
 		
 		panel.add(progressBarEncrypt);
 		
 		JButton btnEncrypt = new JButton("ENCRYPT");
 		btnEncrypt.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnEncrypt.setBounds(219, 350, 138, 55);
+		btnEncrypt.setBounds(219, 438, 138, 55);
 		panel.add(btnEncrypt);
 		
 		lblStatus = new JLabel("");
 		lblStatus.setHorizontalAlignment(SwingConstants.CENTER);
 		lblStatus.setFont(new Font("Tahoma", Font.PLAIN, 16));
-		lblStatus.setBounds(155, 508, 267, 20);
+		lblStatus.setBounds(155, 596, 267, 20);
 		panel.add(lblStatus);
+		
+		JPanel panel_3 = new JPanel();
+		panel_3.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, new Color(255, 255, 255), new Color(160, 160, 160)), "Recipients", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		panel_3.setBounds(10, 154, 557, 127);
+		panel.add(panel_3);
+		panel_3.setLayout(new BorderLayout(0, 0));
+
+		recipientsList = new JList<>(listModel);
+		recipientsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		JScrollPane scrollPane = new JScrollPane(recipientsList);
+		panel_3.add(scrollPane, BorderLayout.CENTER);
+
+		JPanel buttonsPanel = new JPanel();
+		buttonsPanel.setLayout(new GridLayout(3, 1, 5, 5));
+		panel_3.add(buttonsPanel, BorderLayout.EAST);
+
+		JButton btnAddRecipient = new JButton("+");
+
+		btnAddRecipient.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		JButton btnRemoveRecipient = new JButton("-");
+
+		btnRemoveRecipient.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		JButton btnRecipientInfo = new JButton("Info");
+
+		btnRecipientInfo.setFont(new Font("Tahoma", Font.PLAIN, 14));
+
+		buttonsPanel.add(btnAddRecipient);
+		buttonsPanel.add(btnRemoveRecipient);
+		buttonsPanel.add(btnRecipientInfo);
 		
 		// Button Actions
 		btnCertDetails.addActionListener(new ActionListener() {
@@ -244,16 +291,46 @@ public class EncryptForm {
 			}
 		});
 
+		btnAddRecipient.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(recipient != null) {
+					recipients.add(recipient);
+					Object selectedCert = cmbRecipientCert.getSelectedItem();
+					if(selectedCert != null) {
+						listModel.addElement(new CertificateTableRow(((CertificateWrapper) selectedCert).getAlias(), null, recipient));
+						cmbRecipientCert.setSelectedItem(null);
+					}else {
+						listModel.addElement(new CertificateTableRow("file", null, recipient));
+					}
+				}
+			}
+		});
+		
+		btnRemoveRecipient.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				CertificateTableRow selected = recipientsList.getSelectedValue();
+				if(selected != null) {
+					recipients.remove(selected.original());
+					listModel.removeElement(selected);
+				}
+			}
+		});
+		
+		btnRecipientInfo.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				CertificateTableRow selected = recipientsList.getSelectedValue();
+				if(selected != null) showRecipientDetails(selected.original());
+			}
+		});
+		
 		populateSymmetricAlgorithms(cmbEncAlgorithm);
 		populateKnowCerts(cmbRecipientCert);
 		this.chckbPemOutput.setSelected(ctx.usePEM());
 		this.cmbEncAlgorithm.setSelectedItem(ctx.getCipher());
 		
-
-		
 		if(this.plaintextFile == null) fileInitialization();
 	}
-
+	
 	
 	/**
 	 * Populates a combo box with all available symmetric algorithms.
@@ -406,8 +483,12 @@ public class EncryptForm {
 	 * Displays details of the currently selected recipient certificate.
 	 */
 	private void showRecipientDetails() {
-	    if (this.recipient != null) {
-	        new CertificateDetailsForm(this.recipient);
+		showRecipientDetails(this.recipient);
+	}
+	
+	private void showRecipientDetails(X509Certificate crt) {
+	    if (crt != null) {
+	        new CertificateDetailsForm(crt);
 	    } else {
 	        lblStatus.setText("No certificate selected.");
 	    }
@@ -431,7 +512,8 @@ public class EncryptForm {
 	    File cipherFile = new File(txtbOutputFile.getText());
 	    if(!FileDialogUtils.overwriteIfExists(cipherFile)) return;
 	    CMSEncryptor encryptor = new CMSEncryptor(cipher, encoding,ctx.getBufferSize());
-	    encryptor.addRecipients(recipient);
+	    
+	    recipients.forEach(encryptor::addRecipients); // Add recipients
 	    
 	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
 	        @Override
@@ -471,11 +553,14 @@ public class EncryptForm {
 	    try {
 	        worker.get();
 	        lblStatus.setText("File Encrypted!");
-			DialogUtils.showMessageBox(null, "File encrypted!", "File encrypted!", 
-			        "File Encrypted\nFor: "+ this.recipient.getSubjectX500Principal().getName("RFC2253")  + "\n\nSaved to: " 
-			        		+ this.ciphertextFile.getAbsolutePath().toString() +
-			        		"\n\nElapsed: " + TimeUtils.formatElapsedTime(startTime, endTime), 
+	        
+			DialogUtils.showMessageBox(
+					null, 
+					"File encrypted!", 
+					"File encrypted!", 
+					getOkMessage(), 
 			        JOptionPane.INFORMATION_MESSAGE);
+			
 	    } catch (InterruptedException | ExecutionException e) {
 			DialogUtils.showMessageBox(null, "Error during encryption", "Error during encryption!", 
 			        e.getMessage(), 
@@ -484,6 +569,23 @@ public class EncryptForm {
 	        e.printStackTrace();
 	    }
 	}
+	
+	/**
+	 * Builds the confirmation message
+	 * 
+	 * @return the message formatted correctly
+	 */
+	private String getOkMessage() {
+        StringBuilder okMessage = new StringBuilder();
+        okMessage.append("File Encrypted\n");
+        okMessage.append("\n\nElapsed: " + TimeUtils.formatElapsedTime(startTime, endTime));
+        okMessage.append("\n\n\nRecipients: \n");
+        recipients.forEach(recipient -> {
+        	okMessage.append("- " + recipient.getSubjectX500Principal().getName("RFC2253") + "\n");
+        });
+       
+        return okMessage.toString();
+	}
 
 	/**
 	 * Checks if all required inputs are ready for encryption.
@@ -491,7 +593,7 @@ public class EncryptForm {
 	 * @return true if all required inputs are present and valid, false otherwise
 	 */
 	private boolean allReady() {
-	    return this.recipient != null &&
+	    return this.recipients.size() > 0 &&
 	           this.plaintextFile != null &&
 	           this.plaintextFile.exists() &&
 	           !this.txtbOutputFile.getText().isEmpty();

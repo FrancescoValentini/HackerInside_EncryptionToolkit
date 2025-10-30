@@ -96,4 +96,11 @@ public record CertificateTableRow(
             return "Error generating fingerprint";
         }
     }
+
+	@Override
+	public String toString() {
+		return keystoreAlias + "/" + CommonName+"-"+truncatedFingerprint;
+	}
+    
+    
 }
