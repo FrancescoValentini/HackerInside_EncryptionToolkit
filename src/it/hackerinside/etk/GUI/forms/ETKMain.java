@@ -44,9 +44,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -920,6 +918,9 @@ public class ETKMain {
 		
 	}
 	
+	/**
+	 * Opens the about form
+	 */
 	private void about() {
 		AboutForm abf = new AboutForm();
 		abf.setVisible();
@@ -927,11 +928,17 @@ public class ETKMain {
 	}
 	
 
+	/**
+	 * Opens the textpad form
+	 */
 	private void textPad() {
 		TextPadForm tpf = new TextPadForm();
 		tpf.setVisible();
 	}
 
+	/**
+	 * Opens the key pair generation form
+	 */
 	private void newKeyPair() {
 		NewKeyPairForm nkf = new NewKeyPairForm();
 		nkf.setVisible();

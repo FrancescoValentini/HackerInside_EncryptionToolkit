@@ -3,10 +3,6 @@ package it.hackerinside.etk.GUI.forms;
 import java.security.cert.X509Certificate;
 
 import javax.swing.JFrame;
-import javax.swing.UIManager;
-
-import com.formdev.flatlaf.themes.FlatMacDarkLaf;
-
 import it.hackerinside.etk.GUI.CertificateDetailsPanel;
 import it.hackerinside.etk.GUI.ETKContext;
 

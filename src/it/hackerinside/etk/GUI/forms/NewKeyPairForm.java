@@ -1,7 +1,5 @@
 package it.hackerinside.etk.GUI.forms;
 
-import java.awt.EventQueue;
-
 import javax.swing.JFrame;
 
 import it.hackerinside.etk.GUI.DialogUtils;
@@ -25,7 +23,6 @@ import java.security.InvalidParameterException;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
-import java.util.function.Consumer;
 import java.awt.event.ActionEvent;
 
 public class NewKeyPairForm {

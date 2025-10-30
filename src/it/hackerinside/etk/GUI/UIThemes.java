@@ -9,8 +9,6 @@ import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.themes.FlatMacDarkLaf;
 import com.formdev.flatlaf.themes.FlatMacLightLaf;
 
-import it.hackerinside.etk.core.Models.EncodingOption;
-
 /**
  * Enumeration of available UI themes using the FlatLaf Look and Feel library.
  * 
