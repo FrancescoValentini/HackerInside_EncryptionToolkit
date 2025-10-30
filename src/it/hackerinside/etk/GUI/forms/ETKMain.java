@@ -44,7 +44,9 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -273,6 +275,25 @@ public class ETKMain {
 	        }
 	    });
 	    tablePopup.add(miDelete);
+	    
+	    JMenuItem miExportKeypair = new JMenuItem("Export keypair");
+	    miExportKeypair.addActionListener(new ActionListener() {
+	        @Override
+	        public void actionPerformed(ActionEvent e) {
+	            int viewRow = table.getSelectedRow();
+	            if (viewRow == -1) {
+	                DialogUtils.showMessageBox(null, "No selection", "No rows selected",
+	                        "Please select a certificate first.", JOptionPane.WARNING_MESSAGE);
+	                return;
+	            }
+	            int modelRow = table.convertRowIndexToModel(viewRow);
+	            CertificateTableRow row = tableModel.getRow(modelRow);
+	            if (row != null && row.original() != null && Utils.acceptX509Certificate(row.original())) {
+	            	exportKeypair(row);
+	            }
+	        }
+	    });
+	    tablePopup.add(miExportKeypair);
 
 	 // "Certificate Export" submenu
 	    JMenu certificateExportMenu = new JMenu("Certificate Export");
@@ -741,6 +762,70 @@ public class ETKMain {
 	}
 	
 	/**
+	 * Method to export a key pair to a PKCS12 keystore
+	 * 
+	 * @param row The key pair to export
+	 */
+	private void exportKeypair(CertificateTableRow row) {
+		if(ctx.usePKCS11()) {
+            DialogUtils.showMessageBox(null, "Error exporting Keys!", "Exporting keys stored inside PKCS11 devices is not supported","", 
+	                JOptionPane.ERROR_MESSAGE);
+            return;
+		}
+		
+	    File outputFile = FileDialogUtils.saveFileDialog(
+		        null,
+		        "Export KeyPairs",
+		        ".",
+		        DefaultExtensions.CRYPTO_P12,
+		        DefaultExtensions.CRYPTO_PFX
+		    );
+	    
+	    if(outputFile != null) {
+		    String keyPassword = DialogUtils.showInputBox(
+			        null,
+			        "Unlock Private Key",
+			        row.keystoreAlias(),
+			        "Password:",
+			        true
+			    );
+		    
+		    try {
+				PrivateKey privk = ctx.getKeystore().getPrivateKey(row.keystoreAlias(), keyPassword.toCharArray());
+				X509Certificate cert = ctx.getKeystore().getCertificate(row.keystoreAlias());
+				
+				AbstractKeystore newKeystore = new PKCS12Keystore(outputFile, keyPassword.toCharArray());
+				newKeystore.load();
+				newKeystore.addPrivateKey(
+						row.keystoreAlias(), 
+						privk, 
+						keyPassword.toCharArray(), 
+						new X509Certificate[]{cert}
+				);
+				newKeystore.save();
+				
+	            DialogUtils.showMessageBox(
+	            		null, 
+	            		"Keypair exported!", 
+	            		outputFile.getAbsolutePath(), 
+		                "The key pair has been exported successfully!\n\n"+
+		                "The password used is the same as the previous one.", 
+		                JOptionPane.INFORMATION_MESSAGE
+		        );
+			} catch (Exception e) {
+				e.printStackTrace();
+	            DialogUtils.showMessageBox(
+	            		null, 
+	            		"Error exporting Keys!", 
+	            		"Error exporting Keys!", 
+		                e.getMessage(), 
+		                JOptionPane.ERROR_MESSAGE
+		        );
+			}
+	    }
+	}
+	
+	/**
 	 * Imports key pairs from an external keystore file into the application's current keystore.
 	 */
 	private void importKeypair() {
@@ -753,8 +838,8 @@ public class ETKMain {
 		        null,
 		        "Import KeyPairs",
 		        ".",
-		        DefaultExtensions.CRYPTO_PFX,
-		        DefaultExtensions.CRYPTO_P12
+		        DefaultExtensions.CRYPTO_P12,
+		        DefaultExtensions.CRYPTO_PFX
 		    );
 	    
 	    if(sourceKeystore != null) {
