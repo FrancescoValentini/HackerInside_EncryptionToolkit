@@ -33,29 +33,25 @@ public class CAdESUtils {
      * @throws IOException if an I/O error occurs while reading from the input stream
      * @throws IllegalArgumentException if the input does not contain valid SignedData
      */
-    public static boolean isDetached(InputStream inputStream, EncodingOption encoding) throws IOException {
-        InputStream decodingStream;
+	public static boolean isDetached(InputStream inputStream, EncodingOption encoding) throws IOException {
+	    try (InputStream decodingStream = (encoding == EncodingOption.ENCODING_PEM) 
+	            ? new PemInputStream(inputStream) // If it's PEM, use PemInputStream
+	            : inputStream;                     // Otherwise use inputStream directly
+	         ASN1InputStream asn1In = new ASN1InputStream(decodingStream)) {
 
-        if (encoding == EncodingOption.ENCODING_PEM) {
-            // Use PemInputStream to handle PEM encoding without loading entire content into memory
-            decodingStream = new PemInputStream(inputStream);
-        } else {
-            decodingStream = inputStream;
-        }
+	        ASN1Sequence seq = (ASN1Sequence) asn1In.readObject();
+	        ContentInfo contentInfo = ContentInfo.getInstance(seq);
 
-        try (ASN1InputStream asn1In = new ASN1InputStream(decodingStream)) {
-            ASN1Sequence seq = (ASN1Sequence) asn1In.readObject();
-            ContentInfo contentInfo = ContentInfo.getInstance(seq);
+	        if (!contentInfo.getContentType().equals(PKCSObjectIdentifiers.signedData)) {
+	            throw new IllegalArgumentException("Input is not valid SignedData");
+	        }
 
-            if (!contentInfo.getContentType().equals(PKCSObjectIdentifiers.signedData)) {
-                throw new IllegalArgumentException("Input is not valid SignedData");
-            }
+	        SignedData signedData = SignedData.getInstance(contentInfo.getContent());
+	        
+	        return signedData.getEncapContentInfo().getContent() == null;
+	    }
+	}
 
-            SignedData signedData = SignedData.getInstance(contentInfo.getContent());
-            // The key differentiator: if eContent is null, it's a detached signature
-            return signedData.getEncapContentInfo().getContent() == null;
-        }
-    }
 
     /**
      * Determines whether a CAdES signature file is detached or enveloping.
