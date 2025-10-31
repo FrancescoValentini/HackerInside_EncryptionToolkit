@@ -774,6 +774,17 @@ public class ETKMain {
             return;
 		}
 		
+		if(row.location() == KeysLocations.KNWOWN_CERTIFICATES) {
+            DialogUtils.showMessageBox(null, 
+            		"Error exporting Keys!", 
+            		"Missing private key!",
+            		"The key pair export operation cannot be performed on known certificates as they do not have a private key." + 
+            		"\n\nAlias: " + row.keystoreAlias() + "\nLocation: " + row.location(), 
+	                JOptionPane.ERROR_MESSAGE
+	        );
+            return;
+		}
+		
 	    File outputFile = FileDialogUtils.saveFileDialog(
 		        null,
 		        "Export KeyPairs",
