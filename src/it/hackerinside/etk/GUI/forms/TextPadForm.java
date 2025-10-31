@@ -3,8 +3,10 @@ package it.hackerinside.etk.GUI.forms;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Font;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -134,15 +136,22 @@ public class TextPadForm {
 		txtbData.setLineWrap(true);
 
 		JPopupMenu popupMenu = new JPopupMenu();
-		addPopup(txtbData, popupMenu);
+		
+
+		popupMenu.setLayout(new GridLayout(2, 1, 0, 3)); 
 
 		JButton btnOpenFile = new JButton("Open File");
-
-		popupMenu.add(btnOpenFile);
-
 		JButton btnSaveFile = new JButton("Save File");
 
+		Dimension buttonSize = new Dimension(85, 30);
+		btnOpenFile.setPreferredSize(buttonSize);
+		btnSaveFile.setPreferredSize(buttonSize);
+
+		popupMenu.add(btnOpenFile);
 		popupMenu.add(btnSaveFile);
+		
+		addPopup(txtbData, popupMenu);
+
 		GroupLayout gl_panel = new GroupLayout(panel);
 		gl_panel.setHorizontalGroup(
 			gl_panel.createParallelGroup(Alignment.TRAILING)
