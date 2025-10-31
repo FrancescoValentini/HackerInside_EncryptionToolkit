@@ -14,8 +14,9 @@ In questa finestra è possibile:
 1. Fai clic sul pulsante **Encrypt** e seleziona il file da cifrare.
 2. Seleziona il destinatario: il menu a tendina mostra i certificati presenti nel **Keystore personale** e in quello dei **certificati fidati**.
    Puoi anche aprire la scheda **File** per importare un certificato esterno.
-3. *(Opzionale)* L’algoritmo e l’encoding sono selezionati automaticamente in base alle impostazioni predefinite, ma puoi modificarli per questa singola operazione.
-4. Premi **Encrypt** e attendi la conferma.
+3. Aggiungere il destinatario alla lista con il pulsante **+**
+4. *(Opzionale)* L’algoritmo e l’encoding sono selezionati automaticamente in base alle impostazioni predefinite, ma puoi modificarli per questa singola operazione.
+5. Premi **Encrypt** e attendi la conferma.
 
 ---
 

@@ -51,9 +51,9 @@ Supporta operazioni di **cifratura, decifratura, gestione delle chiavi e firme d
 > - **Chiavi asimmetriche:** `RSA-3072` o `RSA-8192`
 
 ### 🔑 Gestione certificati e chiavi
-- Import/export di certificati in formato **PEM** o **DER**
+- Import/export di certificati in formato **PEM**
 - Import da file **PKCS#12** (`.p12`, `.pfx`) per coppie chiave/certificato
-- Esportazione in formato **PEM** o **DER**
+- Esportazione in formato **PEM**
 - Integrazione con dispositivi **PKCS#11** (HSM/token)
 
 ### 🔐 Algoritmi di cifratura supportati
@@ -67,7 +67,6 @@ Supporta operazioni di **cifratura, decifratura, gestione delle chiavi e firme d
 - `SHA-512`
 
 ### 📁 Formati di input/output
-- `DER`
 - `PEM`
 
 

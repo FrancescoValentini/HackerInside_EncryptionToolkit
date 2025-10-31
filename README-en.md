@@ -52,7 +52,7 @@ It supports **encryption, decryption, key management, and digital signature** wi
 > - **Asymmetric keys:** `RSA-3072` or `RSA-8192`
 
 ### 🔑 Certificate and Key Management
-- Import/export of certificates in **PEM** or **DER** format
+- Import/export of certificates in **PEM** format
 - Import from **PKCS#12** files (`.p12`, `.pfx`) for key/certificate pairs
 - Export in **PEM** or **DER** format
 - Integration with **PKCS#11** devices (HSM/token)
@@ -68,7 +68,6 @@ It supports **encryption, decryption, key management, and digital signature** wi
 - `SHA-512`
 
 ### 📁 Input/Output Formats
-- `DER`
 - `PEM`
 
 ## 🧭 Basic Usage

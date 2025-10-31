@@ -16,8 +16,9 @@ In this window, you can:
 1. Click **Encrypt** and select the file to encrypt.
 2. Choose the recipient: the dropdown menu lists certificates from both the **personal keystore** and the **trusted certificates keystore**.
    You can also open the **File** tab to import an external certificate.
-3. *(Optional)* The algorithm and encoding are automatically selected based on the default settings, but you can change them for this specific operation.
-4. Click **Encrypt** and wait for confirmation.
+3. Click **+** to add the recipient to the list
+4. *(Optional)* The algorithm and encoding are automatically selected based on the default settings, but you can change them for this specific operation.
+5. Click **Encrypt** and wait for confirmation.
 
 ---
 
