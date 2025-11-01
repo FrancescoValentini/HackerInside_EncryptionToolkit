@@ -27,11 +27,12 @@ public class CertificateDetailsForm {
 	 */
 	private void initialize() {
 		frame = new JFrame();
+		frame.setTitle("Certificate Details");
 		frame.setBounds(100, 100, 522, 720);
 		//frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		CertificateDetailsPanel  panel = new CertificateDetailsPanel();
 		panel.setCertificate(c);
 		panel.hideContent(false);
-		frame.add(panel);
+		frame.getContentPane().add(panel);
 	}
 }
