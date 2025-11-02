@@ -546,7 +546,7 @@ public class ETKMain {
 	 * the keystore and then updating the certificate table.
 	 */
 	private void startProcedure() {
-		
+		disablePrivateKeyOperations();
 		if(!new File(ctx.getKnownCertsPath()).exists()  || !ctx.usePKCS11() && !new File(ctx.getKeyStorePath()).exists()) {
 			SetupForm setup = new SetupForm();
 			setup.setVisible();
@@ -580,6 +580,7 @@ public class ETKMain {
 	    );
 	    try {
 	        ctx.loadKeystore(password);
+	        enablePrivateKeyOperations();
 	    } catch (Exception e) {
 	        DialogUtils.showMessageBox(
 	            null,
@@ -671,6 +672,14 @@ public class ETKMain {
 	    btnDecrypt.setEnabled(false);
 	}
 
+	
+	/**
+	 * Enables private key operations.
+	 */
+	private void enablePrivateKeyOperations() {
+	    btnSign.setEnabled(true);
+	    btnDecrypt.setEnabled(true);
+	}
 	/**
 	 * Imports a known certificate from a file into the known certificates keystore.
 	 * Prompts the user to select a certificate file and provide an alias for the certificate.
