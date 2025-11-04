@@ -300,9 +300,14 @@ public class SignForm {
 	
 	private PrivateKey getPrivateKey() {
 		String alias = (String) cmbSignerCert.getSelectedItem();
-		
-		char[] password = DialogUtils.showPasswordInputBox(null, "Unlock Private key", "Password for " + alias, 
-		        "Password:");
+        char[] password = Utils.passwordCacheHitOrMiss(alias, () -> {
+        	return DialogUtils.showPasswordInputBox(
+                    null,
+                    "Unlock Private key",
+                    "Password for " + alias,
+                    "Password:"
+                );
+        });
 		PrivateKey k = null;
 		try {
 			k = ctx.getKeystore().getPrivateKey(alias, password); 

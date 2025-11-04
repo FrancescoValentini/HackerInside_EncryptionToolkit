@@ -32,6 +32,7 @@ import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.TimeUtils;
+import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.core.Encryption.CMSCryptoUtils;
 import it.hackerinside.etk.core.Encryption.CMSDecryptor;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
@@ -338,13 +339,15 @@ public class DecryptForm {
 			    if (alias == null) {
 			        throw new IllegalStateException("No certificates selected.");
 			    }
-
-			    char[] pwd = DialogUtils.showPasswordInputBox(
-			        null,
-			        "Unlock Private key",
-			        "Password for " + alias,
-			        "Password:"
-			    );
+			    
+		        char[] pwd = Utils.passwordCacheHitOrMiss(alias, () -> {
+		        	return DialogUtils.showPasswordInputBox(
+		                    null,
+		                    "Unlock Private key",
+		                    "Password for " + alias,
+		                    "Password:"
+		                );
+		        });
 
 			    try {
 			        startTime = System.currentTimeMillis();

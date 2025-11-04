@@ -48,6 +48,7 @@ import org.bouncycastle.util.Arrays;
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
+import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
 import it.hackerinside.etk.core.Encryption.CMSCryptoUtils;
@@ -472,12 +473,14 @@ public class TextPadForm {
             return null;
 		}
 		
-        char[] pwd = DialogUtils.showPasswordInputBox(
-                null,
-                "Unlock Private key",
-                "Password for " + privateKeyAlias.get(),
-                "Password:"
-            );
+        char[] pwd = Utils.passwordCacheHitOrMiss(privateKeyAlias.get(), () -> {
+        	return DialogUtils.showPasswordInputBox(
+                    null,
+                    "Unlock Private key",
+                    "Password for " + privateKeyAlias.get(),
+                    "Password:"
+                );
+        });
         
         PrivateKey priv = null;
         try {
