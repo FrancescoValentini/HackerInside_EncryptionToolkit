@@ -19,6 +19,9 @@ import java.util.concurrent.ExecutionException;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+
+import org.bouncycastle.util.Arrays;
+
 import javax.swing.JPanel;
 import javax.swing.ComboBoxModel;
 import javax.swing.JComboBox;
@@ -328,28 +331,34 @@ public class DecryptForm {
 	    startDecryptionUI();
 
 	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
-	        @Override
-	        protected Void doInBackground() throws Exception {
-	            String alias = (String) cmbPrivateKey.getSelectedItem();
-	            if (alias == null) {
-	                throw new IllegalStateException("No certificates selected.");
-	            }
 
-	            String pwd = DialogUtils.showInputBox(
-	                null,
-	                "Unlock Private key",
-	                "Password for " + alias,
-	                "Password:",
-	                true
-	            );
-	            startTime = System.currentTimeMillis();
-	            PrivateKey priv = ctx.getKeystore().getPrivateKey(alias, pwd.toCharArray());
-	            EncodingOption encoding = PEMUtils.findFileEncoding(fileToDecrypt);
+			@Override
+			protected Void doInBackground() throws Exception {
+			    String alias = (String) cmbPrivateKey.getSelectedItem();
+			    if (alias == null) {
+			        throw new IllegalStateException("No certificates selected.");
+			    }
 
-	            CMSDecryptor decryptor = new CMSDecryptor(priv, encoding, ctx.getBufferSize());
-	            decryptor.decrypt(fileToDecrypt, output);
-	            return null;
-	        }
+			    char[] pwd = DialogUtils.showPasswordInputBox(
+			        null,
+			        "Unlock Private key",
+			        "Password for " + alias,
+			        "Password:"
+			    );
+
+			    try {
+			        startTime = System.currentTimeMillis();
+			        PrivateKey priv = ctx.getKeystore().getPrivateKey(alias, pwd);
+			        EncodingOption encoding = PEMUtils.findFileEncoding(fileToDecrypt);
+
+			        CMSDecryptor decryptor = new CMSDecryptor(priv, encoding, ctx.getBufferSize());
+			        decryptor.decrypt(fileToDecrypt, output);
+			    } finally {
+			        Arrays.fill(pwd, (char) 0x00);
+			    }
+			    return null;
+			}
+
 
 	        @Override
 	        protected void done() {

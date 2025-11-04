@@ -7,6 +7,7 @@ import java.util.prefs.Preferences;
 import javax.swing.UIManager;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.util.Arrays;
 
 import it.hackerinside.etk.core.Models.ApplicationPreferences;
 import it.hackerinside.etk.core.Models.HashAlgorithm;
@@ -163,18 +164,22 @@ public class ETKContext {
      * @return true if the keystore was successfully loaded and is not empty
      * @throws Exception if keystore loading fails
      */
-    public boolean loadKeystore(String pwd) throws Exception {
-        if(this.usePKCS11())
-            this.keystore = new PKCS11Keystore(this.getPkcs11Driver(), pwd.toCharArray());
-        else {
-        	ensureDirectoryExists(this.getKeyStorePath());
-        	this.keystore = new PKCS12Keystore(this.getKeyStorePath(), pwd.toCharArray());
+    public boolean loadKeystore(char[] pwd) throws Exception {
+        try {
+            if(this.usePKCS11()) {
+                this.keystore = new PKCS11Keystore(this.getPkcs11Driver(), pwd);
+            } else {
+                ensureDirectoryExists(this.getKeyStorePath());
+                this.keystore = new PKCS12Keystore(this.getKeyStorePath(), pwd);
+            }
+
+            this.keystore.load();
+            return !this.keystore.isNull();
+        } finally {
+            Arrays.fill(pwd, (char) 0x00);
         }
-            
-        
-        this.keystore.load();
-        return !this.keystore.isNull();
     }
+
     
     /**
      * Returns the main keystore used for cryptographic operations.

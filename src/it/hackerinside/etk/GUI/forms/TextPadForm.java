@@ -42,6 +42,9 @@ import javax.swing.JTextArea;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
+
+import org.bouncycastle.util.Arrays;
+
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
@@ -469,17 +472,16 @@ public class TextPadForm {
             return null;
 		}
 		
-        String pwd = DialogUtils.showInputBox(
+        char[] pwd = DialogUtils.showPasswordInputBox(
                 null,
                 "Unlock Private key",
                 "Password for " + privateKeyAlias.get(),
-                "Password:",
-                true
+                "Password:"
             );
         
         PrivateKey priv = null;
         try {
-        	priv = ctx.getKeystore().getPrivateKey(privateKeyAlias.get(), pwd.toCharArray());
+        	priv = ctx.getKeystore().getPrivateKey(privateKeyAlias.get(), pwd);
         }catch (Exception e) {
 	        DialogUtils.showMessageBox(
 	                null,
@@ -489,6 +491,8 @@ public class TextPadForm {
 	                JOptionPane.ERROR_MESSAGE
 	        );
 			e.printStackTrace();
+		}finally {
+			Arrays.fill(pwd, (char) 0x00);
 		}
         
         return priv;

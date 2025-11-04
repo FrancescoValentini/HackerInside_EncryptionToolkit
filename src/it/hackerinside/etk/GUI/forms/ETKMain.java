@@ -24,6 +24,8 @@ import java.awt.Image;
 import javax.swing.JTable;
 import javax.swing.SwingConstants;
 
+import org.bouncycastle.util.Arrays;
+
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
@@ -571,12 +573,11 @@ public class ETKMain {
 	 * private key operations in case of failure.
 	 */
 	private void unlockKeystore() {
-	    String password = DialogUtils.showInputBox(
+	    char[] password = DialogUtils.showPasswordInputBox(
 	        null,
 	        "Unlock Keystore",
 	         ctx.usePKCS11() ? "PKCS#11 DEVICE" : ctx.getKeyStorePath(),
-	        "Password:",
-	        true
+	        "Password:"
 	    );
 	    try {
 	        ctx.loadKeystore(password);
@@ -590,6 +591,8 @@ public class ETKMain {
 	            JOptionPane.ERROR_MESSAGE
 	        );
 	        disablePrivateKeyOperations();
+	    } finally {
+	    	Arrays.fill(password, (char)0x00);
 	    }
 	}
 
@@ -699,7 +702,7 @@ public class ETKMain {
 	    X509Certificate cert = null;
 	    boolean accepted = false;
 	    if (certFile != null) {
-	        String alias = DialogUtils.showInputBox(null, "Certificate Alias", "Enter Certificate Alias", "", false);
+	        String alias = DialogUtils.showInputBox(null, "Certificate Alias", "Enter Certificate Alias", "");
 	        try {
 	            cert = X509CertificateLoader.loadFromFile(certFile);
 	            accepted = Utils.acceptX509Certificate(cert);
@@ -735,7 +738,7 @@ public class ETKMain {
 	 */
 	private void importKnownCertFromString(){
 		X509Certificate cert = null;
-        String alias = DialogUtils.showInputBox(null, "Certificate Alias", "Enter Certificate Alias", "", false);
+        String alias = DialogUtils.showInputBox(null, "Certificate Alias", "Enter Certificate Alias", "");
         if(alias == null || alias.isEmpty()) return;
         String certString = DialogUtils.showLargeInputBox(
         	    null,
@@ -803,24 +806,23 @@ public class ETKMain {
 		    );
 	    
 	    if(outputFile != null) {
-		    String keyPassword = DialogUtils.showInputBox(
+		    char[] keyPassword = DialogUtils.showPasswordInputBox(
 			        null,
 			        "Unlock Private Key",
 			        row.keystoreAlias(),
-			        "Password:",
-			        true
+			        "Password:"
 			    );
 		    
 		    try {
-				PrivateKey privk = ctx.getKeystore().getPrivateKey(row.keystoreAlias(), keyPassword.toCharArray());
+				PrivateKey privk = ctx.getKeystore().getPrivateKey(row.keystoreAlias(), keyPassword);
 				X509Certificate cert = ctx.getKeystore().getCertificate(row.keystoreAlias());
 				
-				AbstractKeystore newKeystore = new PKCS12Keystore(outputFile, keyPassword.toCharArray());
+				AbstractKeystore newKeystore = new PKCS12Keystore(outputFile, keyPassword);
 				newKeystore.load();
 				newKeystore.addPrivateKey(
 						row.keystoreAlias(), 
 						privk, 
-						keyPassword.toCharArray(), 
+						keyPassword, 
 						new X509Certificate[]{cert}
 				);
 				newKeystore.save();
@@ -842,6 +844,8 @@ public class ETKMain {
 		                e.getMessage(), 
 		                JOptionPane.ERROR_MESSAGE
 		        );
+			} finally {
+				Arrays.fill(keyPassword, (char)0x00);
 			}
 	    }
 	}
@@ -864,30 +868,29 @@ public class ETKMain {
 		    );
 	    
 	    if(sourceKeystore != null) {
-		    String password = DialogUtils.showInputBox(
+		    char[] password = DialogUtils.showPasswordInputBox(
 			        null,
 			        "Unlock Keystore",
 			        sourceKeystore.getName(),
-			        "Password:",
-			        true
+			        "Password:"
 			    );
-	    	AbstractKeystore src = new PKCS12Keystore(sourceKeystore, password.toCharArray());
+		    char[] keyPwd = null;
+	    	AbstractKeystore src = new PKCS12Keystore(sourceKeystore, password);
 	    	try {
 	    		src.load();
 				List<String> aliases = Collections.list(src.listAliases());
 				for(String alias : aliases) {
-				    String keyPwd = DialogUtils.showInputBox(
+				    keyPwd = DialogUtils.showPasswordInputBox(
 					        null,
 					        "Unlock Private key",
 					        alias,
-					        "Password:",
-					        true
+					        "Password:"
 					    );
 				    
 				    X509Certificate crt = src.getCertificate(alias);
 				    if(!Utils.acceptX509Certificate(crt)) return;
-				    PrivateKey key = src.getPrivateKey(alias, keyPwd.toCharArray());
-				    ctx.getKeystore().addPrivateKey(alias, key, keyPwd.toCharArray(), new X509Certificate[] {crt});
+				    PrivateKey key = src.getPrivateKey(alias, keyPwd);
+				    ctx.getKeystore().addPrivateKey(alias, key, keyPwd, new X509Certificate[] {crt});
 				    ctx.getKeystore().save();
 				}
 				
@@ -896,6 +899,9 @@ public class ETKMain {
 	            DialogUtils.showMessageBox(null, "Error importing Keys!", "Error importing Keys!", 
 		                e.getMessage(), 
 		                JOptionPane.ERROR_MESSAGE);
+			}finally {
+				Arrays.fill(keyPwd, (char)0x00);
+				Arrays.fill(password, (char)0x00);
 			}
 	    }
 	    updateTable();

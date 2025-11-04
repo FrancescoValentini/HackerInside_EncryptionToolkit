@@ -12,6 +12,9 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+
+import org.bouncycastle.util.Arrays;
+
 import java.awt.BorderLayout;
 import javax.swing.JPanel;
 import javax.swing.JComboBox;
@@ -211,19 +214,21 @@ public class NewKeyPairForm {
 	            null,
 	            "Private key alias",
 	            "Private key alias",
-	            "Alias:",
-	            false
+	            "Alias:"
 	        );
 		
-		String pwd = DialogUtils.showInputBox(
+		char[] pwd = DialogUtils.showPasswordInputBox(
 	            null,
 	            "Private key password",
 	            alias,
-	            "Password:",
-	            true
+	            "Password:"
 	        );
 		
-        ctx.getKeystore().addPrivateKey(alias, priv, pwd.toCharArray(), new X509Certificate[]{crt});
-        ctx.getKeystore().save();
+		try {
+	        ctx.getKeystore().addPrivateKey(alias, priv, pwd, new X509Certificate[]{crt});
+	        ctx.getKeystore().save();
+		}finally {
+			Arrays.fill(pwd, (char)0x00);
+		}
 	}
 }
