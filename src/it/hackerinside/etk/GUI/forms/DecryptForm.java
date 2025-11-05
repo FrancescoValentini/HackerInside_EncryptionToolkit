@@ -357,7 +357,7 @@ public class DecryptForm {
 			        CMSDecryptor decryptor = new CMSDecryptor(priv, encoding, ctx.getBufferSize());
 			        decryptor.decrypt(fileToDecrypt, output);
 			    } finally {
-			        Arrays.fill(pwd, (char) 0x00);
+			    	if(pwd != null) Arrays.fill(pwd, (char) 0x00);
 			    }
 			    return null;
 			}

@@ -467,7 +467,7 @@ public class SetupForm {
                         JOptionPane.ERROR_MESSAGE
                 );
             }finally {
-            	Arrays.fill(pwd, (char)0x00);
+            	if(pwd != null) Arrays.fill(pwd, (char)0x00);
             }
         }
     }
@@ -558,8 +558,8 @@ public class SetupForm {
                 JOptionPane.ERROR_MESSAGE
             );
         }finally {
-        	Arrays.fill(ksMaster, (char)0x00);
-        	Arrays.fill(pwd, (char)0x00);
+        	if(ksMaster != null)  Arrays.fill(ksMaster, (char)0x00);
+        	if(pwd != null)  Arrays.fill(pwd, (char)0x00);
         }
     }
 

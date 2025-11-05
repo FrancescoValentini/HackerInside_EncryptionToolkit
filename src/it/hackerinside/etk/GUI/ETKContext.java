@@ -45,6 +45,16 @@ public class ETKContext {
     private Preferences preferences;
     
     /**
+     * Keystore entry password cache
+     */
+    private PasswordCache passwordCache;
+    
+    /**
+     * A reference to the shutdown hook thread to allow removal in the destroyCache method.
+     */
+    private Thread shutdownHook;
+    
+    /**
      * Private constructor to enforce singleton pattern.
      * Initializes the context by loading preferences and known certificates.
      */
@@ -87,6 +97,7 @@ public class ETKContext {
             e.printStackTrace();
             throw new RuntimeException("ETKContext initialization error", e);
         }
+        if(this.getUseCacheEntryPasswords()) initCache();
     }
     
     /**
@@ -115,6 +126,41 @@ public class ETKContext {
     	Security.setProperty("keystore.pkcs12.keyPbeIterationCount","100000");
     	Security.setProperty("keystore.pkcs12.certPbeIterationCount","100000");
     }
+    
+    /**
+     * Initializes the password cache and sets up a shutdown hook to ensure
+     * the cache is zeroized when the JVM shuts down.
+     */
+    public void initCache() {
+        passwordCache = new PasswordCache(this.getCacheEntryTimeout());
+
+        // Create the shutdown hook thread
+        Thread shutdownHook = new Thread(() -> {
+            passwordCache.zeroize();
+        });
+
+        // Register the shutdown hook
+        Runtime.getRuntime().addShutdownHook(shutdownHook);
+
+        // Store the shutdown hook reference for later removal
+        this.shutdownHook = shutdownHook;
+    }
+    
+    /**
+     * Destroys the password cache and removes the shutdown hook to prevent
+     * future zeroization when the JVM shuts down.
+     */
+    public void destroyCache() {
+        if (passwordCache != null) {
+            passwordCache.zeroize();
+        }
+
+        // Safely remove the shutdown hook if it was added
+        if (shutdownHook != null) {
+            Runtime.getRuntime().removeShutdownHook(shutdownHook);
+        }
+    }
+    
     
     /**
      * Initializes or loads the known certificates keystore from the specified path.
@@ -399,13 +445,58 @@ public class ETKContext {
     }
     
     
+    /**
+     * Returns whether the application should cache passwords
+     * @return
+     */
+    public boolean getUseCacheEntryPasswords() {
+    	String use = preferences.get(ApplicationPreferences.CACHE_ENTRY_PASSWORDS.getKey(), ApplicationPreferences.CACHE_ENTRY_PASSWORDS.getValue());
+    	return Boolean.valueOf(use);
+    }
+    
+    /**
+     * Sets whether the application should cache passwords
+     * @param value true/false
+     */
+    public void setUseCacheEntryPassword(boolean value) {
+    	preferences.put(ApplicationPreferences.CACHE_ENTRY_PASSWORDS.getKey(), String.valueOf(value));
+    }
+    
+    /**
+     * Returns the password cache
+     * @return
+     */
+    protected PasswordCache getCache() {
+    	return this.passwordCache;
+    }
+    
+    /**
+     * Sets the cache entry timeout
+     * @param timeout timeout in seconds
+     */
+    public void setCacheEntryTimeout(int timeout) {
+    	preferences.put(ApplicationPreferences.CACHE_ENTRY_TIMEOUT.getKey(), String.valueOf(timeout));
+    }
+    
+    /**
+     * Returns the cache entry timeut
+     * @return timeout in seconds
+     */
+    public int getCacheEntryTimeout() {
+    	String timeout = preferences.get(ApplicationPreferences.CACHE_ENTRY_TIMEOUT.getKey(), ApplicationPreferences.CACHE_ENTRY_TIMEOUT.getValue());
+    	return Integer.parseInt(timeout);
+    }
+    
 	@Override
 	public String toString() {
 		return "ETKContext\n    - keystore=" + keystore + "\n    - knownCerts=" + knownCerts + "\n    - preferences=" + preferences
 				+ "\n    - getKeyStorePath()=" + getKeyStorePath() + "\n    - getKnownCertsPath()=" + getKnownCertsPath()
 				+ "\n    - getHashAlgorithm()=" + getHashAlgorithm() + "\n    - getCipher()=" + getCipher() + "\n    - getPkcs11Driver()="
-				+ getPkcs11Driver() + "\n    - usePKCS11()=" + usePKCS11() + "\n    - usePEM()=" + usePEM() + "\n    - getTheme()=" + getTheme()+ "\n    - getBufferSize()=" + getBufferSize();
+				+ getPkcs11Driver() + "\n    - usePKCS11()=" + usePKCS11() + "\n    - usePEM()=" + usePEM() + "\n    - getTheme()=" + getTheme()+ "\n    - getBufferSize()=" + getBufferSize()
+				+ "\n    - getUseCacheEntryPasswords()=" + getUseCacheEntryPasswords() 
+				+ "\n    - getCacheEntryTimeout()=" + getCacheEntryTimeout();
 	}
     
+	
     
 }

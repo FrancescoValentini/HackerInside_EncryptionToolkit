@@ -592,7 +592,7 @@ public class ETKMain {
 	        );
 	        disablePrivateKeyOperations();
 	    } finally {
-	    	Arrays.fill(password, (char)0x00);
+	    	if(password != null) Arrays.fill(password, (char)0x00);
 	    }
 	}
 
@@ -845,7 +845,7 @@ public class ETKMain {
 		                JOptionPane.ERROR_MESSAGE
 		        );
 			} finally {
-				Arrays.fill(keyPassword, (char)0x00);
+				if(keyPassword != null) Arrays.fill(keyPassword, (char)0x00);
 			}
 	    }
 	}
@@ -900,8 +900,8 @@ public class ETKMain {
 		                e.getMessage(), 
 		                JOptionPane.ERROR_MESSAGE);
 			}finally {
-				Arrays.fill(keyPwd, (char)0x00);
-				Arrays.fill(password, (char)0x00);
+				if(keyPwd != null) Arrays.fill(keyPwd, (char)0x00);
+				if(password != null) Arrays.fill(password, (char)0x00);
 			}
 	    }
 	    updateTable();

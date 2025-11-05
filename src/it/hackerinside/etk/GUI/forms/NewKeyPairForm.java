@@ -228,7 +228,7 @@ public class NewKeyPairForm {
 	        ctx.getKeystore().addPrivateKey(alias, priv, pwd, new X509Certificate[]{crt});
 	        ctx.getKeystore().save();
 		}finally {
-			Arrays.fill(pwd, (char)0x00);
+			if(pwd != null) Arrays.fill(pwd, (char)0x00);
 		}
 	}
 }

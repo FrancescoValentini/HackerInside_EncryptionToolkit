@@ -45,8 +45,23 @@ public class Utils {
 	 *         If the supplier provides a null password, a null value may be returned.
 	 */
 	public static char[] passwordCacheHitOrMiss(String alias, Supplier<char[]> passwordSupplier) {
-	    System.out.println("CACHE - ALIAS: " + alias); // Debugging: print alias to console
-	    return passwordSupplier.get(); // Fetch password from supplier (cache miss for now)
+	    ETKContext ctx = ETKContext.getInstance();
+	    if (ctx.getUseCacheEntryPasswords()) {
+	    	PasswordCache pwc = ctx.getCache();
+	        // Try to get password from cache
+	        char[] pwd = pwc.get(alias);
+
+	        // Cache HIT: Return cached password if available
+	        if (pwd != null) return pwd;
+
+	        // Cache MISS: fetch password from supplier and cache it
+	        pwd = passwordSupplier.get();
+	        if (pwd != null) return pwc.set(alias, pwd);
+	        else return null;
+	    }
+	    
+	    return passwordSupplier.get();
 	}
+
 
 }

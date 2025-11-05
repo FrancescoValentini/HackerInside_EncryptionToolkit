@@ -495,7 +495,7 @@ public class TextPadForm {
 	        );
 			e.printStackTrace();
 		}finally {
-			Arrays.fill(pwd, (char) 0x00);
+			if(pwd != null) Arrays.fill(pwd, (char) 0x00);
 		}
         
         return priv;

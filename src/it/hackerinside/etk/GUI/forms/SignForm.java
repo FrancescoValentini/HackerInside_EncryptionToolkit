@@ -315,7 +315,7 @@ public class SignForm {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}finally {
-			Arrays.fill(password, (char) 0x00);
+			if(password != null) Arrays.fill(password, (char) 0x00);
 		}
 		return k;
 	}
