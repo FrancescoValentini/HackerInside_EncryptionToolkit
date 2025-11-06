@@ -55,6 +55,11 @@ public class ETKContext {
     private Thread shutdownHook;
     
     /**
+     * The Keystore Master Password
+     */
+    private char[] keystoreMasterPassword;
+    
+    /**
      * Private constructor to enforce singleton pattern.
      * Initializes the context by loading preferences and known certificates.
      */
@@ -98,6 +103,11 @@ public class ETKContext {
             throw new RuntimeException("ETKContext initialization error", e);
         }
         if(this.getUseCacheEntryPasswords()) initCache();
+        
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            Arrays.fill(this.keystoreMasterPassword, (char)0x00);
+        }));
+
     }
     
     /**
@@ -211,20 +221,28 @@ public class ETKContext {
      * @throws Exception if keystore loading fails
      */
     public boolean loadKeystore(char[] pwd) throws Exception {
+        // Copy the parameter pwd into a global attribute
+        // This is done to prevent the zeroization of pwd from causing the keystore password to be reset
+        this.keystoreMasterPassword = Arrays.copyOf(pwd, pwd.length);
         try {
-            if(this.usePKCS11()) {
-                this.keystore = new PKCS11Keystore(this.getPkcs11Driver(), pwd);
+            if (this.usePKCS11()) {
+                this.keystore = new PKCS11Keystore(this.getPkcs11Driver(), this.keystoreMasterPassword);
             } else {
                 ensureDirectoryExists(this.getKeyStorePath());
-                this.keystore = new PKCS12Keystore(this.getKeyStorePath(), pwd);
+                this.keystore = new PKCS12Keystore(this.getKeyStorePath(), this.keystoreMasterPassword);
             }
 
             this.keystore.load();
             return !this.keystore.isNull();
+        } catch (Exception e) {
+            // If it fails, destroy everything!
+            Arrays.fill(this.keystoreMasterPassword, (char) 0x00);
+            throw new Exception(e);
         } finally {
             Arrays.fill(pwd, (char) 0x00);
         }
     }
+
 
     
     /**
