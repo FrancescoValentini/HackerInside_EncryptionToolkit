@@ -403,6 +403,7 @@ public class TextPadForm {
 	 * If encryption fails, an error dialog is displayed and the original data remains unchanged.
 	 */
 	private void encrypt() {
+		if(!Utils.acceptX509Certificate(recipient)) return;
 		SymmetricAlgorithms cipher = (SymmetricAlgorithms) cmbEncAlgorithm.getSelectedItem();
 		CMSEncryptor encryptor = new CMSEncryptor(cipher, EncodingOption.ENCODING_PEM, ctx.getBufferSize());
 		encryptor.addRecipients(recipient);
