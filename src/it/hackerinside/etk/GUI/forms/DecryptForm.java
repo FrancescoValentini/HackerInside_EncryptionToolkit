@@ -19,6 +19,9 @@ import java.util.concurrent.ExecutionException;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+
+import org.bouncycastle.util.Arrays;
+
 import javax.swing.JPanel;
 import javax.swing.ComboBoxModel;
 import javax.swing.JComboBox;
@@ -29,6 +32,7 @@ import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.TimeUtils;
+import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.core.Encryption.CMSCryptoUtils;
 import it.hackerinside.etk.core.Encryption.CMSDecryptor;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
@@ -328,28 +332,36 @@ public class DecryptForm {
 	    startDecryptionUI();
 
 	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
-	        @Override
-	        protected Void doInBackground() throws Exception {
-	            String alias = (String) cmbPrivateKey.getSelectedItem();
-	            if (alias == null) {
-	                throw new IllegalStateException("No certificates selected.");
-	            }
 
-	            String pwd = DialogUtils.showInputBox(
-	                null,
-	                "Unlock Private key",
-	                "Password for " + alias,
-	                "Password:",
-	                true
-	            );
-	            startTime = System.currentTimeMillis();
-	            PrivateKey priv = ctx.getKeystore().getPrivateKey(alias, pwd.toCharArray());
-	            EncodingOption encoding = PEMUtils.findFileEncoding(fileToDecrypt);
+			@Override
+			protected Void doInBackground() throws Exception {
+			    String alias = (String) cmbPrivateKey.getSelectedItem();
+			    if (alias == null) {
+			        throw new IllegalStateException("No certificates selected.");
+			    }
+			    
+		        char[] pwd = Utils.passwordCacheHitOrMiss(alias, () -> {
+		        	return DialogUtils.showPasswordInputBox(
+		                    null,
+		                    "Unlock Private key",
+		                    "Password for " + alias,
+		                    "Password:"
+		                );
+		        });
 
-	            CMSDecryptor decryptor = new CMSDecryptor(priv, encoding, ctx.getBufferSize());
-	            decryptor.decrypt(fileToDecrypt, output);
-	            return null;
-	        }
+			    try {
+			        startTime = System.currentTimeMillis();
+			        PrivateKey priv = ctx.getKeystore().getPrivateKey(alias, pwd);
+			        EncodingOption encoding = PEMUtils.findFileEncoding(fileToDecrypt);
+
+			        CMSDecryptor decryptor = new CMSDecryptor(priv, encoding, ctx.getBufferSize());
+			        decryptor.decrypt(fileToDecrypt, output);
+			    } finally {
+			    	if(pwd != null) Arrays.fill(pwd, (char) 0x00);
+			    }
+			    return null;
+			}
+
 
 	        @Override
 	        protected void done() {

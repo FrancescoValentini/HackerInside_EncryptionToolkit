@@ -42,9 +42,13 @@ import javax.swing.JTextArea;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
+
+import org.bouncycastle.util.Arrays;
+
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
+import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
 import it.hackerinside.etk.core.Encryption.CMSCryptoUtils;
@@ -399,6 +403,7 @@ public class TextPadForm {
 	 * If encryption fails, an error dialog is displayed and the original data remains unchanged.
 	 */
 	private void encrypt() {
+		if(!Utils.acceptX509Certificate(recipient)) return;
 		SymmetricAlgorithms cipher = (SymmetricAlgorithms) cmbEncAlgorithm.getSelectedItem();
 		CMSEncryptor encryptor = new CMSEncryptor(cipher, EncodingOption.ENCODING_PEM, ctx.getBufferSize());
 		encryptor.addRecipients(recipient);
@@ -469,17 +474,18 @@ public class TextPadForm {
             return null;
 		}
 		
-        String pwd = DialogUtils.showInputBox(
-                null,
-                "Unlock Private key",
-                "Password for " + privateKeyAlias.get(),
-                "Password:",
-                true
-            );
+        char[] pwd = Utils.passwordCacheHitOrMiss(privateKeyAlias.get(), () -> {
+        	return DialogUtils.showPasswordInputBox(
+                    null,
+                    "Unlock Private key",
+                    "Password for " + privateKeyAlias.get(),
+                    "Password:"
+                );
+        });
         
         PrivateKey priv = null;
         try {
-        	priv = ctx.getKeystore().getPrivateKey(privateKeyAlias.get(), pwd.toCharArray());
+        	priv = ctx.getKeystore().getPrivateKey(privateKeyAlias.get(), pwd);
         }catch (Exception e) {
 	        DialogUtils.showMessageBox(
 	                null,
@@ -489,6 +495,8 @@ public class TextPadForm {
 	                JOptionPane.ERROR_MESSAGE
 	        );
 			e.printStackTrace();
+		}finally {
+			if(pwd != null) Arrays.fill(pwd, (char) 0x00);
 		}
         
         return priv;

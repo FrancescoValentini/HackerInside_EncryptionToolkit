@@ -24,6 +24,8 @@ import javax.swing.JButton;
 import javax.swing.JTextField;
 import javax.swing.border.TitledBorder;
 
+import org.bouncycastle.util.Arrays;
+
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
@@ -298,15 +300,22 @@ public class SignForm {
 	
 	private PrivateKey getPrivateKey() {
 		String alias = (String) cmbSignerCert.getSelectedItem();
-		
-		String password = DialogUtils.showInputBox(null, "Unlock Private key", "Password for " + alias, 
-		        "Password:", true);
+        char[] password = Utils.passwordCacheHitOrMiss(alias, () -> {
+        	return DialogUtils.showPasswordInputBox(
+                    null,
+                    "Unlock Private key",
+                    "Password for " + alias,
+                    "Password:"
+                );
+        });
 		PrivateKey k = null;
 		try {
-			k = ctx.getKeystore().getPrivateKey(alias, password.toCharArray()); 
+			k = ctx.getKeystore().getPrivateKey(alias, password); 
 		} catch (UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}finally {
+			if(password != null) Arrays.fill(password, (char) 0x00);
 		}
 		return k;
 	}

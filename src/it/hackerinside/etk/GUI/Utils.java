@@ -3,6 +3,7 @@ package it.hackerinside.etk.GUI;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
+import java.util.function.Supplier;
 
 import javax.swing.JOptionPane;
 
@@ -29,4 +30,38 @@ public class Utils {
     		);
 		}
 	}
+	
+	/**
+	 * Retrieves the password for the given alias.
+	 * This method checks if the password is already cached for the given alias. 
+	 * If so, it will return the cached password. Otherwise, it will retrieve the password from the 
+	 * supplier and store it in the cache for future use.
+	 *
+	 * @param alias The alias associated with the password. This is printed for debugging 
+	 *              purposes and may be used for future cache lookups.
+	 * @param passwordSupplier A supplier that provides the password as a char array. 
+	 *                         This is used to fetch the password if it's not found in the cache.
+	 * @return A char array containing the password obtained from the supplier. 
+	 *         If the supplier provides a null password, a null value may be returned.
+	 */
+	public static char[] passwordCacheHitOrMiss(String alias, Supplier<char[]> passwordSupplier) {
+	    ETKContext ctx = ETKContext.getInstance();
+	    if (ctx.getUseCacheEntryPasswords()) {
+	    	PasswordCache pwc = ctx.getCache();
+	        // Try to get password from cache
+	        char[] pwd = pwc.get(alias);
+
+	        // Cache HIT: Return cached password if available
+	        if (pwd != null) return pwd;
+
+	        // Cache MISS: fetch password from supplier and cache it
+	        pwd = passwordSupplier.get();
+	        if (pwd != null) return pwc.set(alias, pwd);
+	        else return null;
+	    }
+	    
+	    return passwordSupplier.get();
+	}
+
+
 }

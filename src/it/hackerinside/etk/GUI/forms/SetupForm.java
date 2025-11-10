@@ -13,6 +13,8 @@ import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.util.Arrays;
+
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
@@ -450,8 +452,8 @@ public class SetupForm {
     	ensureDirectoryExists(txtbKeystorePath.getText());
         File keystore = new File(txtbKeystorePath.getText());
         if(!keystore.exists()) {
-            String pwd = askKeystorePassword();
-            AbstractKeystore pkcs12 = new PKCS12Keystore(keystore, pwd.toCharArray());
+            char[] pwd = askKeystorePassword();
+            AbstractKeystore pkcs12 = new PKCS12Keystore(keystore, pwd);
             try {
             	pkcs12.load();
                 pkcs12.save();
@@ -464,6 +466,8 @@ public class SetupForm {
                         e.getMessage(),
                         JOptionPane.ERROR_MESSAGE
                 );
+            }finally {
+            	if(pwd != null) Arrays.fill(pwd, (char)0x00);
             }
         }
     }
@@ -512,15 +516,15 @@ public class SetupForm {
                 );
             return;
 		}
-        
+		char[] ksMaster = null, pwd = null;
         try {
         	
         	if(name.isBlank() || cc.isBlank() || state.isBlank()) throw new InvalidParameterException("Please fill in all the fields!");
         	
             // Collect user input
-            String ksMaster = askKeystorePassword();
+            ksMaster = askKeystorePassword();
             String alias = askAlias();
-            String pwd = askPrivateKeyPassword();
+            pwd = askPrivateKeyPassword();
 
             // Add BouncyCastle provider
             Security.addProvider(new BouncyCastleProvider());
@@ -553,19 +557,21 @@ public class SetupForm {
                 e.getMessage(),
                 JOptionPane.ERROR_MESSAGE
             );
+        }finally {
+        	if(ksMaster != null)  Arrays.fill(ksMaster, (char)0x00);
+        	if(pwd != null)  Arrays.fill(pwd, (char)0x00);
         }
     }
 
     /**
      * Prompts the user for the keystore master password.
      */
-    private String askKeystorePassword() {
-        return DialogUtils.showInputBox(
+    private char[] askKeystorePassword() {
+        return DialogUtils.showPasswordInputBox(
             null,
             "Keystore master password",
             "Keystore master password",
-            "Password:",
-            true
+            "Password:"
         );
     }
 
@@ -577,21 +583,19 @@ public class SetupForm {
             null,
             "Private key alias",
             "Private key alias",
-            "Alias:",
-            false
+            "Alias:"
         );
     }
 
     /**
      * Prompts the user for the private key password.
      */
-    private String askPrivateKeyPassword() {
-        return DialogUtils.showInputBox(
+    private char[] askPrivateKeyPassword() {
+        return DialogUtils.showPasswordInputBox(
             null,
             "Private key password",
             "Private key password",
-            "Password:",
-            true
+            "Password:"
         );
     }
 
@@ -599,14 +603,14 @@ public class SetupForm {
      * Saves the private key and certificate into the keystore.
      */
     private void saveCertificateToKeystore(
-            String ksMaster,
+            char[] ksMaster,
             String alias,
-            String pwd,
+            char[] pwd,
             PrivateKey privk,
             X509Certificate crt) throws Exception {
 
         ctx.loadKeystore(ksMaster);
-        ctx.getKeystore().addPrivateKey(alias, privk, pwd.toCharArray(), new X509Certificate[]{crt});
+        ctx.getKeystore().addPrivateKey(alias, privk, pwd, new X509Certificate[]{crt});
         ctx.getKeystore().save();
     }
 

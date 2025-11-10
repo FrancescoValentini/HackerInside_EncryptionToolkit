@@ -32,6 +32,8 @@ import it.hackerinside.etk.GUI.UIThemes;
 import javax.swing.SwingConstants;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
+import java.awt.event.ItemListener;
+import java.awt.event.ItemEvent;
 
 public class SettingsForm {
 
@@ -46,6 +48,8 @@ public class SettingsForm {
 	private JComboBox<SymmetricAlgorithms> cmbEncAlgPath;
 	private JComboBox<UIThemes> cmbTheme;
 	private JSpinner spnBufferSize;
+	private JCheckBox chckbPasswordCache;
+	private JSpinner spnCacheTimeout;
 
 	/**
 	 * Launch the application.
@@ -123,20 +127,35 @@ public class SettingsForm {
 		spnBufferSize = new JSpinner();
 		spnBufferSize.setModel(new SpinnerNumberModel(Integer.valueOf(8192), Integer.valueOf(1024), null, Integer.valueOf(1024)));
 		spnBufferSize.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		chckbPasswordCache = new JCheckBox("Enable Password Cache");
+
+		chckbPasswordCache.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		
+		JLabel lblNewLabel_3_1 = new JLabel("Password cache timeout (s):");
+		lblNewLabel_3_1.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		spnCacheTimeout = new JSpinner();
+		spnCacheTimeout.setModel(new SpinnerNumberModel(0, 0, 120, 1));
+		spnCacheTimeout.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		GroupLayout gl_panel = new GroupLayout(panel);
 		gl_panel.setHorizontalGroup(
 			gl_panel.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panel.createSequentialGroup()
 					.addContainerGap()
-					.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
+					.addGroup(gl_panel.createParallelGroup(Alignment.LEADING, false)
 						.addGroup(gl_panel.createSequentialGroup()
 							.addGap(58)
 							.addComponent(lblNewLabel, GroupLayout.PREFERRED_SIZE, 119, GroupLayout.PREFERRED_SIZE))
-						.addComponent(lblKnownCertificatesPath, GroupLayout.PREFERRED_SIZE, 183, GroupLayout.PREFERRED_SIZE)
-						.addComponent(lblNewLabel_3, GroupLayout.PREFERRED_SIZE, 149, GroupLayout.PREFERRED_SIZE))
+						.addComponent(lblKnownCertificatesPath, GroupLayout.DEFAULT_SIZE, 183, Short.MAX_VALUE)
+						.addComponent(lblNewLabel_3, GroupLayout.PREFERRED_SIZE, 149, GroupLayout.PREFERRED_SIZE)
+						.addComponent(lblNewLabel_3_1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-						.addComponent(chckbUsePem, GroupLayout.PREFERRED_SIZE, 147, GroupLayout.PREFERRED_SIZE)
+						.addGroup(gl_panel.createSequentialGroup()
+							.addComponent(spnCacheTimeout, GroupLayout.PREFERRED_SIZE, 86, GroupLayout.PREFERRED_SIZE)
+							.addGap(18)
+							.addComponent(chckbPasswordCache))
 						.addGroup(gl_panel.createSequentialGroup()
 							.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
 								.addComponent(txtbKeyStorePath, GroupLayout.PREFERRED_SIZE, 381, GroupLayout.PREFERRED_SIZE)
@@ -145,7 +164,8 @@ public class SettingsForm {
 							.addGroup(gl_panel.createParallelGroup(Alignment.LEADING, false)
 								.addComponent(btnOpenKeystore, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
 								.addComponent(btnOpenKnownCerts, GroupLayout.DEFAULT_SIZE, 48, Short.MAX_VALUE)))
-						.addComponent(spnBufferSize, GroupLayout.PREFERRED_SIZE, 86, GroupLayout.PREFERRED_SIZE))
+						.addComponent(spnBufferSize, GroupLayout.PREFERRED_SIZE, 86, GroupLayout.PREFERRED_SIZE)
+						.addComponent(chckbUsePem, GroupLayout.PREFERRED_SIZE, 147, GroupLayout.PREFERRED_SIZE))
 					.addContainerGap(161, Short.MAX_VALUE))
 		);
 		gl_panel.setVerticalGroup(
@@ -169,9 +189,14 @@ public class SettingsForm {
 					.addGroup(gl_panel.createParallelGroup(Alignment.BASELINE)
 						.addComponent(lblNewLabel_3)
 						.addComponent(spnBufferSize, GroupLayout.PREFERRED_SIZE, 25, GroupLayout.PREFERRED_SIZE))
+					.addGap(8)
+					.addGroup(gl_panel.createParallelGroup(Alignment.BASELINE)
+						.addComponent(lblNewLabel_3_1, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+						.addComponent(spnCacheTimeout, GroupLayout.PREFERRED_SIZE, 25, GroupLayout.PREFERRED_SIZE)
+						.addComponent(chckbPasswordCache))
 					.addPreferredGap(ComponentPlacement.UNRELATED)
 					.addComponent(chckbUsePem)
-					.addContainerGap(472, Short.MAX_VALUE))
+					.addContainerGap(439, Short.MAX_VALUE))
 		);
 		panel.setLayout(gl_panel);
 		
@@ -334,9 +359,17 @@ public class SettingsForm {
 			}
 		});
 		
+		chckbPasswordCache.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				handleCache(chckbPasswordCache.isSelected());
+			}
+		});
+		
 		start();
 	}
 	
+
+
 	/**
 	 * Method executed when the form opens
 	 */
@@ -356,11 +389,13 @@ public class SettingsForm {
 		
 		chckbUsePem.setSelected(ctx.usePEM());
 		chckbUsePkcs11.setSelected(ctx.usePKCS11());
+		chckbPasswordCache.setSelected(ctx.getUseCacheEntryPasswords());
 		
 		cmbEncAlgPath.setSelectedItem(ctx.getCipher());
 		cmbHashAlgPath.setSelectedItem(ctx.getHashAlgorithm());
 		cmbTheme.setSelectedItem(ctx.getTheme());
 		spnBufferSize.setValue(ctx.getBufferSize());
+		spnCacheTimeout.setValue(ctx.getCacheEntryTimeout());
 	}
 	
 	
@@ -377,6 +412,17 @@ public class SettingsForm {
 		ctx.setUsePEM(chckbUsePem.isSelected());
 		ctx.setTheme((UIThemes)cmbTheme.getSelectedItem());
 		ctx.setBufferSize((int) spnBufferSize.getValue());
+		ctx.setUseCacheEntryPassword(chckbPasswordCache.isSelected());
+		ctx.setCacheEntryTimeout((int) spnCacheTimeout.getValue());
+	}
+	
+	/**
+	 * Initializes or destroys the cache based on user choice
+	 * @param selected
+	 */
+	private void handleCache(boolean selected) {
+		if(selected) ctx.initCache();
+		else ctx.destroyCache();
 	}
 	
 	/**

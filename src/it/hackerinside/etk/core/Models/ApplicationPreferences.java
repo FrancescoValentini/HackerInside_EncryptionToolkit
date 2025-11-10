@@ -59,7 +59,17 @@ public enum ApplicationPreferences {
 	/**
 	 * I/O Buffer size
 	 */
-	BUFFER_SIZE("BUFFER_SIZE","8192");
+	BUFFER_SIZE("BUFFER_SIZE","8192"),
+	
+	/**
+	 * Password cache
+	 */
+	CACHE_ENTRY_PASSWORDS("CACHE_ENTRY_PASSWORDS","false"),
+	
+	/**
+	 * Cache entry timeout
+	 */
+	CACHE_ENTRY_TIMEOUT("CACHE_ENTRY_TIMEOUT","60");
     
     private final String key;
     private final String value;
