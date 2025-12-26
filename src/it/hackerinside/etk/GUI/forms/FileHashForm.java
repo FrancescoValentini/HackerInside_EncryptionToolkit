@@ -194,6 +194,7 @@ public class FileHashForm {
 	    for (HashAlgorithm alg : HashAlgorithm.values()) {
 	        combo.addItem(alg);
 	    }
+	    combo.setSelectedItem(ctx.getHashAlgorithm());
 	}
 	
 	private void removeFile() {
