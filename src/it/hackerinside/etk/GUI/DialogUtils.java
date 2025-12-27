@@ -35,7 +35,7 @@ public class DialogUtils {
 	    panel.add(headerLabel, BorderLayout.NORTH);
 	    panel.add(scrollPane, BorderLayout.CENTER);
 
-        showDialog(parent, title, panel);
+        showDialog(parent, title, panel, messageType);
 	}
 	
     /**
@@ -124,14 +124,16 @@ public class DialogUtils {
 	 * @param parent the parent component to which the dialog is attached
 	 * @param title the title of the dialog window
 	 * @param panel the JComponent (typically a form or input) to be displayed inside the dialog
+     * @param messageType the type of message (JOptionPane.INFORMATION_MESSAGE, 
+     *                    WARNING_MESSAGE, or ERROR_MESSAGE)
 	 * @return an integer representing the user's choice: 
 	 *         JOptionPane.OK_OPTION for confirmation, 
 	 *         JOptionPane.CANCEL_OPTION for cancellation,
 	 *         or JOptionPane.CLOSED_OPTION if the dialog was closed without a selection
 	 */
-	private static int showDialog(Component parent, String title, JComponent panel) {
+	private static int showDialog(Component parent, String title, JComponent panel, int messageType) {
 	    // Create an option pane to display the dialog with a question message type
-	    JOptionPane optionPane = new JOptionPane(panel, JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION);
+	    JOptionPane optionPane = new JOptionPane(panel, messageType, JOptionPane.OK_CANCEL_OPTION);
 	    
 	    // Create a dialog window with the provided title
 	    JDialog dialog = optionPane.createDialog(parent, title);
@@ -160,7 +162,7 @@ public class DialogUtils {
         JTextField textField = new JTextField(20);
         JComponent panel = createInputPanel(header, label, textField);
 
-        int result = showDialog(parent, title, panel);
+        int result = showDialog(parent, title, panel,JOptionPane.QUESTION_MESSAGE);
         if (result == JOptionPane.OK_OPTION) {
             return textField.getText();
         }
@@ -180,7 +182,7 @@ public class DialogUtils {
         JPasswordField passwordField = new JPasswordField(20);
         JComponent panel = createInputPanel(header, label, passwordField);
 
-        int result = showDialog(parent, title, panel);
+        int result = showDialog(parent, title, panel, JOptionPane.QUESTION_MESSAGE);
         if (result == JOptionPane.OK_OPTION) {
             return passwordField.getPassword(); 
         }
