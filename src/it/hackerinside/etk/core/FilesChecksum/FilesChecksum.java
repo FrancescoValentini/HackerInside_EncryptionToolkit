@@ -102,10 +102,19 @@ public class FilesChecksum {
 
                 FileChecksumDTO dto = calculate(file);
 
-                Path relativePath = baseDir
-                        .relativize(file.toPath().toAbsolutePath().normalize());
+                Path filePath = file.toPath()
+                        .toAbsolutePath()
+                        .normalize();
 
-                String pathToWrite = "." + File.separator + relativePath;
+                String pathToWrite;
+
+                if (filePath.getRoot().equals(baseDir.getRoot())) {
+                    Path relativePath = baseDir.relativize(filePath);
+                    pathToWrite = "." + File.separator + relativePath;
+                } else {
+                    pathToWrite = filePath.toString();
+                }
+
 
                 writer.write(dto.checksum());
                 writer.write("  ");

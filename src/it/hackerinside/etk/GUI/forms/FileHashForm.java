@@ -170,6 +170,7 @@ public class FileHashForm {
 		panel_1.add(scrollPane_1);
 		
 		txtbVerifyResult = new JTextArea();
+		txtbVerifyResult.setEditable(false);
 		txtbVerifyResult.setFont(new Font("Monospaced", Font.PLAIN, 15));
 		scrollPane_1.setViewportView(txtbVerifyResult);
 		
@@ -372,7 +373,14 @@ public class FileHashForm {
 	    try {
 	        worker.get();
 	        
-	        buildVerificationResult();
+	        if(buildVerificationResult()) {
+				DialogUtils.showMessageBox(null, 
+						"INVALID CHECKSUMS!", 
+						"At least one file failed the checksum verification!", 
+				        "At least one file failed the checksum verification!\n\n"
+						+ "This may indicate a missing or corrupt file, please check the full report in detail for more information.", 
+				        JOptionPane.WARNING_MESSAGE);
+	        }
 	    } catch (InterruptedException | ExecutionException e) {
 			DialogUtils.showMessageBox(null, "Error while calculating checksums", "Error while calculating checksums!", 
 			        e.getMessage(), 
@@ -385,17 +393,20 @@ public class FileHashForm {
 	/**
 	 * Generates a summary of the checksum verification outcome
 	 */
-	private void buildVerificationResult() {
+	private boolean buildVerificationResult() {
 		StringBuilder sb = new StringBuilder();
+		boolean hasInvalidChecksums = false;
 		sb.append("Elapsed time: " + TimeUtils.formatElapsedTime(startTime, endTime) + "\n");
 		for(FileChecksumDTO f : verificationResult.keySet()) {
 			boolean result = verificationResult.get(f);
 			if(result) {
-				sb.append(f.filePath() + " : OK!\n");
+				sb.append("OK : " + f.filePath() + "\n");
 			}else {
-				sb.append(f.filePath() + " : FAILED!\n");
+				sb.append("FAILED : " + f.filePath() + "\n");
+				hasInvalidChecksums = true;
 			}
 		}
 		txtbVerifyResult.setText(sb.toString());
+		return hasInvalidChecksums;
 	}
 }
