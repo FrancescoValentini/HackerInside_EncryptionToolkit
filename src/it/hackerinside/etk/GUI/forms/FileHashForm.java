@@ -4,10 +4,13 @@ import java.awt.EventQueue;
 
 import javax.swing.JFrame;
 
+import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
-import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
+import it.hackerinside.etk.GUI.TimeUtils;
+import it.hackerinside.etk.core.FilesChecksum.FilesChecksum;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
+import it.hackerinside.etk.core.Models.FileChecksumDTO;
 import it.hackerinside.etk.core.Models.HashAlgorithm;
 
 import javax.swing.JTabbedPane;
@@ -16,16 +19,19 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.io.File;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
+import javax.swing.SwingWorker;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.border.TitledBorder;
@@ -42,6 +48,7 @@ public class FileHashForm {
 	private JFrame frmHackerinsideEncryptionToolkit;
 	private static ETKContext ctx;
 	private JComboBox<HashAlgorithm> cmbHashAlgo;
+	JComboBox<HashAlgorithm> cmbHashAlgo_1;
 	private JProgressBar progressBar;
 	private JTextArea txtbVerifyResult;
 	private JTextField txtbChecksumFileInput;
@@ -50,6 +57,10 @@ public class FileHashForm {
 	private DefaultListModel<File> listModel = new DefaultListModel<>();
 	private List<File> files;
 	private File checksumFile = null;
+	HashMap<FileChecksumDTO, Boolean> verificationResult;
+	
+    private long startTime;
+    private long endTime;
     
 
 	/**
@@ -88,7 +99,7 @@ public class FileHashForm {
 		frmHackerinsideEncryptionToolkit = new JFrame();
 		frmHackerinsideEncryptionToolkit.setResizable(false);
 		frmHackerinsideEncryptionToolkit.setBounds(100, 100, 612, 438);
-		frmHackerinsideEncryptionToolkit.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		//frmHackerinsideEncryptionToolkit.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmHackerinsideEncryptionToolkit.setTitle("HackerInside Encryption Toolkit | Files Checksum");
 		
 		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
@@ -100,7 +111,7 @@ public class FileHashForm {
 		panel.setLayout(null);
 		
 		JPanel panel_3 = new JPanel();
-		panel_3.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, new Color(255, 255, 255), new Color(160, 160, 160)), "Files", TitledBorder.LEADING, TitledBorder.TOP, null));
+		panel_3.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, new Color(255, 255, 255), new Color(160, 160, 160)), "Files & Folders", TitledBorder.LEADING, TitledBorder.TOP, null));
 		panel_3.setBounds(10, 11, 571, 127);
 		panel.add(panel_3);
 		panel_3.setLayout(new BorderLayout(0, 0));
@@ -155,12 +166,22 @@ public class FileHashForm {
 		panel_1.add(btnOpenChecksumFile);
 		
 		JScrollPane scrollPane_1 = new JScrollPane();
-		scrollPane_1.setBounds(10, 79, 571, 281);
+		scrollPane_1.setBounds(10, 110, 571, 250);
 		panel_1.add(scrollPane_1);
 		
 		txtbVerifyResult = new JTextArea();
 		txtbVerifyResult.setFont(new Font("Monospaced", Font.PLAIN, 15));
 		scrollPane_1.setViewportView(txtbVerifyResult);
+		
+		JLabel lblInputFile_1_1_1 = new JLabel("Hashing algorithm:");
+		lblInputFile_1_1_1.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		lblInputFile_1_1_1.setBounds(10, 79, 160, 20);
+		panel_1.add(lblInputFile_1_1_1);
+		
+		 cmbHashAlgo_1 = new JComboBox();
+		cmbHashAlgo_1.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		cmbHashAlgo_1.setBounds(162, 79, 200, 22);
+		panel_1.add(cmbHashAlgo_1);
 		
 		
 		JButton btnCalculate = new JButton("CALCULATE");
@@ -171,6 +192,7 @@ public class FileHashForm {
 		
 		progressBar = new JProgressBar();
 		progressBar.setEnabled(false);
+		progressBar.setVisible(false);
 		progressBar.setIndeterminate(true);
 		progressBar.setBounds(120, 224, 350, 20);
 		panel.add(progressBar);
@@ -182,6 +204,7 @@ public class FileHashForm {
 		btnCalculate.addActionListener(new ActionListener() {public void actionPerformed(ActionEvent e) {calculate();}});
 		
 		populateHashAlgorithms(cmbHashAlgo);
+		populateHashAlgorithms(cmbHashAlgo_1);
 	}
 	
 	/**
@@ -197,6 +220,9 @@ public class FileHashForm {
 	    combo.setSelectedItem(ctx.getHashAlgorithm());
 	}
 	
+	/**
+	 * Removes the path from the list
+	 */
 	private void removeFile() {
 		File selected = filesList.getSelectedValue();
 		if(selected != null) {
@@ -205,23 +231,171 @@ public class FileHashForm {
 		}
 	}
 	
+	/**
+	 * Allows you to select a path and adds it to the list
+	 */
 	private void addFile() {
-		File f = FileDialogUtils.openFileDialog(null, "File to hash", null);
+		File f = FileDialogUtils.openFileOrDirectoryDialog(null, "File/folder to hash", null);
 		if(f != null) {
 			files.add(f);
 			listModel.addElement(f);
 		}
 	}
-	
+	/**
+	 * File checksum verification
+	 */
 	private void openChecksumFile() {
 		File f = FileDialogUtils.openFileDialog(null, "Checksum file", null);
 		if(f != null) {
 			checksumFile = f;
 			txtbChecksumFileInput.setText(f.getAbsolutePath());
+			verify();
 		}
 	}
 	
+	/**
+	 * Show progress bar while calculating checksums
+	 */
+	private void startHashUi() {
+		progressBar.setVisible(true);
+		progressBar.setEnabled(true);
+	}
+	
+	/**
+	 * Method invoked when checksum calculation is finished
+	 * @param worker
+	 */
+	private void finishHashUi(SwingWorker<?, ?> worker) {
+		progressBar.setVisible(false);
+	    endTime = System.currentTimeMillis();
+	    try {
+	        worker.get();
+	        
+			DialogUtils.showMessageBox(
+					null, 
+					"Checksum calculation completed!", 
+					"Checksum calculation completed!", 
+					getOkMessage(), 
+			        JOptionPane.INFORMATION_MESSAGE);
+			
+	    } catch (InterruptedException | ExecutionException e) {
+			DialogUtils.showMessageBox(null, "Error while calculating checksums", "Error while calculating checksums!", 
+			        e.getMessage(), 
+			        JOptionPane.ERROR_MESSAGE);
+	        e.printStackTrace();
+	    }
+	    this.checksumFile = null;
+	}
+	/**
+	 * Generates the message showing the summary of the files included in the calculation
+	 * @return
+	 */
+	private String getOkMessage() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("Output:");
+		sb.append(this.checksumFile);
+		sb.append("\n\nElapsed: " + TimeUtils.formatElapsedTime(startTime, endTime));
+
+		sb.append("\n\nPaths:\n");
+		for(File f : files) {
+			sb.append("- " + f.getAbsoluteFile() + "\n");
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * Calculate file checksums
+	 */
 	private void calculate() {
+		if(files.isEmpty()) {
+			return;
+		}
 		
+		checksumFile = FileDialogUtils.saveFileDialog(null, "Checksum File", ".", DefaultExtensions.STD_TXT);
+		if(!FileDialogUtils.overwriteIfExists(checksumFile)) return;
+		if(checksumFile == null) return;
+		
+		startHashUi();
+		
+		HashAlgorithm alg = (HashAlgorithm) cmbHashAlgo.getSelectedItem();
+		FilesChecksum checksum = new FilesChecksum(alg, ctx.getBufferSize());
+		
+		SwingWorker<Void, Void> worker = new SwingWorker<>() {
+	        @Override
+	        protected Void doInBackground() throws Exception {
+	        	startTime = System.currentTimeMillis();
+	        	checksum.calculate(files, checksumFile);
+	            return null;
+	        }
+
+	        @Override
+	        protected void done() {
+	        	finishHashUi(this);
+	        }
+	    };
+
+	    worker.execute();
+	}
+	/**
+	 * Verify file checksums
+	 */
+	private void verify() {
+		if(this.checksumFile == null) {
+			return;
+		}
+		
+		HashAlgorithm alg = (HashAlgorithm) cmbHashAlgo_1.getSelectedItem();
+		FilesChecksum checksum = new FilesChecksum(alg, ctx.getBufferSize());
+		txtbVerifyResult.setText("Calculating...");
+		SwingWorker<Void, Void> worker = new SwingWorker<>() {
+	        @Override
+	        protected Void doInBackground() throws Exception {
+	        	startTime = System.currentTimeMillis();
+	        	verificationResult = checksum.verify(checksumFile);
+	            return null;
+	        }
+
+	        @Override
+	        protected void done() {
+	        	finishHashVerify(this);
+	        }
+	    };
+
+	    worker.execute();
+	}
+	/**
+	 * Method invoked at the end of the verification
+	 * @param worker
+	 */
+	private void finishHashVerify(SwingWorker<?, ?> worker) {
+	    endTime = System.currentTimeMillis();
+	    try {
+	        worker.get();
+	        
+	        buildVerificationResult();
+	    } catch (InterruptedException | ExecutionException e) {
+			DialogUtils.showMessageBox(null, "Error while calculating checksums", "Error while calculating checksums!", 
+			        e.getMessage(), 
+			        JOptionPane.ERROR_MESSAGE);
+	        e.printStackTrace();
+	    }
+	    this.checksumFile = null;
+	}
+	
+	/**
+	 * Generates a summary of the checksum verification outcome
+	 */
+	private void buildVerificationResult() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("Elapsed time: " + TimeUtils.formatElapsedTime(startTime, endTime) + "\n");
+		for(FileChecksumDTO f : verificationResult.keySet()) {
+			boolean result = verificationResult.get(f);
+			if(result) {
+				sb.append(f.filePath() + " : OK!\n");
+			}else {
+				sb.append(f.filePath() + " : FAILED!\n");
+			}
+		}
+		txtbVerifyResult.setText(sb.toString());
 	}
 }
