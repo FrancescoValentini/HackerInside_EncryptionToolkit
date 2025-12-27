@@ -705,8 +705,7 @@ public class ETKMain {
 	        DefaultExtensions.CRYPTO_PEM,
 	        DefaultExtensions.CRYPTO_CER,
 	        DefaultExtensions.CRYPTO_CRT,
-	        DefaultExtensions.CRYPTO_DER,
-	        DefaultExtensions.STD_ANY
+	        DefaultExtensions.CRYPTO_DER
 	    );
 	    X509Certificate cert = null;
 	    boolean accepted = false;
