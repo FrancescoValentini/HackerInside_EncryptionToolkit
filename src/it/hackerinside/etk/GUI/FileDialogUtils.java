@@ -155,6 +155,34 @@ public class FileDialogUtils {
     }
     
     /**
+     * Displays a file chooser dialog for opening a file or selecting a directory.
+     *
+     * @param parent    the parent component (can be null)
+     * @param title     the dialog title
+     * @param path      the initial directory path
+     * @param filters   array of DefaultExtensions to use as file filters (optional)
+     * @return the selected File or directory, or null if the operation was cancelled
+     */
+    public static File openFileOrDirectoryDialog(
+            Component parent,
+            String title,
+            String path,
+            DefaultExtensions... filters
+    ) {
+        JFileChooser chooser = createFileChooser(title, path, filters);
+
+        // Allow both files and directories
+        chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+
+        int result = chooser.showOpenDialog(parent);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            return chooser.getSelectedFile();
+        }
+        return null;
+    }
+
+    
+    /**
      * Checks if a file already exists and displays an information message
      * @param f the file to check
      * @return true if the file does not exist or if the user want to overwrite it

@@ -264,7 +264,7 @@ public class CAdESSigner {
      */
 	private String getSignatureAlgorithm() {
     	StringBuilder sb = new StringBuilder();
-    	sb.append(hashAlgorithm.toString().toUpperCase());
+    	sb.append(hashAlgorithm.toString().toUpperCase().replace("-", ""));
     	sb.append("with");
     	
     	if(AsymmetricAlgorithm.fromPrivateKey(privateKey) == AsymmetricAlgorithm.EC) {

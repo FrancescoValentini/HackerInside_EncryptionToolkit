@@ -13,17 +13,17 @@ public enum HashAlgorithm {
     /**
      * SHA-256 hash algorithm (produces 256-bit/32-byte hash values).
      */
-    SHA256("sha256",NISTObjectIdentifiers.id_sha256),
+    SHA256("SHA-256",NISTObjectIdentifiers.id_sha256),
     
     /**
      * SHA-384 hash algorithm (produces 384-bit/48-byte hash values).
      */
-    SHA384("sha384",NISTObjectIdentifiers.id_sha384),
+    SHA384("SHA-384",NISTObjectIdentifiers.id_sha384),
     
     /**
      * SHA-512 hash algorithm (produces 512-bit/64-byte hash values).
      */
-    SHA512("sha512",NISTObjectIdentifiers.id_sha384);
+    SHA512("SHA-512",NISTObjectIdentifiers.id_sha384);
     
     private final String algorithm;
     
@@ -45,13 +45,15 @@ public enum HashAlgorithm {
      * @throws IllegalArgumentException if the provided algorithm name doesn't match any supported algorithm
      */
     public static HashAlgorithm fromString(String algorithm) {
-        for (HashAlgorithm alg : HashAlgorithm.values()) {
-            if (alg.algorithm.equalsIgnoreCase(algorithm)) {
-                return alg;
-            }
+        String normalized = algorithm.replace("-", "").toUpperCase();
+
+        try {
+            return HashAlgorithm.valueOf(normalized);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid Hash Algorithm: " + algorithm);
         }
-        throw new IllegalArgumentException("Invalid Hash Algorithm: " + algorithm);
     }
+
     
     /**
      * Returns the standard algorithm name for this hash algorithm.

@@ -17,9 +17,6 @@ import java.io.File;
  * @author Francesco Valentini
  */
 public enum DefaultExtensions {
-    /** Represents any file type (wildcard). */
-    STD_ANY("*", "Any file"),
-    
     /** Text file format. */
     STD_TXT(".txt", "Text File"),
     

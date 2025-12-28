@@ -358,14 +358,8 @@ public class SetupForm {
         boolean success = true;
         StringBuilder errors = new StringBuilder();
         
-        //File prKeystore = new File(ctx.getKeyStorePath());
-        //File pbKeystore = new File(ctx.getKnownCertsPath());
-        
-        //if(!pbKeystore.exists()) pbKeystore.mkdirs();
-        
         try {
             if (!chckbPkcs11.isSelected()) {
-            //	if(!prKeystore.exists()) prKeystore.mkdirs();
                 initializePersonalKeystore();
                 
                 createX509Cert();
@@ -506,6 +500,19 @@ public class SetupForm {
         String state = txtbStateName.getText();
         int expDays = (int) spinnerExpDays.getValue();
 
+		if(name.isBlank() && cc.isBlank() && state.isBlank()) {
+            DialogUtils.showMessageBox(
+                    null,
+                    "Skipping certificate generation",
+                    "Skipping certificate generation",
+                    "Without a public and private key pair, you can only verify signatures and encrypt files.\r\n"
+                    + "\r\n"
+                    + "You can generate a key pair later.",
+                    JOptionPane.INFORMATION_MESSAGE
+                );
+            return;
+		}
+		
 		if(cc.length() != 2) {
             DialogUtils.showMessageBox(
                     null,
@@ -516,6 +523,8 @@ public class SetupForm {
                 );
             return;
 		}
+		
+
 		char[] ksMaster = null, pwd = null;
         try {
         	

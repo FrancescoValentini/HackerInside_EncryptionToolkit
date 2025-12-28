@@ -14,9 +14,15 @@ import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPublicKey;
+import java.security.spec.MGF1ParameterSpec;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import javax.crypto.spec.OAEPParameterSpec;
+import javax.crypto.spec.PSource;
+
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.cms.CMSAlgorithm;
 import org.bouncycastle.cms.CMSEnvelopedDataStreamGenerator;
 import org.bouncycastle.cms.RecipientInfoGenerator;
@@ -24,6 +30,8 @@ import org.bouncycastle.cms.jcajce.JceCMSContentEncryptorBuilder;
 import org.bouncycastle.cms.jcajce.JceKeyAgreeRecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JceKeyTransRecipientInfoGenerator;
 import org.bouncycastle.operator.OutputEncryptor;
+import org.bouncycastle.operator.jcajce.JcaAlgorithmParametersConverter;
+
 import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
 import it.hackerinside.etk.core.PEM.PemOutputStream;
@@ -166,10 +174,13 @@ public class CMSEncryptor implements Encryptor {
         String algorithm = publicKey.getAlgorithm();
 
         if ("RSA".equalsIgnoreCase(algorithm)) {
-            // RSA Key Transport
-            return new JceKeyTransRecipientInfoGenerator(recipientCert);
+            // RSA Key Transport (OAEP)
+        	JcaAlgorithmParametersConverter paramsConverter = new JcaAlgorithmParametersConverter();
+        	OAEPParameterSpec oaepParams = new OAEPParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, PSource.PSpecified.DEFAULT);
+        	AlgorithmIdentifier algorithmIdentifier = paramsConverter.getAlgorithmIdentifier(PKCSObjectIdentifiers.id_RSAES_OAEP, oaepParams);
+            return new JceKeyTransRecipientInfoGenerator(recipientCert,algorithmIdentifier);
         } 
-        else if ("EC".equalsIgnoreCase(algorithm) || "ECDH".equalsIgnoreCase(algorithm) || "ECDSA".equalsIgnoreCase(algorithm)) {
+        else if ("EC".equalsIgnoreCase(algorithm) || "ECDH".equalsIgnoreCase(algorithm)) {
             // Elliptic Curve Diffie-Hellman (ECDH)
             KeyPair eph = getEphemeralECCKeys(recipientCert);
             

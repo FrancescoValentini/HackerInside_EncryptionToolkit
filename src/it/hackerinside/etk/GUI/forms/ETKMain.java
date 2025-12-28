@@ -134,6 +134,9 @@ public class ETKMain {
 	    JMenuItem mntmTextPad = new JMenuItem("TextPad");
 	    fileMenu.add(mntmTextPad);
 	    
+	    JMenuItem mntmFilesChecksum = new JMenuItem("Files Checksum");
+	    fileMenu.add(mntmFilesChecksum);
+	    
 	    JMenuItem mntmAbout = new JMenuItem("About");
 	    fileMenu.add(mntmAbout);
 	    
@@ -170,6 +173,14 @@ public class ETKMain {
 	    		importKnownCertFromString();
 	    	}
 	    });
+	    
+	    mntmFilesChecksum.addActionListener(new ActionListener() {
+	    	public void actionPerformed(ActionEvent e) {
+	    		filesChecksum();
+	    	}
+	    });
+	    
+	    
 	    
 
 	    btnSign.addActionListener(new ActionListener() {
@@ -372,9 +383,7 @@ public class ETKMain {
 
 	    startProcedure();
 	}
-
-
-
+	
 	/**
 	 * Deletes a certificate from the appropriate keystore based on its location.
 	 * PKCS11 certificates cannot be deleted and will show a warning message.
@@ -696,8 +705,7 @@ public class ETKMain {
 	        DefaultExtensions.CRYPTO_PEM,
 	        DefaultExtensions.CRYPTO_CER,
 	        DefaultExtensions.CRYPTO_CRT,
-	        DefaultExtensions.CRYPTO_DER,
-	        DefaultExtensions.STD_ANY
+	        DefaultExtensions.CRYPTO_DER
 	    );
 	    X509Certificate cert = null;
 	    boolean accepted = false;
@@ -972,6 +980,15 @@ public class ETKMain {
 		NewKeyPairForm nkf = new NewKeyPairForm();
 		nkf.setVisible();
 		nkf.setCallback(() -> {updateTable();});
+		
+	}
+	
+	/**
+	 * Opens the files checksum generation form
+	 */
+	private void filesChecksum() {
+		FileHashForm fh = new FileHashForm();
+		fh.setVisible();
 		
 	}
 }
