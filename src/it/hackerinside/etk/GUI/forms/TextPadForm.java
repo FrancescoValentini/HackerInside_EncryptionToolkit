@@ -265,8 +265,7 @@ public class TextPadForm {
 		btnOpenFile.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				File f = FileDialogUtils.openFileDialog(null, "Open Encrypted Text File", ".", 
-			            DefaultExtensions.CRYPTO_P7E,
-			            DefaultExtensions.STD_ANY);
+			            DefaultExtensions.CRYPTO_P7E);
 				
 				if(f != null) {
 					txtbData.setText(readTextFile(f));
@@ -281,8 +280,7 @@ public class TextPadForm {
 				File f = FileDialogUtils.saveFileDialog(null,
 			            "Save encrypted text file",
 			            java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy")) + ".txt",
-			            DefaultExtensions.CRYPTO_P7E,
-			            DefaultExtensions.STD_ANY);
+			            DefaultExtensions.CRYPTO_P7E);
 				
 				if(f != null) {
 					writeTextToFile(f,txtbData.getText().toString());
@@ -614,8 +612,7 @@ public class TextPadForm {
 	            DefaultExtensions.CRYPTO_PEM,
 	            DefaultExtensions.CRYPTO_CER,
 	            DefaultExtensions.CRYPTO_CRT,
-	            DefaultExtensions.CRYPTO_DER,
-	            DefaultExtensions.STD_ANY
+	            DefaultExtensions.CRYPTO_DER
 	    );
 
 	    if (certFile != null) {
