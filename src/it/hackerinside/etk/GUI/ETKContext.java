@@ -22,7 +22,7 @@ import it.hackerinside.etk.core.keystore.PKCS12Keystore;
  */
 public class ETKContext {
 	
-	public static final String ETK_VERSION = "1.0.5";
+	public static final String ETK_VERSION = "1.0.6";
 	
     /**
      * Singleton instance of ETKContext.
