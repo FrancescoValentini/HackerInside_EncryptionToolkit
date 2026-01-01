@@ -5,6 +5,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.UnrecoverableEntryException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
@@ -65,6 +66,37 @@ public abstract class AbstractKeystore {
      * @param password
      */
     public abstract void setPassword(char[] password);
+    
+    /**
+     * Updates the password protecting a keystore entry identified by the given alias.
+     * <p>
+     * The current password is verified by attempting to recover the entry. If the
+     * current password is invalid, a {@link SecurityException} is thrown.
+     *
+     * @param alias the alias of the entry whose password must be updated
+     * @param currentPassword the current password protecting the entry
+     * @param newPassword the new password to apply to the entry
+     * @throws SecurityException if the current password is not valid
+     * @throws KeyStoreException if the keystore is not initialized or an error occurs
+     * @throws NullPointerException if alias, currentPassword, or newPassword is null
+     */
+    public abstract void updateEntryPassword(String alias, char[] currentPassword, char[] newPassword) throws KeyStoreException;
+    
+    /**
+     * Renames an existing keystore entry from one alias to another.
+     * <p>
+     * The entry content is preserved and only the alias is changed.
+     *
+     * @param oldAlias the current alias name
+     * @param password the password used to protect the key entry
+     * @param newAlias the new alias name
+     * @throws KeyStoreException if the keystore is not initialized, the old alias
+     *         does not exist, or the new alias already exists
+     * @throws UnrecoverableEntryException 
+     * @throws NoSuchAlgorithmException 
+     * @throws NullPointerException if oldAlias or newAlias is null
+     */
+    public abstract void renameEntry(String oldAlias, String newAlias, char[] passWord) throws KeyStoreException, NoSuchAlgorithmException, UnrecoverableEntryException;
     
     /**
      * Constructs a new AbstractKeystore with the specified keystore type.
@@ -220,6 +252,8 @@ public abstract class AbstractKeystore {
 	public boolean isNull() {
 		return this.keyStore == null;
 	}
+	
+	
     
     /**
      * Checks if the given certificate exists in the keystore.

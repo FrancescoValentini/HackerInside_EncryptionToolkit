@@ -316,6 +316,57 @@ public class ETKMain {
 	        }
 	    });
 	    tablePopup.add(miExportKeypair);
+	    
+	    JMenuItem miRename = new JMenuItem("Rename");
+	    miRename.addActionListener(new ActionListener() {
+	        @Override
+	        public void actionPerformed(ActionEvent e) {
+	            int viewRow = table.getSelectedRow();
+	            if (viewRow == -1) {
+	                DialogUtils.showMessageBox(
+	                        null,
+	                        "No selection",
+	                        "No rows selected",
+	                        "Please select an entry first.",
+	                        JOptionPane.WARNING_MESSAGE
+	                );
+	                return;
+	            }
+	            int modelRow = table.convertRowIndexToModel(viewRow);
+	            CertificateTableRow row = tableModel.getRow(modelRow);
+	            if (row != null) {
+	                renameAlias(row);
+	            }
+	        }
+	    });
+	    tablePopup.add(miRename);
+	    
+	    JMenuItem miChangePassword = new JMenuItem("Change Password");
+	    miChangePassword.addActionListener(new ActionListener() {
+	        @Override
+	        public void actionPerformed(ActionEvent e) {
+	            int viewRow = table.getSelectedRow();
+	            if (viewRow == -1) {
+	                DialogUtils.showMessageBox(
+	                        null,
+	                        "No selection",
+	                        "No rows selected",
+	                        "Please select an entry first.",
+	                        JOptionPane.WARNING_MESSAGE
+	                );
+	                return;
+	            }
+	            int modelRow = table.convertRowIndexToModel(viewRow);
+	            CertificateTableRow row = tableModel.getRow(modelRow);
+	            if (row != null) {
+	               // changePassword(row);
+	            }
+	        }
+	    });
+	    tablePopup.add(miChangePassword);
+
+
+	    
 
 	 // "Certificate Export" submenu
 	    JMenu certificateExportMenu = new JMenu("Certificate Export");
@@ -926,6 +977,75 @@ public class ETKMain {
 	    }
 	    updateTable();
 	}
+	
+	/**
+	 * Rename an alias
+	 * @param row the entry to rename
+	 */
+	private void renameAlias(CertificateTableRow row) {
+		String currAlias = row.keystoreAlias();
+		KeysLocations location = row.location();
+	    if (location == KeysLocations.PKCS11) {
+	        DialogUtils.showMessageBox(
+	            null, 
+	            "Operation not supported!", 
+	            "Renaming certificates from PKCS11 devices is not supported!", 
+	            "", 
+	            JOptionPane.WARNING_MESSAGE
+	        );
+	        return;
+	    }
+	    
+	    char pwd[] = null;
+	    String newName = DialogUtils.showInputBox(null, 
+	    		"RENAME CERTIFICATE", 
+	    		"Old name: " + currAlias, 
+	    		"New Name:"
+	    		);
+	    
+	    if(newName.isBlank()) return;
+	    
+	    
+	    try {
+		    if(location == KeysLocations.PKCS12) {
+		        pwd = Utils.passwordCacheHitOrMiss(currAlias, () -> {
+		        	return DialogUtils.showPasswordInputBox(
+		                    null,
+		                    "Unlock Private key",
+		                    "Password for " + currAlias,
+		                    "Password:"
+		                );
+		        });
+		        
+		        if(pwd.length == 0) return;
+		    	ctx.getKeystore().renameEntry(currAlias, newName, pwd);
+		    	ctx.getKeystore().save();
+		    }else if(location == KeysLocations.KNWOWN_CERTIFICATES) {
+		    	ctx.getKnownCerts().renameEntry(currAlias, newName, null);
+		    	ctx.getKnownCerts().save();
+		    }
+	        DialogUtils.showMessageBox(
+		            null, 
+		            "Alias Renamed!", 
+		            currAlias + " Renamed to: " + newName , 
+		            "Old alias: " + currAlias + "\nNew Alias: " + newName + "\nLocation: " + row.location(), 
+		            JOptionPane.INFORMATION_MESSAGE
+		        );
+	        updateTable();
+	    }catch(Exception e) {
+	        DialogUtils.showMessageBox(
+		            null, 
+		            "ERROR!", 
+		            "An error occurred while renaming the certificate!" , 
+		            e.getMessage(), 
+		            JOptionPane.ERROR_MESSAGE
+		        );
+	    }finally {
+	    	if(pwd != null) Arrays.fill(pwd, (char)0x00);
+	    }
+	}
+	
+	
 	
 	/**
 	 * Changes the master password of the keystore.
