@@ -62,6 +62,7 @@ public class SignForm {
 	private File fileToSign;
 	private JLabel lblStatus;
 	private JProgressBar progressSignature;
+	private JButton btnSign;
 
 	/**
 	 * Launch the application.
@@ -128,7 +129,7 @@ public class SignForm {
 		JPanel panel_1 = new JPanel();
 		panel_1.setBorder(new TitledBorder(null, "Signature Settings", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		
-		JButton btnSign = new JButton("SIGN");
+		btnSign = new JButton("SIGN");
 		btnSign.setFont(new Font("Tahoma", Font.BOLD, 18));
 		
 		progressSignature = new JProgressBar();
@@ -462,6 +463,7 @@ public class SignForm {
 		progressSignature.setEnabled(true);
 	    lblStatus.setText("Signing...");
 	    lblStatus.setVisible(true);
+	    btnSign.setEnabled(false);
 	}
 
 	/**
@@ -487,6 +489,7 @@ public class SignForm {
 	        lblStatus.setText("Digital Signature failed");
 	        e.printStackTrace();
 	    }
+	    btnSign.setEnabled(true);
 	}
 
 	/**

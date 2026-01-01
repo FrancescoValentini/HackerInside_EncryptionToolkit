@@ -76,6 +76,7 @@ public class EncryptForm {
 	private File ciphertextFile;
 	private X509Certificate recipient;
 	private JLabel lblStatus;
+	private JButton btnEncrypt;
 	private static ETKContext ctx;
 
 	/**
@@ -214,7 +215,7 @@ public class EncryptForm {
 		
 		panel.add(progressBarEncrypt);
 		
-		JButton btnEncrypt = new JButton("ENCRYPT");
+		btnEncrypt = new JButton("ENCRYPT");
 		btnEncrypt.setFont(new Font("Tahoma", Font.BOLD, 18));
 		btnEncrypt.setBounds(219, 438, 138, 55);
 		panel.add(btnEncrypt);
@@ -538,6 +539,7 @@ public class EncryptForm {
 	    progressBarEncrypt.setEnabled(true);
 	    lblStatus.setText("Encrypting...");
 	    lblStatus.setVisible(true);
+	    btnEncrypt.setEnabled(false);
 	}
 
 	/**
@@ -566,6 +568,7 @@ public class EncryptForm {
 	        lblStatus.setText("Encryption failed.");
 	        e.printStackTrace();
 	    }
+	    btnEncrypt.setEnabled(true);
 	}
 	
 	/**
