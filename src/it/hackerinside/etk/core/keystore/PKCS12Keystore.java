@@ -25,7 +25,7 @@ public class PKCS12Keystore extends AbstractKeystore {
      * The password used to protect the keystore.
      * (keystore master password)
      */
-    private final char[] password;
+    private char[] password;
 
     /**
      * Constructs a new PKCS12Keystore with the specified file path and password.
@@ -39,6 +39,10 @@ public class PKCS12Keystore extends AbstractKeystore {
         this.file = new File(filePath);
         this.password = password;
         
+    }
+    
+    public void setPassword(char[] password) {
+    	this.password = password;
     }
     
     /**

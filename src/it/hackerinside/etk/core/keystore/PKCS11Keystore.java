@@ -80,4 +80,8 @@ public class PKCS11Keystore extends AbstractKeystore {
     public void save() throws Exception {
         throw new UnsupportedOperationException("Save not supported for PKCS11");
     }
+    
+    public void setPassword(char[] password) {
+    	throw new UnsupportedOperationException("setPassword not supported for PKCS11");
+    }
 }

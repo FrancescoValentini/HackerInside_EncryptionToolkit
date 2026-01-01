@@ -64,6 +64,7 @@ public class ETKMain {
 	private JButton btnDecrypt;
 	private JButton btnSign;
 	private JButton btnEncrypt;
+	private JMenuItem mntmChangeKeystorePwd;
 	/**
 	 * Launch the application.
 	 */
@@ -146,6 +147,9 @@ public class ETKMain {
 	    JMenuItem menuItemKeystoreLogin = new JMenuItem("Keystore Login");
 
 	    mnNewMenu.add(menuItemKeystoreLogin);
+	    
+	    mntmChangeKeystorePwd = new JMenuItem("Change Keystore Password");
+	    mnNewMenu.add(mntmChangeKeystorePwd);
 	    
 	    JMenuItem menuItemNewKeypair = new JMenuItem("New Keypair");
 	    mnNewMenu.add(menuItemNewKeypair);
@@ -254,6 +258,13 @@ public class ETKMain {
 	    	public void actionPerformed(ActionEvent e) {
 	    		newKeyPair();
 	    	}
+	    });
+	    
+	    mntmChangeKeystorePwd.addActionListener(new ActionListener() {
+	    	public void actionPerformed(ActionEvent e) {
+	    		changeKeystoreMasterKey();
+	    	}
+
 	    });
 	    
 	    mntmTextPad.addActionListener(new ActionListener() {
@@ -867,6 +878,7 @@ public class ETKMain {
 	                JOptionPane.ERROR_MESSAGE);
             return;
 		}
+		if(ctx.getKeystore() == null) return;
 	    File sourceKeystore = FileDialogUtils.openFileDialog(
 		        null,
 		        "Import KeyPairs",
@@ -914,6 +926,75 @@ public class ETKMain {
 	    }
 	    updateTable();
 	}
+	
+	/**
+	 * Changes the master password of the keystore.
+	 */
+	private void changeKeystoreMasterKey() {
+		if(ctx.usePKCS11()) {
+            DialogUtils.showMessageBox(null, 
+					"Unable to update password!", 
+					"Password change not supported on PKCS11","", 
+	                JOptionPane.ERROR_MESSAGE);
+            return;
+		}
+		
+		if(ctx.getKeystore() == null) return;
+		
+		char[] currPwd = null, newPwd = null, newPwd1 = null;
+		try {
+		    currPwd = DialogUtils.showPasswordInputBox(
+			        null,
+			        ctx.getKeyStorePath(),
+			        "Current Keystore password",
+			        "Password:"
+			    );
+		    
+		    if(currPwd == null) return;
+		    
+		    newPwd = DialogUtils.showPasswordInputBox(
+			        null,
+			        ctx.getKeyStorePath(),
+			        "New Keystore password",
+			        "Password:"
+			    );
+		    if(newPwd == null) return;
+		    newPwd1 = DialogUtils.showPasswordInputBox(
+			        null,
+			        ctx.getKeyStorePath(),
+			        "Confirm the new keystore password",
+			        "Password:"
+			    );
+		    if(newPwd1 == null) return;
+		    
+		    if(!Arrays.areEqual(newPwd, newPwd1)) {
+		    	throw new Exception("The two passwords do not match");
+		    }
+		    
+		    ctx.changeKeystoreMasterPassword(currPwd, newPwd1);
+		    
+            DialogUtils.showMessageBox(
+            		null, 
+            		"Keystore Password Updated!", 
+            		ctx.getKeyStorePath(), 
+	                "Keystore password updated successfully!",
+	                JOptionPane.INFORMATION_MESSAGE
+	        );
+		}catch(Exception e) {
+			e.printStackTrace();
+            DialogUtils.showMessageBox(
+            		null, 
+            		"Error while changing password", 
+            		"Error while changing password", 
+	                e.getMessage(), 
+	                JOptionPane.ERROR_MESSAGE);
+		}finally {
+			if(currPwd != null) Arrays.fill(currPwd, (char)0x00);
+			if(newPwd != null) Arrays.fill(newPwd, (char)0x00);
+			if(newPwd1 != null) Arrays.fill(newPwd1, (char)0x00);
+		}
+	}
+	
 	/**
 	 * Opens the digital signature form
 	 */

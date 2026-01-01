@@ -505,6 +505,34 @@ public class ETKContext {
     	return Integer.parseInt(timeout);
     }
     
+    /**
+     * Changes the master password of the keystore.
+     *
+     * This method verifies the provided current password (oldPassword), and if correct, it updates the master password 
+     * to the new password (newPassword). After changing the password, it saves the keystore and clears sensitive data 
+     * from memory for security purposes.
+     *
+     * @param oldPassword The current master password of the keystore.
+     * @param newPassword The new master password to set for the keystore.
+     * @throws SecurityException If the provided oldPassword is incorrect.
+     * @throws Exception If any other error occurs while changing the password or saving the keystore.
+     */
+    public void changeKeystoreMasterPassword(char[] oldPassword, char[] newPassword) throws Exception {
+        try {
+            if (!Arrays.areEqual(oldPassword, this.keystoreMasterPassword)) {
+                throw new SecurityException("Incorrect current password");
+            }
+            Arrays.fill(this.keystoreMasterPassword, (char) 0x00);
+            this.keystoreMasterPassword = Arrays.copyOf(newPassword, newPassword.length);
+            this.getKeystore().setPassword(newPassword);
+            this.getKeystore().save();
+        } finally {
+            Arrays.fill(oldPassword, (char) 0x00);
+            Arrays.fill(newPassword, (char) 0x00);
+        }
+    }
+
+    
 	@Override
 	public String toString() {
 		return "ETKContext\n    - keystore=" + keystore + "\n    - knownCerts=" + knownCerts + "\n    - preferences=" + preferences

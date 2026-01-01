@@ -61,6 +61,12 @@ public abstract class AbstractKeystore {
     public abstract void save() throws Exception;
     
     /**
+     * Set the keystore password
+     * @param password
+     */
+    public abstract void setPassword(char[] password);
+    
+    /**
      * Constructs a new AbstractKeystore with the specified keystore type.
      *
      * @param keystoreType the type of keystore to be managed (cannot be null)
