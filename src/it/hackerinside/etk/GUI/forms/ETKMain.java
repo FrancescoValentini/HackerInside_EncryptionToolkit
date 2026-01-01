@@ -359,7 +359,7 @@ public class ETKMain {
 	            int modelRow = table.convertRowIndexToModel(viewRow);
 	            CertificateTableRow row = tableModel.getRow(modelRow);
 	            if (row != null) {
-	               // changePassword(row);
+	               changeAliasPassword(row);
 	            }
 	        }
 	    });
@@ -1045,7 +1045,90 @@ public class ETKMain {
 	    }
 	}
 	
-	
+
+	/**
+	 * Changes the selected alias password.
+	 */
+	private void changeAliasPassword(CertificateTableRow row) {
+		if(row.location() == KeysLocations.KNWOWN_CERTIFICATES) {
+            DialogUtils.showMessageBox(null, 
+            		"Error changing password!", 
+            		"Certificates for which you don't have the private key don't have a password!",
+            		"",
+	                JOptionPane.WARNING_MESSAGE
+	        );
+            return;
+		}
+		
+	    if (row.location() == KeysLocations.PKCS11) {
+	        DialogUtils.showMessageBox(
+	            null, 
+	            "Operation not supported!", 
+	            "Renaming certificates from PKCS11 devices is not supported!", 
+	            "", 
+	            JOptionPane.WARNING_MESSAGE
+	        );
+	        return;
+	    }
+		
+		if(ctx.getKeystore() == null) return;
+		
+		char[] currPwd = null, newPwd = null, newPwd1 = null;
+		try {
+			currPwd = DialogUtils.showPasswordInputBox(
+                    null,
+                    "Unlock Private key",
+                    "Password for " + row.keystoreAlias(),
+                    "Password:"
+                );
+
+			if (currPwd == null) return;
+
+			newPwd = DialogUtils.showPasswordInputBox(
+			        null,
+			        row.keystoreAlias(),
+			        "New entry password",
+			        "New password:"
+			);
+			if (newPwd == null) return;
+
+			newPwd1 = DialogUtils.showPasswordInputBox(
+			        null,
+			        row.keystoreAlias(),
+			        "Confirm new entry password",
+			        "Confirm password:"
+			);
+			if (newPwd1 == null) return;
+
+			if (!Arrays.areEqual(newPwd, newPwd1)) {
+			    throw new Exception("The two entry passwords do not match");
+			}
+
+			ctx.getKeystore().updateEntryPassword(row.keystoreAlias(), currPwd, newPwd1);
+			ctx.getKeystore().save();
+
+			DialogUtils.showMessageBox(
+			        null,
+			        "Entry Password Updated!",
+			        row.keystoreAlias(),
+			        "Entry password updated successfully!",
+			        JOptionPane.INFORMATION_MESSAGE
+			);
+
+		}catch(Exception e) {
+			e.printStackTrace();
+            DialogUtils.showMessageBox(
+            		null, 
+            		"Error while changing password", 
+            		"Error while changing password", 
+	                e.getMessage(), 
+	                JOptionPane.ERROR_MESSAGE);
+		}finally {
+			if(currPwd != null) Arrays.fill(currPwd, (char)0x00);
+			if(newPwd != null) Arrays.fill(newPwd, (char)0x00);
+			if(newPwd1 != null) Arrays.fill(newPwd1, (char)0x00);
+		}
+	}
 	
 	/**
 	 * Changes the master password of the keystore.
