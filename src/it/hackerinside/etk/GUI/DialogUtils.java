@@ -23,20 +23,24 @@ public class DialogUtils {
 	    JLabel headerLabel = new JLabel(header);
 	    headerLabel.putClientProperty(FlatClientProperties.STYLE, "font: +2 bold");
 
-	    JTextArea textArea = new JTextArea(message);
-	    textArea.setEditable(false);
-	    textArea.setLineWrap(true);
-	    textArea.setWrapStyleWord(true);
-	    JScrollPane scrollPane = new JScrollPane(textArea);
-	    scrollPane.setPreferredSize(new Dimension(400, 150));
-
 	    JPanel panel = new JPanel(new BorderLayout(10, 10));
 	    panel.setBorder(new EmptyBorder(10, 10, 10, 10));
 	    panel.add(headerLabel, BorderLayout.NORTH);
-	    panel.add(scrollPane, BorderLayout.CENTER);
 
-        showDialog(parent, title, panel, messageType);
+	    if (message != null && !message.isBlank()) {
+	        JTextArea textArea = new JTextArea(message);
+	        textArea.setEditable(false);
+	        textArea.setLineWrap(true);
+	        textArea.setWrapStyleWord(true);
+
+	        JScrollPane scrollPane = new JScrollPane(textArea);
+	        scrollPane.setPreferredSize(new Dimension(400, 150));
+	        panel.add(scrollPane, BorderLayout.CENTER);
+	    }
+
+	    showDialog(parent, title, panel, messageType);
 	}
+
 	
     /**
      * Displays a confirmation dialog with a title, header message, and detailed content.

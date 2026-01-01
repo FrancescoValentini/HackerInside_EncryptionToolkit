@@ -61,6 +61,8 @@ public class FileHashForm {
 	
     private long startTime;
     private long endTime;
+	private JButton btnCalculate;
+	private JButton btnOpenChecksumFile;
     
 
 	/**
@@ -159,7 +161,7 @@ public class FileHashForm {
 		lblChecksumFile.setBounds(10, 11, 571, 20);
 		panel_1.add(lblChecksumFile);
 		
-		JButton btnOpenChecksumFile = new JButton("...");
+		btnOpenChecksumFile = new JButton("...");
 
 		btnOpenChecksumFile.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		btnOpenChecksumFile.setBounds(496, 42, 85, 26);
@@ -185,7 +187,7 @@ public class FileHashForm {
 		panel_1.add(cmbHashAlgo_1);
 		
 		
-		JButton btnCalculate = new JButton("CALCULATE");
+		 btnCalculate = new JButton("CALCULATE");
 
 		btnCalculate.setFont(new Font("Tahoma", Font.BOLD, 18));
 		btnCalculate.setBounds(226, 285, 138, 55);
@@ -260,6 +262,7 @@ public class FileHashForm {
 	private void startHashUi() {
 		progressBar.setVisible(true);
 		progressBar.setEnabled(true);
+		btnCalculate.setEnabled(false);
 	}
 	
 	/**
@@ -286,6 +289,7 @@ public class FileHashForm {
 	        e.printStackTrace();
 	    }
 	    this.checksumFile = null;
+	    btnCalculate.setEnabled(true);
 	}
 	/**
 	 * Generates the message showing the summary of the files included in the calculation
@@ -344,7 +348,7 @@ public class FileHashForm {
 		if(this.checksumFile == null) {
 			return;
 		}
-		
+		btnOpenChecksumFile.setEnabled(false);
 		HashAlgorithm alg = (HashAlgorithm) cmbHashAlgo_1.getSelectedItem();
 		FilesChecksum checksum = new FilesChecksum(alg, ctx.getBufferSize());
 		txtbVerifyResult.setText("Calculating...");
@@ -388,6 +392,7 @@ public class FileHashForm {
 	        e.printStackTrace();
 	    }
 	    this.checksumFile = null;
+	    btnOpenChecksumFile.setEnabled(true);
 	}
 	
 	/**

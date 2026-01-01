@@ -2,6 +2,7 @@ package it.hackerinside.etk.core.keystore;
 
 import java.io.File;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.Provider;
 import java.security.Security;
 
@@ -80,4 +81,20 @@ public class PKCS11Keystore extends AbstractKeystore {
     public void save() throws Exception {
         throw new UnsupportedOperationException("Save not supported for PKCS11");
     }
+    
+    public void setPassword(char[] password) {
+    	throw new UnsupportedOperationException("setPassword not supported for PKCS11");
+    }
+
+	@Override
+	public void updateEntryPassword(String alias, char[] currentPassword, char[] newPassword) throws KeyStoreException {
+		throw new UnsupportedOperationException("updateEntryPassword not supported for PKCS11");
+		
+	}
+
+	@Override
+	public void renameEntry(String oldAlias, String newAlias, char[] password) throws KeyStoreException {
+		throw new UnsupportedOperationException("renameEntry not supported for PKCS11");
+		
+	}
 }

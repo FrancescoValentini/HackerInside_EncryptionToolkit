@@ -57,6 +57,7 @@ public class DecryptForm {
 	private JLabel lblStatus;
     private long startTime;
     private long endTime;
+	private JButton btnDecrypt;
 
 	/**
 	 * Launch the application.
@@ -133,7 +134,7 @@ public class DecryptForm {
 		lblInputFile.setBounds(10, 116, 120, 20);
 		lblInputFile.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
-		JButton btnDecrypt = new JButton("DECRYPT");
+		btnDecrypt = new JButton("DECRYPT");
 		btnDecrypt.setBounds(200, 236, 176, 55);
 
 		btnDecrypt.setFont(new Font("Tahoma", Font.BOLD, 18));
@@ -145,7 +146,7 @@ public class DecryptForm {
 		progressBar.setVisible(false);
 		
 		lblStatus = new JLabel("");
-		lblStatus.setBounds(162, 392, 253, 31);
+		lblStatus.setBounds(10, 392, 556, 31);
 		lblStatus.setHorizontalAlignment(SwingConstants.CENTER);
 		lblStatus.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
@@ -380,6 +381,7 @@ public class DecryptForm {
 	    progressBar.setEnabled(true);
 	    lblStatus.setText("Decrypting...");
 	    lblStatus.setVisible(true);
+	    btnDecrypt.setEnabled(false);
 	}
 	
 
@@ -407,5 +409,6 @@ public class DecryptForm {
 	        lblStatus.setText("Decryption failed");
 	        e.printStackTrace();
 	    }
+	    btnDecrypt.setEnabled(true);
 	}
 }
