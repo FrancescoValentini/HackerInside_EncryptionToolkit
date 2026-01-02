@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -12,6 +13,7 @@ import java.util.Objects;
 
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cms.CMSEnvelopedDataParser;
+import org.bouncycastle.cms.KEMRecipientId;
 import org.bouncycastle.cms.KeyAgreeRecipientId;
 import org.bouncycastle.cms.KeyTransRecipientId;
 import org.bouncycastle.cms.RecipientId;
@@ -52,7 +54,6 @@ public class CMSCryptoUtils {
         Objects.requireNonNull(encoding, "encoding must not be null");
 
         InputStream decodingStream = wrapEncoding(input, encoding);
-
         List<RecipientIdentifier> result = new ArrayList<>();
         CMSEnvelopedDataParser parser = null;
         try {
@@ -62,7 +63,6 @@ public class CMSCryptoUtils {
 
             for (RecipientInformation ri : recipients) {
                 RecipientId rid = ri.getRID();
-
                 if (rid instanceof KeyTransRecipientId) {
                     KeyTransRecipientId ktr = (KeyTransRecipientId) rid;
                     byte[] subjKeyId = ktr.getSubjectKeyIdentifier();
@@ -83,7 +83,18 @@ public class CMSCryptoUtils {
                         BigInteger serial = kar.getSerialNumber();
                         result.add(new RecipientIdentifier(issuer.getEncoded(), serial));
                     }
-                } else {
+                } else if (rid instanceof KEMRecipientId) {
+                	KEMRecipientId kemid = (KEMRecipientId) rid;
+                    byte[] subjKeyId = kemid.getSubjectKeyIdentifier();
+                    if (subjKeyId != null) {
+                        result.add(new RecipientIdentifier(subjKeyId));
+                    } else {
+                        X500Name issuer = kemid.getIssuer();
+                        BigInteger serial = kemid.getSerialNumber();
+                        result.add(new RecipientIdentifier(issuer.getEncoded(), serial));
+                    }
+
+                }else {
                     // fallback: issuer+serial 
                     try {
                         X500Name issuer = (X500Name) rid.getClass()

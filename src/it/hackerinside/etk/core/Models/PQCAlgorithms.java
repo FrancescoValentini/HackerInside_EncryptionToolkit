@@ -3,6 +3,7 @@ package it.hackerinside.etk.core.Models;
 import java.security.spec.AlgorithmParameterSpec;
 
 import org.bouncycastle.jcajce.spec.MLDSAParameterSpec;
+import org.bouncycastle.jcajce.spec.MLKEMParameterSpec;
 import org.bouncycastle.jcajce.spec.SLHDSAParameterSpec;
 
 /**
@@ -25,7 +26,15 @@ public enum PQCAlgorithms {
     // -----------------------------
     ML_DSA_44("ML-DSA", "ML-DSA-44", MLDSAParameterSpec.ml_dsa_44, true),
     ML_DSA_65("ML-DSA", "ML-DSA-65", MLDSAParameterSpec.ml_dsa_65, true),
-    ML_DSA_87("ML-DSA", "ML-DSA-87", MLDSAParameterSpec.ml_dsa_87, true);
+    ML_DSA_87("ML-DSA", "ML-DSA-87", MLDSAParameterSpec.ml_dsa_87, true),
+	
+	// -----------------------------
+	// ML-KEM (KEM)
+	// -----------------------------
+	ML_KEM_44("ML-KEM", "ML-KEM-512",  MLKEMParameterSpec.ml_kem_512,  false),
+	ML_KEM_65("ML-KEM", "ML-KEM-768",  MLKEMParameterSpec.ml_kem_768,  false),
+	ML_KEM_87("ML-KEM", "ML-KEM-1024", MLKEMParameterSpec.ml_kem_1024, false);
+
 
     /**
      * The algorithm used for key pair generation.
@@ -75,6 +84,15 @@ public enum PQCAlgorithms {
             }
         }
         throw new IllegalArgumentException("Invalid PQC Algorithm: " + algorithm);
+    }
+    
+    public static boolean isPQC(String algorithm) {
+        for (PQCAlgorithms alg : PQCAlgorithms.values()) {
+            if (alg.bcName.equalsIgnoreCase(algorithm) || alg.keyPairAlgorithm.equalsIgnoreCase(algorithm)) {
+                return true;
+            }
+        }
+        return false;
     }
     
     /**
