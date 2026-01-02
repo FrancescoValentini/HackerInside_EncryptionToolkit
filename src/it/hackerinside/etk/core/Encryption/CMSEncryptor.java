@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.InvalidAlgorithmParameterException;
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -15,24 +16,29 @@ import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.MGF1ParameterSpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 import javax.crypto.spec.OAEPParameterSpec;
 import javax.crypto.spec.PSource;
 
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
+import org.bouncycastle.asn1.x509.SubjectKeyIdentifier;
+import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cms.CMSAlgorithm;
 import org.bouncycastle.cms.CMSEnvelopedDataStreamGenerator;
 import org.bouncycastle.cms.RecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JceCMSContentEncryptorBuilder;
+import org.bouncycastle.cms.jcajce.JceKEMRecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JceKeyAgreeRecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JceKeyTransRecipientInfoGenerator;
 import org.bouncycastle.operator.OutputEncryptor;
 import org.bouncycastle.operator.jcajce.JcaAlgorithmParametersConverter;
-
 import it.hackerinside.etk.core.Models.EncodingOption;
+import it.hackerinside.etk.core.Models.PQCAlgorithms;
 import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
 import it.hackerinside.etk.core.PEM.PemOutputStream;
 
@@ -190,12 +196,29 @@ public class CMSEncryptor implements Encryptor {
                     eph.getPublic(),
                     encryptionAlgorithm.suggestedKeyWrap()
             ).addRecipient(recipientCert);
-        } 
+        } else if(PQCAlgorithms.isPQC(algorithm)) { //PQC KEM
+        	if(!algorithm.toUpperCase().contains("ML-KEM")) {
+        		throw new IllegalArgumentException("PQC algorithm not supported for encryption: " + algorithm);
+        	}
+        	SubjectKeyIdentifier ski = new JcaX509ExtensionUtils().createSubjectKeyIdentifier(recipientCert.getPublicKey());
+        	ASN1ObjectIdentifier keyWrapAlg = encryptionAlgorithm.suggestedKeyWrap(); 
+        	byte[] encoded = recipientCert.getPublicKey().getEncoded();
+
+        	// Force loading as ML-KEM instead of Kyber
+        	KeyFactory kf = KeyFactory.getInstance("ML-KEM", "BC");
+        	PublicKey mlkemPub = kf.generatePublic(new X509EncodedKeySpec(encoded));
+
+        	return new JceKEMRecipientInfoGenerator(
+        			ski.getKeyIdentifier(),
+        			mlkemPub,
+        	        keyWrapAlg
+        	).setProvider("BC");
+        }
         else {
             throw new IllegalArgumentException("Unsupported public key algorithm: " + algorithm);
         }
     }
-    
+
     /**
      * Generates ephemeral ECC key pairs for ECDH key agreement.
      * The key parameters are derived from the recipient's public key to ensure compatibility.
