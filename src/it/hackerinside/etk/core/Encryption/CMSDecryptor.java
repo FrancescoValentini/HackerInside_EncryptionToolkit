@@ -13,11 +13,13 @@ import org.bouncycastle.cms.CMSEnvelopedDataParser;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.RecipientInformation;
 import org.bouncycastle.cms.RecipientInformationStore;
+import org.bouncycastle.cms.jcajce.JceKEMEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKeyAgreeEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKeyTransEnvelopedRecipient;
 
 import it.hackerinside.etk.core.Models.AsymmetricAlgorithm;
 import it.hackerinside.etk.core.Models.EncodingOption;
+import it.hackerinside.etk.core.Models.PQCAlgorithms;
 import it.hackerinside.etk.core.PEM.PemInputStream;
 
 /**
@@ -134,9 +136,13 @@ public class CMSDecryptor {
      *
      */
 	private InputStream createRecipientContentStream(RecipientInformation recipient) throws CMSException, IOException {
-        AsymmetricAlgorithm keyAlgo = AsymmetricAlgorithm.fromPrivateKey(privateKey);
-        
-        
+		if(PQCAlgorithms.isPQC(privateKey.getAlgorithm())) { // PQC
+			return recipient
+                    .getContentStream(new JceKEMEnvelopedRecipient(privateKey).setProvider("BC"))
+                    .getContentStream();
+		}
+		
+        AsymmetricAlgorithm keyAlgo = AsymmetricAlgorithm.fromPrivateKey(privateKey); 
         return switch (keyAlgo) {
             case RSA -> recipient
                         .getContentStream(new JceKeyTransEnvelopedRecipient(privateKey).setProvider("BC"))

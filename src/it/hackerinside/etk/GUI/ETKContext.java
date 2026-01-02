@@ -7,6 +7,7 @@ import java.util.prefs.Preferences;
 import javax.swing.UIManager;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 import org.bouncycastle.util.Arrays;
 
 import it.hackerinside.etk.core.Models.ApplicationPreferences;
@@ -22,7 +23,7 @@ import it.hackerinside.etk.core.keystore.PKCS12Keystore;
  */
 public class ETKContext {
 	
-	public static final String ETK_VERSION = "1.0.7";
+	public static final String ETK_VERSION = "1.0.8";
 	
     /**
      * Singleton instance of ETKContext.
@@ -88,6 +89,7 @@ public class ETKContext {
     	preferences = Preferences.userNodeForPackage(ETKContext.class);
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
             Security.addProvider(new BouncyCastleProvider());
+            Security.addProvider(new BouncyCastlePQCProvider());
         }
         enforceKeystoreSecurityParameters();
 		try {

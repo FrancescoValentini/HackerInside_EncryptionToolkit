@@ -14,6 +14,7 @@ import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.Date;
 
+
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.DERSet;
@@ -43,6 +44,7 @@ import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
 import it.hackerinside.etk.core.Models.AsymmetricAlgorithm;
 import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.HashAlgorithm;
+import it.hackerinside.etk.core.Models.PQCAlgorithms;
 import it.hackerinside.etk.core.PEM.PemOutputStream;
 
 /**
@@ -101,7 +103,7 @@ public class CAdESSigner {
                 wrapped.close();
             }
         } catch (Exception e) {
-            throw new SecurityException("Signing failed", e);
+            throw new SecurityException("Signing failed: " + e.getMessage(), e);
         }
     }
 	
@@ -144,13 +146,33 @@ public class CAdESSigner {
      */
     private SignerInfoGenerator createSignerInfoGenerator() throws Exception {
         String jcaSigAlg = getSignatureAlgorithm();
-        ContentSigner contentSigner = new JcaContentSignerBuilder(jcaSigAlg).build(privateKey);
+        ContentSigner contentSigner;
+        
+        if(isPKCS11Key(privateKey)) {
+            // If the private key is a PKCS#11 key, the system will automatically choose the appropriate provider.
+        	contentSigner = new JcaContentSignerBuilder(jcaSigAlg).build(privateKey);
+        }else {
+            // For other key types (e.g., BrainPool), explicitly set the BouncyCastle provider for compatibility.
+        	contentSigner = new JcaContentSignerBuilder(jcaSigAlg).setProvider("BC").build(privateKey);
+        }
 
         JcaDigestCalculatorProviderBuilder dcProvBuilder = new JcaDigestCalculatorProviderBuilder();
         SignerInfoGeneratorBuilder builder = new SignerInfoGeneratorBuilder(dcProvBuilder.build());
         builder.setSignedAttributeGenerator(new DefaultSignedAttributeTableGenerator(createSignedAttributes()));
         return builder.build(contentSigner, new X509CertificateHolder(signer.getEncoded()));
     }
+    
+    /**
+     * Checks if the provided PrivateKey is a PKCS#11 key.
+     *
+     * @param key The PrivateKey to be checked.
+     * @return true if the key is a PKCS#11 key, false otherwise.
+     */
+    private boolean isPKCS11Key(PrivateKey key) {
+        return key.getClass().getName().startsWith("sun.security.pkcs11");
+    }
+
+
 
     /**
      * Creates the signed attributes table required for CMS signature generation.
@@ -259,15 +281,26 @@ public class CAdESSigner {
      *
      * @return a JCA-compliant signature algorithm string in the format
      *         "{HashAlgorithm}with{AsymmetricAlgorithm}"
+     * @throws Exception 
      * @throws IllegalArgumentException if the private key algorithm is not supported
      *                                  or cannot be determined
      */
-	private String getSignatureAlgorithm() {
+	private String getSignatureAlgorithm() throws Exception {
+		try {
+			PQCAlgorithms pqcAlgo = PQCAlgorithms.fromString(privateKey.getAlgorithm());
+			if(!pqcAlgo.canSign) throw new Exception(pqcAlgo + " cannot be used for digital signature.");
+			return pqcAlgo.toString();
+		}catch(IllegalArgumentException e) {
+			// Fallback, try standard algorithms
+		} 
+		
+		AsymmetricAlgorithm alg = AsymmetricAlgorithm.fromPrivateKey(privateKey);
+
     	StringBuilder sb = new StringBuilder();
     	sb.append(hashAlgorithm.toString().toUpperCase().replace("-", ""));
     	sb.append("with");
     	
-    	if(AsymmetricAlgorithm.fromPrivateKey(privateKey) == AsymmetricAlgorithm.EC) {
+    	if(alg == AsymmetricAlgorithm.EC) {
     		sb.append("ECDSA");
     	}else {
     		sb.append(AsymmetricAlgorithm.fromPrivateKey(privateKey).toString().toUpperCase());

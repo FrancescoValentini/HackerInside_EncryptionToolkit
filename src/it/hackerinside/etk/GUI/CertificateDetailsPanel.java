@@ -16,6 +16,8 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
 
+import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
+
 import it.hackerinside.etk.Utils.X509CertificateExporter;
 
 import java.awt.Font;
@@ -101,6 +103,7 @@ public class CertificateDetailsPanel extends JPanel {
         addRow("Common name", cn);
         addRow("Subject", dn);
         addRow("Fingerprint (SHA-256)", getFingerprint(cert));
+        addRow("SKI (SHA-1)", getSKI(cert));
         addRow("Status", checkCertificateValidity(cert));
         addRow("Serial Number", cert.getSerialNumber().toString(16));
         addRow("Issuer", cert.getIssuerX500Principal().getName());
@@ -108,6 +111,7 @@ public class CertificateDetailsPanel extends JPanel {
         addRow("Valid to", cert.getNotAfter().toString());
         addRow("Key usage", cert.getKeyUsage() != null ? keyUsageToString(cert.getKeyUsage()) : "N/A");
         addRow("Signature Algorithm", cert.getSigAlgName());
+        addRow("Public Key Algorithm", cert.getPublicKey().getAlgorithm());
         addRow("Version", String.valueOf(cert.getVersion()));
         try {
 			addRow("PEM Certificate",X509CertificateExporter.exportCertificateToString(cert));
@@ -184,6 +188,21 @@ public class CertificateDetailsPanel extends JPanel {
             return "Error calculating fingerprint";
         }
     }
+    
+    /**
+     * RFC 3280 type 1 SKI
+     * @param cert
+     * @return RFC 3280 type 1 SKI
+     */
+    private String getSKI(X509Certificate cert) {
+		try {
+			return bytesToHex(new JcaX509ExtensionUtils()
+					.createSubjectKeyIdentifier(cert.getPublicKey())
+					.getKeyIdentifier());
+		} catch (Exception e) {
+			return null;
+		}
+    }
 
     /**
      * Converts a key usage boolean array to a human-readable string.
@@ -239,5 +258,16 @@ public class CertificateDetailsPanel extends JPanel {
         }
         revalidate();
         repaint();
+    }
+    
+    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+    private static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+        }
+        return new String(hexChars);
     }
 }
