@@ -12,6 +12,7 @@ import java.util.Calendar;
 import java.util.Date;
 
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.KeyUsage;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -50,7 +51,7 @@ public class X509Builder {
         cal.add(Calendar.DAY_OF_YEAR, expDays);
         Date notAfter = cal.getTime();
 
-        BigInteger serial = new BigInteger(64, new SecureRandom());
+        BigInteger serial = new BigInteger(64, new SecureRandom()).abs();
 
         JcaX509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
             subject, serial, notBefore, notAfter, subject, pubk
@@ -61,6 +62,9 @@ public class X509Builder {
             true,
             new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation | KeyUsage.dataEncipherment)
         );
+        
+        certBuilder.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
+
 
         ContentSigner signer = new JcaContentSignerBuilder("SHA384withECDSA")
             .setProvider("BC")

@@ -7,11 +7,13 @@ import java.util.Calendar;
 import java.util.Date;
 
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.KeyUsage;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.jcajce.spec.MLDSAParameterSpec;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
@@ -86,15 +88,29 @@ public class X509PQCBuilder {
                 );
         
         KeyUsage usage = algorithm.canSign
-        	    ? new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation)
-        	    : new KeyUsage(KeyUsage.keyEncipherment | KeyUsage.dataEncipherment | KeyUsage.keyAgreement);
+                ? new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation)
+                : new KeyUsage(KeyUsage.keyEncipherment | KeyUsage.keyAgreement);
 
-        	certBuilder.addExtension(Extension.keyUsage, true, usage);
+        certBuilder.addExtension(Extension.keyUsage, true, usage);
+        certBuilder.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
 
-        ContentSigner signer =
-                new JcaContentSignerBuilder(algorithm.bcName)
-                        .setProvider("BC")
-                        .build(privk);
+        ContentSigner signer;
+        if (algorithm.canSign) {
+        	// The algorithm can sign (ML-DSA, SLH-DSA)
+            signer = new JcaContentSignerBuilder(algorithm.bcName)
+                    .setProvider("BC")
+                    .build(privk);
+        } else {
+            // IF IT IS A KEM (ML-KEM): It cannot sign itself.
+            // The certificate will contain the original ML-KEM public key.
+            KeyPairGenerator kpg = KeyPairGenerator.getInstance("ML-DSA", "BC");
+            kpg.initialize(MLDSAParameterSpec.ml_dsa_65, new SecureRandom());
+            KeyPair tempSigPair = kpg.generateKeyPair();
+
+            signer = new JcaContentSignerBuilder("ML-DSA-65")
+                    .setProvider("BC")
+                    .build(tempSigPair.getPrivate());
+        }
 
         X509CertificateHolder holder = certBuilder.build(signer);
 
