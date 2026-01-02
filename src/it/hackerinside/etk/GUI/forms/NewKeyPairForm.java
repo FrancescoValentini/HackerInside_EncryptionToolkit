@@ -5,6 +5,9 @@ import javax.swing.JFrame;
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.Utils.X509Builder;
+import it.hackerinside.etk.Utils.X509PQCBuilder;
+import it.hackerinside.etk.core.Models.HashAlgorithm;
+import it.hackerinside.etk.core.Models.PQCAlgorithms;
 
 import javax.swing.JSpinner;
 import java.awt.Font;
@@ -27,6 +30,9 @@ import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.awt.event.ActionEvent;
+import javax.swing.JCheckBox;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.ChangeEvent;
 
 public class NewKeyPairForm {
 
@@ -35,9 +41,10 @@ public class NewKeyPairForm {
 	private JTextField txtbCountryCode;
 	private JTextField txtbState;
 	private JTextField txtbCommonName;
-	private JComboBox cmbCurve;
+	private JComboBox cmbAlgorithm;
 	private JSpinner spinnerExpDays;
 	private Runnable callback;
+	private JCheckBox chckbPQC;
 
 	/**
 	 * Create the application.
@@ -127,12 +134,12 @@ public class NewKeyPairForm {
 		lblCurve.setBounds(10, 158, 146, 17);
 		panel.add(lblCurve);
 		
-		cmbCurve = new JComboBox();
-		cmbCurve.setModel(new DefaultComboBoxModel(new String[] {"secp256r1", "secp384r1", "secp521r1"}));
-		cmbCurve.setSelectedIndex(1);
-		cmbCurve.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		cmbCurve.setBounds(166, 155, 169, 22);
-		panel.add(cmbCurve);
+		cmbAlgorithm = new JComboBox();
+		cmbAlgorithm.setModel(new DefaultComboBoxModel(new String[] {"secp256r1", "secp384r1", "secp521r1"}));
+		cmbAlgorithm.setSelectedIndex(1);
+		cmbAlgorithm.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		cmbAlgorithm.setBounds(166, 155, 264, 22);
+		panel.add(cmbAlgorithm);
 		
 		JLabel lblNewLabel_1_1 = new JLabel("<html>\r\n<p color=\"red\">\r\nA self-signed certificate is not signed by a recognized Certificate Authority (CA) and, therefore, has no legal value for trustworthy identification by third parties.\r\n</p>\r\n</html>");
 		lblNewLabel_1_1.setVerticalAlignment(SwingConstants.TOP);
@@ -150,6 +157,34 @@ public class NewKeyPairForm {
 		btnGenerateCertificate.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		btnGenerateCertificate.setBounds(242, 278, 151, 52);
 		panel.add(btnGenerateCertificate);
+		
+		chckbPQC = new JCheckBox("Post Quantum Cryptography");
+		chckbPQC.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				if(chckbPQC.isSelected()) {
+					loadPqcAlgorithms();
+					lblCurve.setText("Algorithm:");
+				}else {
+					loadECCurves();
+					lblCurve.setText("Curve:");
+				}
+			}
+		});
+		chckbPQC.setBounds(436, 155, 185, 23);
+		panel.add(chckbPQC);
+	}
+	
+	private void loadPqcAlgorithms() {
+		cmbAlgorithm.removeAllItems();
+	    for (PQCAlgorithms alg : PQCAlgorithms.values()) {
+	    	cmbAlgorithm.addItem(alg.bcName);
+	    }
+	}
+	
+	private void loadECCurves() {
+		cmbAlgorithm.removeAllItems();
+		cmbAlgorithm.setModel(new DefaultComboBoxModel(new String[] {"secp256r1", "secp384r1", "secp521r1", "SLH-DSA-SHAKE-128s"}));
+
 	}
 	
 	/**
@@ -160,7 +195,7 @@ public class NewKeyPairForm {
 		String state = txtbState.getText();
 		String country = txtbCountryCode.getText().toUpperCase();
 		int exp = (int) spinnerExpDays.getValue();
-		String alg = (String) cmbCurve.getSelectedItem();
+		String alg = (String) cmbAlgorithm.getSelectedItem();
 		
 		if(country.length() != 2) {
             DialogUtils.showMessageBox(
@@ -173,18 +208,28 @@ public class NewKeyPairForm {
             return;
 		}
 		
-		KeyPair kp;
-		X509Certificate crt;
+		KeyPair kp = null;
+		PQCAlgorithms pqcAlgo;
+		X509Certificate crt = null;
 		
 		boolean errors = false;
 		
 		try {
         	if(commonName.isBlank() || country.isBlank() || state.isBlank()) throw new InvalidParameterException("Please fill in all the fields!");
+        	
+        	if(!chckbPQC.isSelected()) { // STANDARD
+    			kp = X509Builder.generateECKeyPair(alg);
+    			crt = X509Builder.buildCertificate(commonName, country, state, exp, kp.getPublic(), kp.getPrivate());
+    			
+        	}else { // PQC
+        		pqcAlgo = PQCAlgorithms.fromString((String)cmbAlgorithm.getSelectedItem());
+        		kp = X509PQCBuilder.generatePQCKeyPair(pqcAlgo);
+    			crt = X509PQCBuilder.buildPQCCertificate(
+    					commonName, country, state, exp, kp.getPublic(), kp.getPrivate(),pqcAlgo);
 
-			kp = X509Builder.generateECKeyPair(alg);
-			crt = X509Builder.buildCertificate(commonName, country, state, exp, kp.getPublic(), kp.getPrivate());
-			saveToKeystore(kp.getPrivate(),crt);
+        	}
 
+        	saveToKeystore(kp.getPrivate(),crt);
 		} catch (Exception e) {
 			e.printStackTrace();
             DialogUtils.showMessageBox(
@@ -197,7 +242,16 @@ public class NewKeyPairForm {
             errors = true;
 		}
 		
-		if(!errors) callback.run();
+		if(!errors) {
+			callback.run();
+            DialogUtils.showMessageBox(
+                    null,
+                    "Certificate generated successfully!",
+                    "Certificate generated successfully!",
+                    "",
+                    JOptionPane.INFORMATION_MESSAGE
+                );
+		}
 		
 		
 	}
