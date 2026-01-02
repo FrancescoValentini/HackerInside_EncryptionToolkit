@@ -6,7 +6,6 @@ import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.Utils.X509Builder;
 import it.hackerinside.etk.Utils.X509PQCBuilder;
-import it.hackerinside.etk.core.Models.HashAlgorithm;
 import it.hackerinside.etk.core.Models.PQCAlgorithms;
 
 import javax.swing.JSpinner;
@@ -166,7 +165,7 @@ public class NewKeyPairForm {
 					lblCurve.setText("Algorithm:");
 				}else {
 					loadECCurves();
-					lblCurve.setText("Curve:");
+					lblCurve.setText("CURVE:");
 				}
 			}
 		});
@@ -183,7 +182,7 @@ public class NewKeyPairForm {
 	
 	private void loadECCurves() {
 		cmbAlgorithm.removeAllItems();
-		cmbAlgorithm.setModel(new DefaultComboBoxModel(new String[] {"secp256r1", "secp384r1", "secp521r1", "SLH-DSA-SHAKE-128s"}));
+		cmbAlgorithm.setModel(new DefaultComboBoxModel(new String[] {"secp256r1", "secp384r1", "secp521r1"}));
 
 	}
 	
