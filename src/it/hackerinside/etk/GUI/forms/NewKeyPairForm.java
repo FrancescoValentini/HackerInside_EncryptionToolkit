@@ -183,6 +183,7 @@ public class NewKeyPairForm {
 	private void loadECCurves() {
 		cmbAlgorithm.removeAllItems();
 		cmbAlgorithm.setModel(new DefaultComboBoxModel(new String[] {"secp256r1", "secp384r1", "secp521r1"}));
+		cmbAlgorithm.setSelectedIndex(1);
 
 	}
 	
