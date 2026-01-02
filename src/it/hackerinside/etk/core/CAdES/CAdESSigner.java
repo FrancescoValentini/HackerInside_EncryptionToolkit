@@ -144,13 +144,33 @@ public class CAdESSigner {
      */
     private SignerInfoGenerator createSignerInfoGenerator() throws Exception {
         String jcaSigAlg = getSignatureAlgorithm();
-        ContentSigner contentSigner = new JcaContentSignerBuilder(jcaSigAlg).build(privateKey);
+        ContentSigner contentSigner;
+        
+        if(isPKCS11Key(privateKey)) {
+            // If the private key is a PKCS#11 key, the system will automatically choose the appropriate provider.
+        	contentSigner = new JcaContentSignerBuilder(jcaSigAlg).build(privateKey);
+        }else {
+            // For other key types (e.g., BrainPool), explicitly set the BouncyCastle provider for compatibility.
+        	contentSigner = new JcaContentSignerBuilder(jcaSigAlg).setProvider("BC").build(privateKey);
+        }
 
         JcaDigestCalculatorProviderBuilder dcProvBuilder = new JcaDigestCalculatorProviderBuilder();
         SignerInfoGeneratorBuilder builder = new SignerInfoGeneratorBuilder(dcProvBuilder.build());
         builder.setSignedAttributeGenerator(new DefaultSignedAttributeTableGenerator(createSignedAttributes()));
         return builder.build(contentSigner, new X509CertificateHolder(signer.getEncoded()));
     }
+    
+    /**
+     * Checks if the provided PrivateKey is a PKCS#11 key.
+     *
+     * @param key The PrivateKey to be checked.
+     * @return true if the key is a PKCS#11 key, false otherwise.
+     */
+    private boolean isPKCS11Key(PrivateKey key) {
+        return key.getClass().getName().startsWith("sun.security.pkcs11");
+    }
+
+
 
     /**
      * Creates the signed attributes table required for CMS signature generation.
