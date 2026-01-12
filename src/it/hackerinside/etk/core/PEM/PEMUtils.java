@@ -1,9 +1,11 @@
 package it.hackerinside.etk.core.PEM;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import it.hackerinside.etk.core.Models.EncodingOption;
 
@@ -16,24 +18,45 @@ public class PEMUtils {
      * @throws IOException if an I/O error occurs while reading the file
      */
 	public static EncodingOption findFileEncoding(File file) throws IOException {
-		 try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(file))) {
-	            in.mark(1024); // mark for reset
+	    try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(file))) {
 
-	            byte[] buffer = new byte[8192];
-	            int bytesRead = in.read(buffer);
-	            in.reset();
+	        in.mark(2048);
 
-	            if (bytesRead <= 0) {
-	                throw new IOException("File is empty or unreadable");
+	        int firstByte = in.read();
+	        if (firstByte == -1) {
+	            throw new IOException("File is empty or unreadable");
+	        }
+
+	        if ((firstByte & 0xFF) == 0x30) {
+	            return EncodingOption.ENCODING_DER;
+	        }
+
+	        in.reset();
+
+	        ByteArrayOutputStream lineBuffer = new ByteArrayOutputStream();
+	        int b;
+	        while ((b = in.read()) != -1) {
+	            if (b == '\n' || b == '\r') {
+	                break;
 	            }
-
-	            String start = new String(buffer, 0, bytesRead).trim();
-
-	            if (start.contains("-----BEGIN ")) {
-	                return EncodingOption.ENCODING_PEM;
-	            } else {
-	            	return EncodingOption.ENCODING_DER;
+	            lineBuffer.write(b);
+	            if (lineBuffer.size() > 1024) {
+	                break;
 	            }
 	        }
+
+	        if (lineBuffer.size() > 0) {
+	            String firstLine = lineBuffer
+	                    .toString(StandardCharsets.US_ASCII)
+	                    .trim();
+
+	            if (firstLine.startsWith("-----BEGIN ")) {
+	                return EncodingOption.ENCODING_PEM;
+	            }
+	        }
+
+	        throw new IOException("Unknown file format.");
+	    }
 	}
+
 }
