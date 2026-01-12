@@ -43,8 +43,6 @@ import javax.swing.GroupLayout.Alignment;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
 
-import org.bouncycastle.util.Arrays;
-
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;

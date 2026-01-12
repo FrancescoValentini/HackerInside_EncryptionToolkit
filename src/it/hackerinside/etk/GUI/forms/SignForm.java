@@ -10,9 +10,7 @@ import javax.swing.GroupLayout.Alignment;
 import javax.swing.JComboBox;
 import java.awt.Font;
 import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.UnrecoverableKeyException;
 import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 import java.util.concurrent.ExecutionException;
@@ -23,8 +21,6 @@ import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.JButton;
 import javax.swing.JTextField;
 import javax.swing.border.TitledBorder;
-
-import org.bouncycastle.util.Arrays;
 
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
