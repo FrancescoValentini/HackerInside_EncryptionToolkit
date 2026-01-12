@@ -54,7 +54,7 @@ public class CMSEncryptor implements Encryptor {
     private EncodingOption encoding;
     private int bufferSize;
     private ArrayList<X509Certificate> recipients;
-    
+    private boolean useOnlySKI = false;
     /**
      * Constructs a new CMSEncryptor with the specified parameters.
      *
@@ -79,6 +79,14 @@ public class CMSEncryptor implements Encryptor {
      */
     public void addRecipients(X509Certificate... recipient) {
         recipients.addAll(Arrays.asList(recipient));
+    }
+    
+    /**
+     * If TRUE, forces the RecipientInfoGenerator to include ONLY the recipient's SKI.
+     * @param value
+     */
+    public void setUseOnlySKI(boolean value) {
+    	this.useOnlySKI = value;
     }
 
     /**
@@ -184,23 +192,38 @@ public class CMSEncryptor implements Encryptor {
         	JcaAlgorithmParametersConverter paramsConverter = new JcaAlgorithmParametersConverter();
         	OAEPParameterSpec oaepParams = new OAEPParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, PSource.PSpecified.DEFAULT);
         	AlgorithmIdentifier algorithmIdentifier = paramsConverter.getAlgorithmIdentifier(PKCSObjectIdentifiers.id_RSAES_OAEP, oaepParams);
+        	
+        	if(this.useOnlySKI) { // SKI only
+        		return new JceKeyTransRecipientInfoGenerator(
+        				getSKI(recipientCert),
+        				algorithmIdentifier,
+        				recipientCert.getPublicKey()
+        		);
+        	}
+        	
+        	// Issuer + Recipient SN
             return new JceKeyTransRecipientInfoGenerator(recipientCert,algorithmIdentifier);
         } 
         else if ("EC".equalsIgnoreCase(algorithm) || "ECDH".equalsIgnoreCase(algorithm)) {
             // Elliptic Curve Diffie-Hellman (ECDH)
             KeyPair eph = getEphemeralECCKeys(recipientCert);
             
-            return new JceKeyAgreeRecipientInfoGenerator(
+            JceKeyAgreeRecipientInfoGenerator recipientInfoGenerator = new JceKeyAgreeRecipientInfoGenerator(
                     CMSAlgorithm.ECDH_SHA256KDF,
                     eph.getPrivate(),
                     eph.getPublic(),
                     encryptionAlgorithm.suggestedKeyWrap()
-            ).addRecipient(recipientCert);
+            );
+            if(this.useOnlySKI) { // SKI only
+            	recipientInfoGenerator.addRecipient(getSKI(recipientCert),recipientCert.getPublicKey());
+            }else { // Issuer + Recipient SN
+            	recipientInfoGenerator.addRecipient(recipientCert);
+            }
+            return recipientInfoGenerator;
         } else if(PQCAlgorithms.isPQC(algorithm)) { //PQC KEM
         	if(!algorithm.toUpperCase().contains("ML-KEM")) {
         		throw new IllegalArgumentException("PQC algorithm not supported for encryption: " + algorithm);
         	}
-        	SubjectKeyIdentifier ski = new JcaX509ExtensionUtils().createSubjectKeyIdentifier(recipientCert.getPublicKey());
         	ASN1ObjectIdentifier keyWrapAlg = encryptionAlgorithm.suggestedKeyWrap(); 
         	byte[] encoded = recipientCert.getPublicKey().getEncoded();
 
@@ -209,7 +232,7 @@ public class CMSEncryptor implements Encryptor {
         	PublicKey mlkemPub = kf.generatePublic(new X509EncodedKeySpec(encoded));
 
         	return new JceKEMRecipientInfoGenerator(
-        			ski.getKeyIdentifier(),
+        			getSKI(recipientCert),
         			mlkemPub,
         	        keyWrapAlg
         	).setProvider("BC");
@@ -217,6 +240,18 @@ public class CMSEncryptor implements Encryptor {
         else {
             throw new IllegalArgumentException("Unsupported public key algorithm: " + algorithm);
         }
+    }
+    
+    /**
+     * Return a RFC 3280 type 1 key identifier
+     * @param recipientCert
+     * @return Return a RFC 3280 type 1 key identifier
+     * @throws NoSuchAlgorithmException
+     */
+    private byte[] getSKI(X509Certificate recipientCert) throws NoSuchAlgorithmException {
+    	return new JcaX509ExtensionUtils()
+    			.createSubjectKeyIdentifier(recipientCert.getPublicKey())
+    			.getKeyIdentifier();
     }
 
     /**

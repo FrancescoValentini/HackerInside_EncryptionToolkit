@@ -62,6 +62,7 @@ import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
+import javax.swing.JCheckBox;
 
 public class TextPadForm {
 
@@ -73,6 +74,7 @@ public class TextPadForm {
 	private X509Certificate recipient;
 	private JTextArea txtbData;
 	private JButton btnDecrypt;
+	private JCheckBox chckbUseSKI;
 
 	/**
 	 * Launch the application.
@@ -162,16 +164,16 @@ public class TextPadForm {
 				.addGroup(gl_panel.createSequentialGroup()
 					.addGap(10)
 					.addGroup(gl_panel.createParallelGroup(Alignment.TRAILING)
-						.addComponent(scrollPane, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 1012, Short.MAX_VALUE)
-						.addComponent(panel_1, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 1012, Short.MAX_VALUE))
+						.addComponent(panel_1, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 1012, Short.MAX_VALUE)
+						.addComponent(scrollPane, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 1012, Short.MAX_VALUE))
 					.addGap(10))
 		);
 		gl_panel.setVerticalGroup(
 			gl_panel.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panel.createSequentialGroup()
 					.addContainerGap()
-					.addComponent(panel_1, GroupLayout.PREFERRED_SIZE, 109, GroupLayout.PREFERRED_SIZE)
-					.addGap(18)
+					.addComponent(panel_1, GroupLayout.PREFERRED_SIZE, 116, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.UNRELATED)
 					.addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, 742, Short.MAX_VALUE)
 					.addContainerGap())
 		);
@@ -184,6 +186,9 @@ public class TextPadForm {
 		
 		JLabel lblEncryptionAlgorithm = new JLabel("Encryption Algorithm:");
 		lblEncryptionAlgorithm.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		
+		 chckbUseSKI = new JCheckBox("Use SKI");
+		chckbUseSKI.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		GroupLayout gl_panel_1 = new GroupLayout(panel_1);
 		gl_panel_1.setHorizontalGroup(
 			gl_panel_1.createParallelGroup(Alignment.LEADING)
@@ -192,12 +197,18 @@ public class TextPadForm {
 					.addComponent(tabbedPane, GroupLayout.PREFERRED_SIZE, 557, GroupLayout.PREFERRED_SIZE)
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addGroup(gl_panel_1.createParallelGroup(Alignment.LEADING)
-						.addComponent(lblEncryptionAlgorithm, GroupLayout.DEFAULT_SIZE, 208, Short.MAX_VALUE)
-						.addComponent(btnEncrypt, GroupLayout.DEFAULT_SIZE, 208, Short.MAX_VALUE))
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addGroup(gl_panel_1.createParallelGroup(Alignment.LEADING)
-						.addComponent(cmbEncAlgorithm, Alignment.TRAILING, 0, 207, Short.MAX_VALUE)
-						.addComponent(btnDecrypt, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, 207, Short.MAX_VALUE))
+						.addGroup(gl_panel_1.createSequentialGroup()
+							.addGroup(gl_panel_1.createParallelGroup(Alignment.LEADING)
+								.addGroup(gl_panel_1.createSequentialGroup()
+									.addComponent(btnEncrypt, GroupLayout.DEFAULT_SIZE, 208, Short.MAX_VALUE)
+									.addPreferredGap(ComponentPlacement.UNRELATED))
+								.addGroup(gl_panel_1.createSequentialGroup()
+									.addComponent(lblEncryptionAlgorithm, GroupLayout.DEFAULT_SIZE, 208, Short.MAX_VALUE)
+									.addGap(10)))
+							.addGroup(gl_panel_1.createParallelGroup(Alignment.LEADING)
+								.addComponent(cmbEncAlgorithm, Alignment.TRAILING, 0, 207, Short.MAX_VALUE)
+								.addComponent(btnDecrypt, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, 207, Short.MAX_VALUE)))
+						.addComponent(chckbUseSKI))
 					.addContainerGap())
 		);
 		gl_panel_1.setVerticalGroup(
@@ -210,11 +221,15 @@ public class TextPadForm {
 							.addGroup(gl_panel_1.createParallelGroup(Alignment.BASELINE)
 								.addComponent(btnDecrypt, GroupLayout.PREFERRED_SIZE, 36, GroupLayout.PREFERRED_SIZE)
 								.addComponent(btnEncrypt, GroupLayout.PREFERRED_SIZE, 36, GroupLayout.PREFERRED_SIZE))
-							.addGap(11)
+							.addPreferredGap(ComponentPlacement.RELATED)
 							.addGroup(gl_panel_1.createParallelGroup(Alignment.BASELINE)
 								.addComponent(cmbEncAlgorithm, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
 								.addComponent(lblEncryptionAlgorithm, GroupLayout.PREFERRED_SIZE, 20, GroupLayout.PREFERRED_SIZE))))
-					.addContainerGap(20, Short.MAX_VALUE))
+					.addContainerGap(22, Short.MAX_VALUE))
+				.addGroup(Alignment.TRAILING, gl_panel_1.createSequentialGroup()
+					.addContainerGap(76, Short.MAX_VALUE)
+					.addComponent(chckbUseSKI)
+					.addContainerGap())
 		);
 		
 		JPanel panel_1_1 = new JPanel();
@@ -334,6 +349,8 @@ public class TextPadForm {
 	private void start() {
 		loadAlgorithms();
 		this.cmbEncAlgorithm.setSelectedItem(ctx.getCipher());
+		this.chckbUseSKI.setSelected(ctx.useSKI());
+		
 		populateKnowCerts(cmbRecipientCert);
 		
 		if(ctx.getKeystore() == null) {
@@ -405,7 +422,7 @@ public class TextPadForm {
 		SymmetricAlgorithms cipher = (SymmetricAlgorithms) cmbEncAlgorithm.getSelectedItem();
 		CMSEncryptor encryptor = new CMSEncryptor(cipher, EncodingOption.ENCODING_PEM, ctx.getBufferSize());
 		encryptor.addRecipients(recipient);
-		
+		encryptor.setUseOnlySKI(chckbUseSKI.isSelected());
 		String text = txtbData.getText();
 	    ByteArrayInputStream input = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
 	    ByteArrayOutputStream output = new ByteArrayOutputStream();
