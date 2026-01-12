@@ -472,32 +472,7 @@ public class TextPadForm {
             return null;
 		}
 		
-        char[] pwd = Utils.passwordCacheHitOrMiss(privateKeyAlias.get(), () -> {
-        	return DialogUtils.showPasswordInputBox(
-                    null,
-                    "Unlock Private key",
-                    "Password for " + privateKeyAlias.get(),
-                    "Password:"
-                );
-        });
-        
-        PrivateKey priv = null;
-        try {
-        	priv = ctx.getKeystore().getPrivateKey(privateKeyAlias.get(), pwd);
-        }catch (Exception e) {
-	        DialogUtils.showMessageBox(
-	                null,
-	                "Unable to access private key",
-	                "Unable to access private key",
-	                e.getMessage(),
-	                JOptionPane.ERROR_MESSAGE
-	        );
-			e.printStackTrace();
-		}finally {
-			if(pwd != null) Arrays.fill(pwd, (char) 0x00);
-		}
-        
-        return priv;
+		return Utils.getPrivateKeyDialog(privateKeyAlias.get());
         
 	}
 	

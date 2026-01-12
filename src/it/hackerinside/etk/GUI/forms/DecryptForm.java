@@ -313,7 +313,6 @@ public class DecryptForm {
 		try {
 			return ctx.getKeystore().getCertificate((String) cmbPrivateKey.getSelectedItem());
 		} catch (KeyStoreException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return null;
@@ -329,6 +328,11 @@ public class DecryptForm {
 	private void decrypt() {
 	    File output = new File(txtbOutputFile.getText());
 	    if(!FileDialogUtils.overwriteIfExists(output)) return;
+	    String alias = (String) cmbPrivateKey.getSelectedItem();
+	    PrivateKey priv = Utils.getPrivateKeyDialog(alias);
+	    if (alias == null) {
+	        throw new IllegalStateException("No certificates selected.");
+	    }
 	    
 	    startDecryptionUI();
 
@@ -336,30 +340,11 @@ public class DecryptForm {
 
 			@Override
 			protected Void doInBackground() throws Exception {
-			    String alias = (String) cmbPrivateKey.getSelectedItem();
-			    if (alias == null) {
-			        throw new IllegalStateException("No certificates selected.");
-			    }
-			    
-		        char[] pwd = Utils.passwordCacheHitOrMiss(alias, () -> {
-		        	return DialogUtils.showPasswordInputBox(
-		                    null,
-		                    "Unlock Private key",
-		                    "Password for " + alias,
-		                    "Password:"
-		                );
-		        });
+		        startTime = System.currentTimeMillis();
+		        EncodingOption encoding = PEMUtils.findFileEncoding(fileToDecrypt);
 
-			    try {
-			        startTime = System.currentTimeMillis();
-			        PrivateKey priv = ctx.getKeystore().getPrivateKey(alias, pwd);
-			        EncodingOption encoding = PEMUtils.findFileEncoding(fileToDecrypt);
-
-			        CMSDecryptor decryptor = new CMSDecryptor(priv, encoding, ctx.getBufferSize());
-			        decryptor.decrypt(fileToDecrypt, output);
-			    } finally {
-			    	if(pwd != null) Arrays.fill(pwd, (char) 0x00);
-			    }
+		        CMSDecryptor decryptor = new CMSDecryptor(priv, encoding, ctx.getBufferSize());
+		        decryptor.decrypt(fileToDecrypt, output);
 			    return null;
 			}
 

@@ -293,6 +293,18 @@ public class PasswordCache {
 
         return password;
     }
+    
+    /**
+     * Removes a password in the cache
+     *
+     * @param key the unique identifier for the password entry
+     */
+    public void remove(String key) {
+    	if (!this.cache.containsKey(key)) return;
+    	
+    	this.cache.get(key).zeroize();
+    	this.cache.remove(key);
+    }
 
     /**
      * Retrieves a password from the cache

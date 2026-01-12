@@ -301,24 +301,7 @@ public class SignForm {
 	
 	private PrivateKey getPrivateKey() {
 		String alias = (String) cmbSignerCert.getSelectedItem();
-        char[] password = Utils.passwordCacheHitOrMiss(alias, () -> {
-        	return DialogUtils.showPasswordInputBox(
-                    null,
-                    "Unlock Private key",
-                    "Password for " + alias,
-                    "Password:"
-                );
-        });
-		PrivateKey k = null;
-		try {
-			k = ctx.getKeystore().getPrivateKey(alias, password); 
-		} catch (UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}finally {
-			if(password != null) Arrays.fill(password, (char) 0x00);
-		}
-		return k;
+		return Utils.getPrivateKeyDialog(alias);
 	}
 	
 	/**
