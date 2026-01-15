@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Optional;
 import java.util.Scanner;
+import java.util.function.Predicate;
 
 import javax.swing.GroupLayout;
 import javax.swing.JButton;
@@ -383,30 +384,31 @@ public class TextPadForm {
 	 * @param combo the combo box to populate with certificate wrappers
 	 */
 	private void populateKnowCerts(JComboBox<CertificateWrapper> combo) {
-	    Enumeration<String> knownCerts = null;
-	    Enumeration<String> personalCerts = null;
-	    try {
-	        if (ctx.getKnownCerts() != null) knownCerts = ctx.getKnownCerts().listAliases();
-	        if (ctx.getKeystore() != null) personalCerts = ctx.getKeystore().listAliases();
-	    } catch (KeyStoreException e) {
-	        e.printStackTrace();
-	    }
-	    
 	    combo.removeAllItems();
 	    combo.addItem(null);
-	    
-	    if (personalCerts != null) {
-	        while (personalCerts.hasMoreElements()) {
-	            String alias = personalCerts.nextElement();
-	            combo.addItem(new CertificateWrapper(alias, ctx.getKeystore()));
+
+	    try {
+	        Predicate<X509Certificate> excludeDSA = cert -> {
+	            String alg = cert.getPublicKey().getAlgorithm();
+	            return alg != null && !alg.toUpperCase().contains("DSA");
+	        };
+
+	        // PERSONAL CERTS
+	        if (ctx.getKeystore() != null) {
+	            ctx.getKeystore()
+	               .listAliases(excludeDSA)
+	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKeystore())));
 	        }
-	    }
-	    
-	    if (knownCerts != null) {
-	        while (knownCerts.hasMoreElements()) {
-	            String alias = knownCerts.nextElement();
-	            combo.addItem(new CertificateWrapper(alias, ctx.getKnownCerts()));
+
+	        // KNOWN CERTS
+	        if (ctx.getKnownCerts() != null) {
+	            ctx.getKnownCerts()
+	               .listAliases(excludeDSA)
+	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKnownCerts())));
 	        }
+
+	    } catch (KeyStoreException e) {
+	        e.printStackTrace();
 	    }
 	}
 	

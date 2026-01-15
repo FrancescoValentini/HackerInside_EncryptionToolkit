@@ -300,13 +300,18 @@ public class DecryptForm {
 	
 	private void populaterCerts(JComboBox<String> combo) {
 	    combo.removeAllItems();
-	    Enumeration<String> aliases = null;
-		try {
-			aliases = ctx.getKeystore().listAliases();
-			aliases.asIterator().forEachRemaining(x -> combo.addItem(x));
-		} catch (KeyStoreException e) {
-			e.printStackTrace();
-		}
+
+	    try {
+	        ctx.getKeystore()
+	           .listAliases(cert -> {
+	               String alg = cert.getPublicKey().getAlgorithm();
+	               return alg != null && !alg.contains("DSA"); // Excludes certificates for digital signatures 
+	           })
+	           .forEach(combo::addItem);
+
+	    } catch (KeyStoreException e) {
+	        e.printStackTrace();
+	    }
 	}
 	
 	private X509Certificate getCertificate() {

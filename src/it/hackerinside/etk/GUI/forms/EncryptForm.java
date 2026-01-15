@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Predicate;
+
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -359,32 +361,35 @@ public class EncryptForm {
 	 * @param combo the combo box to populate with certificate wrappers
 	 */
 	private void populateKnowCerts(JComboBox<CertificateWrapper> combo) {
-	    Enumeration<String> knownCerts = null;
-	    Enumeration<String> personalCerts = null;
+	    combo.removeAllItems();
+	    combo.addItem(null);
+
 	    try {
-	        if (ctx.getKnownCerts() != null) knownCerts = ctx.getKnownCerts().listAliases();
-	        if (ctx.getKeystore() != null) personalCerts = ctx.getKeystore().listAliases();
+	        Predicate<X509Certificate> excludeDSA = cert -> {
+	            String alg = cert.getPublicKey().getAlgorithm();
+	            return alg != null && !alg.toUpperCase().contains("DSA");
+	        };
+
+	        // PERSONAL CERTS
+	        if (ctx.getKeystore() != null) {
+	            ctx.getKeystore()
+	               .listAliases(excludeDSA)
+	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKeystore())));
+	        }
+
+	        // KNOWN CERTS
+	        if (ctx.getKnownCerts() != null) {
+	            ctx.getKnownCerts()
+	               .listAliases(excludeDSA)
+	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKnownCerts())));
+	        }
+
 	    } catch (KeyStoreException e) {
 	        e.printStackTrace();
 	    }
-	    
-	    combo.removeAllItems();
-	    combo.addItem(null);
-	    
-	    if (personalCerts != null) {
-	        while (personalCerts.hasMoreElements()) {
-	            String alias = personalCerts.nextElement();
-	            combo.addItem(new CertificateWrapper(alias, ctx.getKeystore()));
-	        }
-	    }
-	    
-	    if (knownCerts != null) {
-	        while (knownCerts.hasMoreElements()) {
-	            String alias = knownCerts.nextElement();
-	            combo.addItem(new CertificateWrapper(alias, ctx.getKnownCerts()));
-	        }
-	    }
 	}
+
+
 
 	/**
 	 * Initializes the file selection process for encryption.

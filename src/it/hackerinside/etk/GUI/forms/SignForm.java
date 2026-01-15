@@ -276,14 +276,21 @@ public class SignForm {
 	 */
 	private void populateSignerCerts(JComboBox<String> combo) {
 	    combo.removeAllItems();
-	    Enumeration<String> aliases = null;
-		try {
-			aliases = ctx.getKeystore().listAliases();
-			aliases.asIterator().forEachRemaining(x -> combo.addItem(x));
-		} catch (KeyStoreException e) {
-			e.printStackTrace();
-		}
+
+	    try {
+	        ctx.getKeystore()
+	           .listAliases(cert -> {
+	               String alg = cert.getPublicKey().getAlgorithm();
+	               return alg != null && !alg.equalsIgnoreCase("ML-KEM"); // Excludes certificates for encryption 
+	           })
+	           .forEach(combo::addItem);
+
+	    } catch (KeyStoreException e) {
+	        e.printStackTrace();
+	    }
 	}
+
+
 	
 	private X509Certificate getCertificate() {
 		try {

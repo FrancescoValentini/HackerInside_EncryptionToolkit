@@ -9,11 +9,14 @@ import java.security.UnrecoverableEntryException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import javax.crypto.SecretKey;
 
@@ -232,6 +235,37 @@ public abstract class AbstractKeystore {
 	 */
 	public Enumeration<String> listAliases() throws KeyStoreException {
 		return keyStore.aliases();
+	}
+	
+	/**
+	 * Lists aliases whose associated certificate matches the given filter.
+	 * <p>
+	 * The filter is applied only to X.509 certificates and does not require
+	 * access to private keys or passwords.
+	 *
+	 * @param certificateFilter a predicate applied to the certificate; if null, all aliases are returned
+	 * @return a list of matching aliases
+	 * @throws KeyStoreException if the keystore has not been initialized
+	 */
+	public List<String> listAliases(Predicate<X509Certificate> certificateFilter)
+	        throws KeyStoreException {
+
+	    List<String> result = new ArrayList<>();
+	    Enumeration<String> aliases = keyStore.aliases();
+
+	    while (aliases.hasMoreElements()) {
+	        String alias = aliases.nextElement();
+	        Certificate cert = keyStore.getCertificate(alias);
+
+	        if (cert instanceof X509Certificate) {
+	            X509Certificate x509 = (X509Certificate) cert;
+
+	            if (certificateFilter == null || certificateFilter.test(x509)) {
+	                result.add(alias);
+	            }
+	        }
+	    }
+	    return result;
 	}
 
 	/**
