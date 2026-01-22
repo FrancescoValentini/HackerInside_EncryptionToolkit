@@ -16,6 +16,9 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
 
+import org.bouncycastle.asn1.x500.RDN;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 
 import it.hackerinside.etk.Utils.X509CertificateExporter;
@@ -95,13 +98,14 @@ public class CertificateDetailsPanel extends JPanel {
         tableModel.setRowCount(0); // clear
         textArea.setText("");
         if (cert == null) return;
+        
+        String prettySubj = getPrettySubject(cert.getSubjectX500Principal().getEncoded());
 
         // Common Name
-        String dn = cert.getSubjectX500Principal().getName();
-        String cn = extractCN(dn);
+        String cn = extractCN(cert.getSubjectX500Principal().getName());
 
         addRow("Common name", cn);
-        addRow("Subject", dn);
+        addRow("Subject", prettySubj);
         addRow("Fingerprint (SHA-256)", getFingerprint(cert));
         addRow("SKI (SHA-1)", getSKI(cert));
         addRow("Status", checkCertificateValidity(cert));
@@ -123,6 +127,25 @@ public class CertificateDetailsPanel extends JPanel {
         
         
         autoResizeColumnWidths();
+    }
+    
+    private String getPrettySubject(byte[] subjectX500Principal) {
+        X500Name name = X500Name.getInstance(
+        		subjectX500Principal
+        );
+
+        StringBuilder sb = new StringBuilder();
+        for (RDN rdn : name.getRDNs()) {
+            if (rdn.getFirst() != null) {
+                sb.append(BCStyle.INSTANCE.oidToDisplayName(rdn.getFirst().getType()))
+                  .append("=")
+                  .append(rdn.getFirst().getValue().toString())
+                  .append(", ");
+            }
+        }
+
+        return sb.substring(0, sb.length() - 2);
+    	
     }
 
     /**
