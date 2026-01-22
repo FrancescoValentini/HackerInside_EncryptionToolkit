@@ -40,19 +40,19 @@ public class X509PQCBuilder {
     }
 
     /**
-     * Builds a PQC-only X509 signing certificate (self-signed) based on the provided information and the PQC algorithm.
-     * The generated certificate can be used for cryptographic purposes such as digital signatures or encryption,
-     * depending on the algorithm.
+     * Builds a PQC-only self-signed X.509 certificate using the provided subject attributes
+     * and post-quantum cryptography (PQC) algorithm. The key usage is derived automatically
+     * from the capabilities of the selected algorithm.
      *
-     * @param commonName The common name (CN) for the subject of the certificate.
-     * @param countryCode The country code (C) for the subject of the certificate.
-     * @param state The state (ST) for the subject of the certificate.
-     * @param expDays The number of days until the certificate expires.
-     * @param pubk The public key associated with the certificate.
-     * @param privk The private key used to sign the certificate.
-     * @param algorithm The PQC algorithm used to generate the keys and define the cryptographic properties of the certificate.
-     * @return The X509 certificate representing the PQC-only self-signed certificate.
-     * @throws Exception If any errors occur during certificate creation, such as invalid key pair or parameters.
+     * @param commonName  the Common Name (CN) for the certificate subject
+     * @param countryCode the country code (C) for the certificate subject
+     * @param state       the state or province (ST) for the certificate subject
+     * @param expDays     the number of days from now until the certificate expires
+     * @param pubk        the public key to embed in the certificate
+     * @param privk       the private key used to sign the certificate
+     * @param algorithm  the PQC algorithm defining signing or key encapsulation behavior
+     * @return a generated self-signed PQC {@link X509Certificate}
+     * @throws Exception if certificate generation or signing fails
      */
     public static X509Certificate buildPQCCertificate(
             String commonName,
@@ -62,12 +62,74 @@ public class X509PQCBuilder {
             PublicKey pubk,
             PrivateKey privk,
             PQCAlgorithms algorithm) throws Exception {
-
+    	
         X500Name subject = new X500Name(
                 "CN=" + commonName +
                 ", C=" + countryCode +
                 ", ST=" + state
         );
+    	
+        KeyUsage usage = algorithm.canSign
+                ? new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation)
+                : new KeyUsage(KeyUsage.keyEncipherment | KeyUsage.keyAgreement);
+        
+        return buildPQCCertificate(subject,expDays, pubk,privk,usage,algorithm);
+    }
+    
+    /**
+     * Builds a PQC-only self-signed X.509 certificate for the given {@link X500Name} subject.
+     * The key usage is automatically determined based on the capabilities of the provided
+     * PQC algorithm.
+     *
+     * @param subject    the X.500 distinguished name used as both subject and issuer
+     * @param expDays    the number of days from now until the certificate expires
+     * @param pubk       the public key to embed in the certificate
+     * @param privk      the private key used to sign the certificate
+     * @param algorithm  the PQC algorithm defining signing or key encapsulation behavior
+     * @return a generated self-signed PQC {@link X509Certificate}
+     * @throws Exception if certificate generation or signing fails
+     */
+    public static X509Certificate buildPQCCertificate(
+    		X500Name subject,
+            int expDays,
+            PublicKey pubk,
+            PrivateKey privk,
+            PQCAlgorithms algorithm) throws Exception {
+
+    	
+        KeyUsage usage = algorithm.canSign
+                ? new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation)
+                : new KeyUsage(KeyUsage.keyEncipherment | KeyUsage.keyAgreement);
+        
+        return buildPQCCertificate(subject,expDays, pubk,privk,usage,algorithm);
+    }
+    
+    /**
+     * Builds a PQC-only self-signed X.509 v3 certificate for the given {@link X500Name} subject.
+     * The certificate validity starts at the current time, expires after the specified number
+     * of days, includes the provided {@link KeyUsage}, and is signed according to the selected
+     * PQC algorithm.
+     *
+     * <p>If the algorithm supports signing, the provided private key is used directly.
+     * If the algorithm is a KEM and cannot sign, a temporary PQC signing key is generated
+     * solely for certificate signing while preserving the original public key.</p>
+     *
+     * @param subject    the X.500 distinguished name used as both subject and issuer
+     * @param expDays    the number of days from now until the certificate expires
+     * @param pubk       the public key to embed in the certificate
+     * @param privk      the private key used for signing when supported by the algorithm
+     * @param usage      the {@link KeyUsage} extension to include in the certificate
+     * @param algorithm  the PQC algorithm defining signing or key encapsulation behavior
+     * @return a generated self-signed PQC {@link X509Certificate}
+     * @throws Exception if certificate generation or signing fails
+     */
+    public static X509Certificate buildPQCCertificate(
+    		X500Name subject,
+            int expDays,
+            PublicKey pubk,
+            PrivateKey privk,
+            KeyUsage usage,
+            PQCAlgorithms algorithm) throws Exception {
 
         Date notBefore = new Date();
         Calendar cal = Calendar.getInstance();
@@ -86,10 +148,6 @@ public class X509PQCBuilder {
                         subject,
                         pubk          
                 );
-        
-        KeyUsage usage = algorithm.canSign
-                ? new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation)
-                : new KeyUsage(KeyUsage.keyEncipherment | KeyUsage.keyAgreement);
 
         certBuilder.addExtension(Extension.keyUsage, true, usage);
         certBuilder.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));

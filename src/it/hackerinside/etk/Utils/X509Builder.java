@@ -33,7 +33,17 @@ public class X509Builder {
     }
     
     /**
-     * Builds an X509 certificate with the provided subject details, validity, and keys.
+     * Builds a self-signed X.509 certificate using the provided subject attributes and a default
+     * {@link KeyUsage}.
+     *
+     * @param commonName  the Common Name (CN) for the certificate subject
+     * @param countryCode the country code (C) for the certificate subject
+     * @param state       the state or province (ST) for the certificate subject
+     * @param expDays     the number of days from now until the certificate expires
+     * @param pubk        the public key to embed in the certificate
+     * @param privk       the private key used to sign the certificate
+     * @return a generated self-signed {@link X509Certificate}
+     * @throws Exception if certificate generation or signing fails
      */
     public static X509Certificate buildCertificate(
             String commonName,
@@ -42,9 +52,60 @@ public class X509Builder {
             int expDays,
             PublicKey pubk,
             PrivateKey privk) throws Exception {
-
-        X500Name subject = new X500Name("CN=" + commonName + ", C=" + countryCode + ", ST=" + state);
-
+    	
+    	X500Name subject = new X500Name("CN=" + commonName + ", C=" + countryCode + ", ST=" + state);
+    	KeyUsage usage = new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation | KeyUsage.dataEncipherment);
+    	return buildCertificate(subject, expDays, usage, pubk, privk);
+    }
+    
+    /**
+     * Builds a self-signed X.509 certificate using the provided subject attributes and explicit
+     * {@link KeyUsage}.
+     *
+     * @param commonName  the Common Name (CN) for the certificate subject
+     * @param countryCode the country code (C) for the certificate subject
+     * @param state       the state or province (ST) for the certificate subject
+     * @param expDays     the number of days from now until the certificate expires
+     * @param usage       the {@link KeyUsage} extension to include in the certificate
+     * @param pubk        the public key to embed in the certificate
+     * @param privk       the private key used to sign the certificate
+     * @return a generated self-signed {@link X509Certificate}
+     * @throws Exception if certificate generation or signing fails
+     */
+    public static X509Certificate buildCertificate(
+            String commonName,
+            String countryCode,
+            String state,
+            int expDays,
+            KeyUsage usage,
+            PublicKey pubk,
+            PrivateKey privk) throws Exception {
+    	
+    	X500Name subject = new X500Name("CN=" + commonName + ", C=" + countryCode + ", ST=" + state);
+    	return buildCertificate(subject, expDays, usage, pubk, privk);
+    }
+    
+    /**
+     * Builds a self-signed X.509 v3 certificate for the given {@link X500Name} subject.
+     * The certificate validity starts at the current time, expires after the specified
+     * number of days, includes the provided {@link KeyUsage}, and is signed using
+     * the supplied private key.
+     *
+     * @param subject the X.500 distinguished name used as both subject and issuer
+     * @param expDays the number of days from now until the certificate expires
+     * @param usage   the {@link KeyUsage} extension to include in the certificate
+     * @param pubk    the public key to embed in the certificate
+     * @param privk   the private key used to sign the certificate
+     * @return a generated self-signed {@link X509Certificate}
+     * @throws Exception if certificate generation or signing fails
+     */
+    public static X509Certificate buildCertificate(
+    		X500Name subject,
+            int expDays,
+            KeyUsage usage,
+            PublicKey pubk,
+            PrivateKey privk) throws Exception {
+    	
         Date notBefore = new Date();
         Calendar cal = Calendar.getInstance();
         cal.setTime(notBefore);
@@ -60,7 +121,7 @@ public class X509Builder {
         certBuilder.addExtension(
             Extension.keyUsage,
             true,
-            new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation | KeyUsage.dataEncipherment)
+            usage
         );
         
         certBuilder.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
