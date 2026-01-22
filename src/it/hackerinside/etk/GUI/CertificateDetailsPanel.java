@@ -110,7 +110,7 @@ public class CertificateDetailsPanel extends JPanel {
         addRow("SKI (SHA-1)", getSKI(cert));
         addRow("Status", checkCertificateValidity(cert));
         addRow("Serial Number", cert.getSerialNumber().toString(16));
-        addRow("Issuer", cert.getIssuerX500Principal().getName());
+        addRow("Issuer", getPrettySubject(cert.getIssuerX500Principal().getEncoded()));
         addRow("Valid from", cert.getNotBefore().toString());
         addRow("Valid to", cert.getNotAfter().toString());
         addRow("Key usage", cert.getKeyUsage() != null ? keyUsageToString(cert.getKeyUsage()) : "N/A");
