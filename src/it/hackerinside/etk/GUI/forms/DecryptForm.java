@@ -12,15 +12,12 @@ import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
-
-import org.bouncycastle.util.Arrays;
 
 import javax.swing.JPanel;
 import javax.swing.ComboBoxModel;

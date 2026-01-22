@@ -25,7 +25,6 @@ import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.function.Predicate;

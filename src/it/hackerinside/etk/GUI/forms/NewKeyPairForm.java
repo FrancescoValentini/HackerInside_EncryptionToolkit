@@ -39,8 +39,6 @@ import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.awt.event.ActionEvent;
 import javax.swing.JCheckBox;
-import javax.swing.event.ChangeListener;
-import javax.swing.event.ChangeEvent;
 import javax.swing.JList;
 
 public class NewKeyPairForm {

@@ -83,7 +83,7 @@ public class PasswordCache {
         this.cache = new ConcurrentHashMap<>();
         this.maxEtaMillis = maxEtaSeconds * 1000L;
 
-        // Start scheduler initially (unless we prefer lazy start — here we start immediately)
+        // Start scheduler initially (unless we prefer lazy start - here we start immediately)
         long periodSeconds = Math.max(1L, (maxEtaMillis / 1000L));
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "PasswordCache-cleaner");
