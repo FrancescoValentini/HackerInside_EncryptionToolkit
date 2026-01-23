@@ -50,6 +50,7 @@ public class SettingsForm {
 	private JSpinner spnBufferSize;
 	private JCheckBox chckbPasswordCache;
 	private JSpinner spnCacheTimeout;
+	private JCheckBox chckbxSKI;
 
 	/**
 	 * Launch the application.
@@ -138,6 +139,9 @@ public class SettingsForm {
 		spnCacheTimeout = new JSpinner();
 		spnCacheTimeout.setModel(new SpinnerNumberModel(0, 0, 120, 1));
 		spnCacheTimeout.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		chckbxSKI = new JCheckBox("Use SKI during encryption");
+		chckbxSKI.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		GroupLayout gl_panel = new GroupLayout(panel);
 		gl_panel.setHorizontalGroup(
 			gl_panel.createParallelGroup(Alignment.LEADING)
@@ -152,6 +156,7 @@ public class SettingsForm {
 						.addComponent(lblNewLabel_3_1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
+						.addComponent(chckbxSKI)
 						.addGroup(gl_panel.createSequentialGroup()
 							.addComponent(spnCacheTimeout, GroupLayout.PREFERRED_SIZE, 86, GroupLayout.PREFERRED_SIZE)
 							.addGap(18)
@@ -196,7 +201,9 @@ public class SettingsForm {
 						.addComponent(chckbPasswordCache))
 					.addPreferredGap(ComponentPlacement.UNRELATED)
 					.addComponent(chckbUsePem)
-					.addContainerGap(439, Short.MAX_VALUE))
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addComponent(chckbxSKI)
+					.addContainerGap(413, Short.MAX_VALUE))
 		);
 		panel.setLayout(gl_panel);
 		
@@ -388,6 +395,7 @@ public class SettingsForm {
 		txtPkcs11ConfPath.setText(ctx.getPkcs11Driver());
 		
 		chckbUsePem.setSelected(ctx.usePEM());
+		chckbxSKI.setSelected(ctx.useSKI());
 		chckbUsePkcs11.setSelected(ctx.usePKCS11());
 		chckbPasswordCache.setSelected(ctx.getUseCacheEntryPasswords());
 		
@@ -396,6 +404,7 @@ public class SettingsForm {
 		cmbTheme.setSelectedItem(ctx.getTheme());
 		spnBufferSize.setValue(ctx.getBufferSize());
 		spnCacheTimeout.setValue(ctx.getCacheEntryTimeout());
+		
 	}
 	
 	
@@ -410,6 +419,7 @@ public class SettingsForm {
 		ctx.setHashAlgorithm((HashAlgorithm) cmbHashAlgPath.getSelectedItem());
 		ctx.setUsePkcs11(chckbUsePkcs11.isSelected());
 		ctx.setUsePEM(chckbUsePem.isSelected());
+		ctx.setUseSKI(chckbxSKI.isSelected());
 		ctx.setTheme((UIThemes)cmbTheme.getSelectedItem());
 		ctx.setBufferSize((int) spnBufferSize.getValue());
 		ctx.setUseCacheEntryPassword(chckbPasswordCache.isSelected());

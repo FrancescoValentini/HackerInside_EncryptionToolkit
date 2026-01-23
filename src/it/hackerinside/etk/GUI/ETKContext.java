@@ -23,7 +23,7 @@ import it.hackerinside.etk.core.keystore.PKCS12Keystore;
  */
 public class ETKContext {
 	
-	public static final String ETK_VERSION = "1.0.8";
+	public static final String ETK_VERSION = "1.0.9";
 	
     /**
      * Singleton instance of ETKContext.
@@ -508,6 +508,25 @@ public class ETKContext {
     }
     
     /**
+     * Sets whether the application should use PEM Encoding
+     */
+    public void setUseSKI(boolean ski) {
+        preferences.put(ApplicationPreferences.USE_SKI.getKey(), Boolean.toString(ski));
+    }
+    
+    /**
+     * Returns whether the application should use SKI
+     * @return if SKI should be used
+     */
+    public boolean useSKI() {
+        String vuseSKI = preferences.get(
+            ApplicationPreferences.USE_SKI.getKey(), 
+            ApplicationPreferences.USE_SKI.getValue()
+        );
+        return Boolean.parseBoolean(vuseSKI);
+    }
+    
+    /**
      * Changes the master password of the keystore.
      *
      * This method verifies the provided current password (oldPassword), and if correct, it updates the master password 
@@ -542,7 +561,8 @@ public class ETKContext {
 				+ "\n    - getHashAlgorithm()=" + getHashAlgorithm() + "\n    - getCipher()=" + getCipher() + "\n    - getPkcs11Driver()="
 				+ getPkcs11Driver() + "\n    - usePKCS11()=" + usePKCS11() + "\n    - usePEM()=" + usePEM() + "\n    - getTheme()=" + getTheme()+ "\n    - getBufferSize()=" + getBufferSize()
 				+ "\n    - getUseCacheEntryPasswords()=" + getUseCacheEntryPasswords() 
-				+ "\n    - getCacheEntryTimeout()=" + getCacheEntryTimeout();
+				+ "\n    - getCacheEntryTimeout()=" + getCacheEntryTimeout()
+				+ "\n    - useSKI()=" + useSKI();
 	}
     
 	

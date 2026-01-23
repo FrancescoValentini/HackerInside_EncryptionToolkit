@@ -16,9 +16,10 @@ import java.security.KeyStoreException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Predicate;
+
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -77,6 +78,7 @@ public class EncryptForm {
 	private X509Certificate recipient;
 	private JLabel lblStatus;
 	private JButton btnEncrypt;
+	private JCheckBox chckbxUseSki;
 	private static ETKContext ctx;
 
 	/**
@@ -188,7 +190,7 @@ public class EncryptForm {
 		panel_1_1.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		panel_1_1.setLayout(null);
 		panel_1_1.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, new Color(255, 255, 255), new Color(160, 160, 160)), "Encryption Settings", TitledBorder.LEADING, TitledBorder.TOP, null, null));
-		panel_1_1.setBounds(10, 364, 551, 68);
+		panel_1_1.setBounds(10, 364, 551, 112);
 		panel.add(panel_1_1);
 		
 		JLabel lblEncryptionAlgorithm = new JLabel("Encryption Algorithm:");
@@ -203,21 +205,21 @@ public class EncryptForm {
 		
 		chckbPemOutput = new JCheckBox("PEM output");
 		chckbPemOutput.setFont(new Font("Tahoma", Font.PLAIN, 18));
-		chckbPemOutput.setBounds(412, 27, 133, 23);
+		chckbPemOutput.setBounds(10, 67, 133, 23);
 		panel_1_1.add(chckbPemOutput);
 		
 		progressBarEncrypt = new JProgressBar();
 		progressBarEncrypt.setIndeterminate(true);
 		progressBarEncrypt.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		progressBarEncrypt.setEnabled(false);
-		progressBarEncrypt.setBounds(141, 534, 295, 14);
+		progressBarEncrypt.setBounds(141, 571, 295, 14);
 		progressBarEncrypt.setVisible(false);
 		
 		panel.add(progressBarEncrypt);
 		
 		btnEncrypt = new JButton("ENCRYPT");
 		btnEncrypt.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnEncrypt.setBounds(219, 438, 138, 55);
+		btnEncrypt.setBounds(218, 505, 138, 55);
 		panel.add(btnEncrypt);
 		
 		lblStatus = new JLabel("");
@@ -254,6 +256,12 @@ public class EncryptForm {
 		buttonsPanel.add(btnAddRecipient);
 		buttonsPanel.add(btnRemoveRecipient);
 		buttonsPanel.add(btnRecipientInfo);
+		
+		chckbxUseSki = new JCheckBox("Use SKI");
+		chckbxUseSki.setSelected(false);
+		chckbxUseSki.setFont(new Font("Tahoma", Font.PLAIN, 18));
+		chckbxUseSki.setBounds(145, 67, 133, 23);
+		panel_1_1.add(chckbxUseSki);
 		
 		// Button Actions
 		btnCertDetails.addActionListener(new ActionListener() {
@@ -327,6 +335,7 @@ public class EncryptForm {
 		populateKnowCerts(cmbRecipientCert);
 		this.chckbPemOutput.setSelected(ctx.usePEM());
 		this.cmbEncAlgorithm.setSelectedItem(ctx.getCipher());
+		this.chckbxUseSki.setSelected(ctx.useSKI());
 		
 		if(this.plaintextFile == null) fileInitialization();
 	}
@@ -351,32 +360,35 @@ public class EncryptForm {
 	 * @param combo the combo box to populate with certificate wrappers
 	 */
 	private void populateKnowCerts(JComboBox<CertificateWrapper> combo) {
-	    Enumeration<String> knownCerts = null;
-	    Enumeration<String> personalCerts = null;
+	    combo.removeAllItems();
+	    combo.addItem(null);
+
 	    try {
-	        if (ctx.getKnownCerts() != null) knownCerts = ctx.getKnownCerts().listAliases();
-	        if (ctx.getKeystore() != null) personalCerts = ctx.getKeystore().listAliases();
+	        Predicate<X509Certificate> excludeDSA = cert -> {
+	            String alg = cert.getPublicKey().getAlgorithm();
+	            return alg != null && !alg.toUpperCase().contains("DSA");
+	        };
+
+	        // PERSONAL CERTS
+	        if (ctx.getKeystore() != null) {
+	            ctx.getKeystore()
+	               .listAliases(excludeDSA)
+	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKeystore())));
+	        }
+
+	        // KNOWN CERTS
+	        if (ctx.getKnownCerts() != null) {
+	            ctx.getKnownCerts()
+	               .listAliases(excludeDSA)
+	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKnownCerts())));
+	        }
+
 	    } catch (KeyStoreException e) {
 	        e.printStackTrace();
 	    }
-	    
-	    combo.removeAllItems();
-	    combo.addItem(null);
-	    
-	    if (personalCerts != null) {
-	        while (personalCerts.hasMoreElements()) {
-	            String alias = personalCerts.nextElement();
-	            combo.addItem(new CertificateWrapper(alias, ctx.getKeystore()));
-	        }
-	    }
-	    
-	    if (knownCerts != null) {
-	        while (knownCerts.hasMoreElements()) {
-	            String alias = knownCerts.nextElement();
-	            combo.addItem(new CertificateWrapper(alias, ctx.getKnownCerts()));
-	        }
-	    }
 	}
+
+
 
 	/**
 	 * Initializes the file selection process for encryption.
@@ -513,7 +525,7 @@ public class EncryptForm {
 	    CMSEncryptor encryptor = new CMSEncryptor(cipher, encoding,ctx.getBufferSize());
 	    
 	    recipients.forEach(encryptor::addRecipients); // Add recipients
-	    
+	    encryptor.setUseOnlySKI(chckbxUseSki.isSelected());
 	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
 	        @Override
 	        protected Void doInBackground() throws Exception {

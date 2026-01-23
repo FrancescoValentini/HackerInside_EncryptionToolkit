@@ -18,6 +18,8 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
+import com.formdev.flatlaf.FlatLaf;
+
 import it.hackerinside.etk.GUI.CertificateDetailsPanel;
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
@@ -179,6 +181,10 @@ public class VerifyForm {
 	    lblStatus.setText(text);
 	}
 
+	private Color getSuccessColor() {
+	    return FlatLaf.isLafDark() ? new Color(80,200,120) : new Color(0,128,0);
+	}
+	
 	/**
 	 * Opens a file dialog to allow the user to select an input file for verification.
 	 * The selected file is stored in the fileToVerify field.
@@ -233,6 +239,15 @@ public class VerifyForm {
 	            } catch (Exception e) {
 	                e.printStackTrace();
 	                setStatusText("Verification failed during setup.", Color.RED);
+		            progressBar.setVisible(false);
+		            progressBar.setEnabled(false);
+	                DialogUtils.showMessageBox(
+	                        null,
+	                        "Verification failed",
+	                        "Verification failed during setup.",
+	                        e.getMessage(),
+	                        JOptionPane.ERROR_MESSAGE
+	                );
 	            }
 	        }
 	    };
@@ -436,7 +451,7 @@ public class VerifyForm {
 	    // --- Signature validation ---
 	    if (result.validSignature()) {
 	        listModel.addElement("Intact signature!");
-	        setStatusText("Valid CAdES Signature!", Color.GREEN);
+	        setStatusText("Valid CAdES Signature!", getSuccessColor());
 	    } else {
 	        listModel.addElement("CAUTION - Signature tampered!");
 	        setStatusText("INVALID DIGITAL SIGNATURE", Color.RED);

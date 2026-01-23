@@ -69,7 +69,12 @@ public enum ApplicationPreferences {
 	/**
 	 * Cache entry timeout
 	 */
-	CACHE_ENTRY_TIMEOUT("CACHE_ENTRY_TIMEOUT","60");
+	CACHE_ENTRY_TIMEOUT("CACHE_ENTRY_TIMEOUT","60"),
+	
+	/**
+	 * Use only the recipient SKI for encryption
+	 */
+	USE_SKI("USE_SKI","false");
     
     private final String key;
     private final String value;

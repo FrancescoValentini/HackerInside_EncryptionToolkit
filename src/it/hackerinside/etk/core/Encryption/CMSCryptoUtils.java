@@ -32,7 +32,7 @@ public class CMSCryptoUtils {
 	 * Parse a CMS EnvelopedData stream (DER or PEM via PemInputStream) and returns
 	 * a collection of RecipientIdentifier objects (one per recipientInfo).
 	 *
-	 * IMPORTANT: streaming — non-destructive for big encrypted contents.
+	 * IMPORTANT: streaming - non-destructive for big encrypted contents.
 	 *
 	 * @param input CMS data stream (may be PEM or DER depending on encodingStream wrapper)
 	 * @param isPem true if the provided stream is PEM-wrapped (so caller should pass a PemInputStream)

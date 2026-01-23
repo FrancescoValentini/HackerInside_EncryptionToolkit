@@ -10,9 +10,7 @@ import javax.swing.GroupLayout.Alignment;
 import javax.swing.JComboBox;
 import java.awt.Font;
 import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.UnrecoverableKeyException;
 import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 import java.util.concurrent.ExecutionException;
@@ -23,8 +21,6 @@ import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.JButton;
 import javax.swing.JTextField;
 import javax.swing.border.TitledBorder;
-
-import org.bouncycastle.util.Arrays;
 
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
@@ -280,14 +276,21 @@ public class SignForm {
 	 */
 	private void populateSignerCerts(JComboBox<String> combo) {
 	    combo.removeAllItems();
-	    Enumeration<String> aliases = null;
-		try {
-			aliases = ctx.getKeystore().listAliases();
-			aliases.asIterator().forEachRemaining(x -> combo.addItem(x));
-		} catch (KeyStoreException e) {
-			e.printStackTrace();
-		}
+
+	    try {
+	        ctx.getKeystore()
+	           .listAliases(cert -> {
+	               String alg = cert.getPublicKey().getAlgorithm();
+	               return alg != null && !alg.equalsIgnoreCase("ML-KEM"); // Excludes certificates for encryption 
+	           })
+	           .forEach(combo::addItem);
+
+	    } catch (KeyStoreException e) {
+	        e.printStackTrace();
+	    }
 	}
+
+
 	
 	private X509Certificate getCertificate() {
 		try {
@@ -301,24 +304,7 @@ public class SignForm {
 	
 	private PrivateKey getPrivateKey() {
 		String alias = (String) cmbSignerCert.getSelectedItem();
-        char[] password = Utils.passwordCacheHitOrMiss(alias, () -> {
-        	return DialogUtils.showPasswordInputBox(
-                    null,
-                    "Unlock Private key",
-                    "Password for " + alias,
-                    "Password:"
-                );
-        });
-		PrivateKey k = null;
-		try {
-			k = ctx.getKeystore().getPrivateKey(alias, password); 
-		} catch (UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}finally {
-			if(password != null) Arrays.fill(password, (char) 0x00);
-		}
-		return k;
+		return Utils.getPrivateKeyDialog(alias);
 	}
 	
 	/**

@@ -17,7 +17,7 @@ import org.bouncycastle.cms.SignerInformation;
  * @param validSignature           A boolean indicating whether the digital signature is valid or not.
  * @param hasSigningCertificateV2  A boolean indicating whether the signing certificate used is of version 2.
  * @param hasSigningTime           A boolean indicating whether a signing time is present in the signature.
- * @param signer                   The X509Certificate representing the signer’s certificate.
+ * @param signer                   The X509Certificate representing the signer's certificate.
  * @param signerInfo               CMS SignerInfo block
  * @author Francesco Valentini
  */
