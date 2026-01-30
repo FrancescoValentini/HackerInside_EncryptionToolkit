@@ -12,7 +12,6 @@ import java.awt.Font;
 import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
-import java.util.Enumeration;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.JLabel;
@@ -281,7 +280,7 @@ public class SignForm {
 	        ctx.getKeystore()
 	           .listAliases(cert -> {
 	               String alg = cert.getPublicKey().getAlgorithm();
-	               return alg != null && !alg.equalsIgnoreCase("ML-KEM"); // Excludes certificates for encryption 
+	               return alg != null && !alg.contains("ML-KEM"); // Excludes certificates for encryption 
 	           })
 	           .forEach(combo::addItem);
 
@@ -418,6 +417,7 @@ public class SignForm {
 	    if(!Utils.acceptX509Certificate(signerCert)) return;
 	    
 	    PrivateKey priv = getPrivateKey();
+	    if(priv == null) return;
 	    
 	    startSignatureUI();
 	    
