@@ -22,6 +22,7 @@ import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 
 import it.hackerinside.etk.Utils.X509CertificateExporter;
+import it.hackerinside.etk.Utils.X509Utils;
 
 import java.awt.Font;
 
@@ -99,7 +100,7 @@ public class CertificateDetailsPanel extends JPanel {
         textArea.setText("");
         if (cert == null) return;
         
-        String prettySubj = getPrettySubject(cert.getSubjectX500Principal().getEncoded());
+        String prettySubj = X509Utils.getPrettySubject(cert.getSubjectX500Principal().getEncoded());
 
         // Common Name
         String cn = extractCN(cert.getSubjectX500Principal().getName());
@@ -110,7 +111,7 @@ public class CertificateDetailsPanel extends JPanel {
         addRow("SKI (SHA-1)", getSKI(cert));
         addRow("Status", checkCertificateValidity(cert));
         addRow("Serial Number", cert.getSerialNumber().toString(16));
-        addRow("Issuer", getPrettySubject(cert.getIssuerX500Principal().getEncoded()));
+        addRow("Issuer", X509Utils.getPrettySubject(cert.getIssuerX500Principal().getEncoded()));
         addRow("Valid from", cert.getNotBefore().toString());
         addRow("Valid to", cert.getNotAfter().toString());
         addRow("Key usage", cert.getKeyUsage() != null ? keyUsageToString(cert.getKeyUsage()) : "N/A");
@@ -129,24 +130,6 @@ public class CertificateDetailsPanel extends JPanel {
         autoResizeColumnWidths();
     }
     
-    private String getPrettySubject(byte[] subjectX500Principal) {
-        X500Name name = X500Name.getInstance(
-        		subjectX500Principal
-        );
-
-        StringBuilder sb = new StringBuilder();
-        for (RDN rdn : name.getRDNs()) {
-            if (rdn.getFirst() != null) {
-                sb.append(BCStyle.INSTANCE.oidToDisplayName(rdn.getFirst().getType()))
-                  .append("=")
-                  .append(rdn.getFirst().getValue().toString())
-                  .append(", ");
-            }
-        }
-
-        return sb.substring(0, sb.length() - 2);
-    	
-    }
 
     /**
      * Adds a new row to the certificate details table.

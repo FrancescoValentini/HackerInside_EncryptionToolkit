@@ -467,6 +467,7 @@ public class VerifyForm {
 	        listModel.addElement("Intact signature!");
 	        listModel.addElement("Digest Algorithm: " +  MessageDigestUtils.getDigestName(new ASN1ObjectIdentifier(result.digestAlgorithm())));
 	        listModel.addElement("Digest: " + HexFormat.of().formatHex(result.contentDigest()));
+	        listModel.addElement("Path: " + this.fileToVerify.getAbsolutePath());
 
 	        listModel.addElement(" ");
 	        setStatusText("Valid CAdES Signature!", getSuccessColor());

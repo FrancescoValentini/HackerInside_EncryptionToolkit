@@ -597,7 +597,7 @@ public class EncryptForm {
         okMessage.append("\n\nElapsed: " + TimeUtils.formatElapsedTime(startTime, endTime));
         okMessage.append("\n\n\nRecipients: \n");
         recipients.forEach(recipient -> {
-        	okMessage.append("- " + recipient.getSubjectX500Principal().getName("RFC2253") + "\n");
+        	okMessage.append("- " + X509Utils.getPrettySubject(recipient.getSubjectX500Principal().getEncoded()) + "\n");
         });
        
         return okMessage.toString();
