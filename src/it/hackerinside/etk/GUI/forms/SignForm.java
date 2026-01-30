@@ -26,6 +26,7 @@ import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.TimeUtils;
 import it.hackerinside.etk.GUI.Utils;
+import it.hackerinside.etk.Utils.X509Utils;
 import it.hackerinside.etk.core.CAdES.CAdESSigner;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
@@ -280,7 +281,8 @@ public class SignForm {
 	        ctx.getKeystore()
 	           .listAliases(cert -> {
 	               String alg = cert.getPublicKey().getAlgorithm();
-	               return alg != null && !alg.contains("ML-KEM"); // Excludes certificates for encryption 
+	               boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
+	               return alg != null && validCert && !alg.contains("ML-KEM"); // Excludes certificates for encryption 
 	           })
 	           .forEach(combo::addItem);
 

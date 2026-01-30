@@ -51,6 +51,7 @@ public class SettingsForm {
 	private JCheckBox chckbPasswordCache;
 	private JSpinner spnCacheTimeout;
 	private JCheckBox chckbxSKI;
+	private JCheckBox chckbHideInvalidCerts;
 
 	/**
 	 * Launch the application.
@@ -87,7 +88,7 @@ public class SettingsForm {
 		frmHackerinsideEncryptionToolkit = new JFrame();
 		frmHackerinsideEncryptionToolkit.setResizable(false);
 		frmHackerinsideEncryptionToolkit.setTitle("HackerInside Encryption Toolkit | Settings");
-		frmHackerinsideEncryptionToolkit.setBounds(100, 100, 670, 299);
+		frmHackerinsideEncryptionToolkit.setBounds(100, 100, 670, 400);
 		//frmHackerinsideEncryptionToolkit.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		
@@ -142,6 +143,9 @@ public class SettingsForm {
 		
 		chckbxSKI = new JCheckBox("Use SKI during encryption");
 		chckbxSKI.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		
+		chckbHideInvalidCerts = new JCheckBox("Hide invalid certificates");
+		chckbHideInvalidCerts.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		GroupLayout gl_panel = new GroupLayout(panel);
 		gl_panel.setHorizontalGroup(
 			gl_panel.createParallelGroup(Alignment.LEADING)
@@ -156,6 +160,7 @@ public class SettingsForm {
 						.addComponent(lblNewLabel_3_1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
+						.addComponent(chckbHideInvalidCerts)
 						.addComponent(chckbxSKI)
 						.addGroup(gl_panel.createSequentialGroup()
 							.addComponent(spnCacheTimeout, GroupLayout.PREFERRED_SIZE, 86, GroupLayout.PREFERRED_SIZE)
@@ -203,7 +208,9 @@ public class SettingsForm {
 					.addComponent(chckbUsePem)
 					.addPreferredGap(ComponentPlacement.UNRELATED)
 					.addComponent(chckbxSKI)
-					.addContainerGap(413, Short.MAX_VALUE))
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addComponent(chckbHideInvalidCerts)
+					.addContainerGap(387, Short.MAX_VALUE))
 		);
 		panel.setLayout(gl_panel);
 		
@@ -398,6 +405,7 @@ public class SettingsForm {
 		chckbxSKI.setSelected(ctx.useSKI());
 		chckbUsePkcs11.setSelected(ctx.usePKCS11());
 		chckbPasswordCache.setSelected(ctx.getUseCacheEntryPasswords());
+		chckbHideInvalidCerts.setSelected(ctx.hideInvalidCerts());
 		
 		cmbEncAlgPath.setSelectedItem(ctx.getCipher());
 		cmbHashAlgPath.setSelectedItem(ctx.getHashAlgorithm());
@@ -424,6 +432,7 @@ public class SettingsForm {
 		ctx.setBufferSize((int) spnBufferSize.getValue());
 		ctx.setUseCacheEntryPassword(chckbPasswordCache.isSelected());
 		ctx.setCacheEntryTimeout((int) spnCacheTimeout.getValue());
+		ctx.setHideInvalidCerts(chckbHideInvalidCerts.isSelected());
 	}
 	
 	/**

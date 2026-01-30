@@ -49,6 +49,7 @@ import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
+import it.hackerinside.etk.Utils.X509Utils;
 import it.hackerinside.etk.core.Encryption.CMSCryptoUtils;
 import it.hackerinside.etk.core.Encryption.CMSDecryptor;
 import it.hackerinside.etk.core.Encryption.CMSEncryptor;
@@ -387,22 +388,24 @@ public class TextPadForm {
 	    combo.addItem(null);
 
 	    try {
-	        Predicate<X509Certificate> excludeDSA = cert -> {
+	        Predicate<X509Certificate> validCertConditions = cert -> {
 	            String alg = cert.getPublicKey().getAlgorithm();
-	            return alg != null && !alg.toUpperCase().contains("DSA");
+	            boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
+
+	            return alg != null && validCert &&!alg.toUpperCase().contains("DSA");
 	        };
 
 	        // PERSONAL CERTS
 	        if (ctx.getKeystore() != null) {
 	            ctx.getKeystore()
-	               .listAliases(excludeDSA)
+	               .listAliases(validCertConditions)
 	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKeystore())));
 	        }
 
 	        // KNOWN CERTS
 	        if (ctx.getKnownCerts() != null) {
 	            ctx.getKnownCerts()
-	               .listAliases(excludeDSA)
+	               .listAliases(validCertConditions)
 	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKnownCerts())));
 	        }
 

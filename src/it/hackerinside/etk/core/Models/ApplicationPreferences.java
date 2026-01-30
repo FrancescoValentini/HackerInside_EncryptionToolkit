@@ -74,7 +74,12 @@ public enum ApplicationPreferences {
 	/**
 	 * Use only the recipient SKI for encryption
 	 */
-	USE_SKI("USE_SKI","false");
+	USE_SKI("USE_SKI","false"),
+	
+	/**
+	 * Hides expired or still invalid certificates
+	 */
+	HIDE_INVALID_CERTS("HIDE_INVALID_CERTS","true");
     
     private final String key;
     private final String value;

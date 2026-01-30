@@ -335,8 +335,8 @@ public class DecryptForm {
 	        throw new IllegalStateException("No certificates selected.");
 	    }
 	    PrivateKey priv = Utils.getPrivateKeyDialog(alias);
-	    if(priv != null) return;
-	    
+	    if(priv == null) return;
+
 	    startDecryptionUI();
 
 	    SwingWorker<Void, Void> worker = new SwingWorker<>() {

@@ -36,6 +36,7 @@ import it.hackerinside.etk.GUI.DTOs.KeysLocations;
 import it.hackerinside.etk.Utils.HTTPRequest;
 import it.hackerinside.etk.Utils.X509CertificateExporter;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
+import it.hackerinside.etk.Utils.X509Utils;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
 import it.hackerinside.etk.core.keystore.PKCS12Keystore;
@@ -56,7 +57,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.awt.event.ActionEvent;
+import javax.swing.JCheckBoxMenuItem;
 
 public class ETKMain {
 
@@ -68,6 +71,7 @@ public class ETKMain {
 	private JButton btnSign;
 	private JButton btnEncrypt;
 	private JMenuItem mntmChangeKeystorePwd;
+	private JCheckBoxMenuItem chckbxmntmHideInvalidCertificate;
 	/**
 	 * Launch the application.
 	 */
@@ -171,6 +175,16 @@ public class ETKMain {
 	    
 	    JMenuItem menuItemImportKnownCertURL = new JMenuItem("From URL");
 	    mnNewMenu_1.add(menuItemImportKnownCertURL);
+	    
+	    chckbxmntmHideInvalidCertificate = new JCheckBoxMenuItem("Hide Invalid Certificates");
+	    mnNewMenu.add(chckbxmntmHideInvalidCertificate);
+	    
+	    chckbxmntmHideInvalidCertificate.addActionListener(new ActionListener() {
+	    	public void actionPerformed(ActionEvent e) {
+	    		updateTable();
+	    	}
+	    });
+	    
 	    
 	    menuItemImportKnownCert.addActionListener(new ActionListener() {
 	    	public void actionPerformed(ActionEvent e) {
@@ -631,6 +645,7 @@ public class ETKMain {
 	 * the keystore and then updating the certificate table.
 	 */
 	private void startProcedure() {
+		chckbxmntmHideInvalidCertificate.setSelected(ctx.hideInvalidCerts());
 		disablePrivateKeyOperations();
 		if(!new File(ctx.getKnownCertsPath()).exists()  || !ctx.usePKCS11() && !new File(ctx.getKeyStorePath()).exists()) {
 			SetupForm setup = new SetupForm();
@@ -686,6 +701,13 @@ public class ETKMain {
 	 */
 	private void updateTable() {
 	    List<CertificateTableRow> rows = getTableRows();
+	    
+	    if (chckbxmntmHideInvalidCertificate.isSelected()) {
+	        rows = rows.stream()
+	                .filter(row -> {return X509Utils.checkTimeValidity(row.original());})
+	                .collect(Collectors.toList());
+	    }
+	    
 	    tableModel.setRows(rows);
 	}
 

@@ -508,7 +508,7 @@ public class ETKContext {
     }
     
     /**
-     * Sets whether the application should use PEM Encoding
+     * Sets whether the application should use SKI to identify the private key
      */
     public void setUseSKI(boolean ski) {
         preferences.put(ApplicationPreferences.USE_SKI.getKey(), Boolean.toString(ski));
@@ -525,6 +525,25 @@ public class ETKContext {
         );
         return Boolean.parseBoolean(vuseSKI);
     }
+    
+    /**
+     * Sets whether the application should use PEM Encoding
+     */
+    public void setHideInvalidCerts(boolean hide) {
+        preferences.put(ApplicationPreferences.HIDE_INVALID_CERTS.getKey(), Boolean.toString(hide));
+    }
+    
+    /**
+     * Returns whether the application should hide invalid certificates
+    */
+    public boolean hideInvalidCerts() {
+        String vHide = preferences.get(
+            ApplicationPreferences.HIDE_INVALID_CERTS.getKey(), 
+            ApplicationPreferences.HIDE_INVALID_CERTS.getValue()
+        );
+        return Boolean.parseBoolean(vHide);
+    }
+    
     
     /**
      * Changes the master password of the keystore.
