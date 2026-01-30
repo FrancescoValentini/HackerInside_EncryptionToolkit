@@ -23,7 +23,7 @@ import it.hackerinside.etk.core.keystore.PKCS12Keystore;
  */
 public class ETKContext {
 	
-	public static final String ETK_VERSION = "1.0.9";
+	public static final String ETK_VERSION = "1.0.10";
 	
     /**
      * Singleton instance of ETKContext.
@@ -581,7 +581,8 @@ public class ETKContext {
 				+ getPkcs11Driver() + "\n    - usePKCS11()=" + usePKCS11() + "\n    - usePEM()=" + usePEM() + "\n    - getTheme()=" + getTheme()+ "\n    - getBufferSize()=" + getBufferSize()
 				+ "\n    - getUseCacheEntryPasswords()=" + getUseCacheEntryPasswords() 
 				+ "\n    - getCacheEntryTimeout()=" + getCacheEntryTimeout()
-				+ "\n    - useSKI()=" + useSKI();
+				+ "\n    - useSKI()=" + useSKI()
+				+ "\n    - hideInvalidCerts()=" + hideInvalidCerts();
 	}
     
 	

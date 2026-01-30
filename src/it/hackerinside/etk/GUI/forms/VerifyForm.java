@@ -19,6 +19,9 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.jcajce.util.MessageDigestUtils;
+
 import com.formdev.flatlaf.FlatLaf;
 
 import it.hackerinside.etk.GUI.CertificateDetailsPanel;
@@ -40,6 +43,7 @@ import javax.swing.JOptionPane;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JProgressBar;
+import javax.swing.JScrollPane;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.LayoutStyle.ComponentPlacement;
@@ -115,7 +119,15 @@ public class VerifyForm {
 
 	    verificationReport = new JList<>(listModel);
 	    verificationReport.setFont(new Font("Tahoma", Font.PLAIN, 16));
-	    panel.add(verificationReport, BorderLayout.CENTER);
+
+	    JScrollPane scrollPane = new JScrollPane(
+	            verificationReport,
+	            JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+	            JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
+	    );
+
+	    panel.add(scrollPane, BorderLayout.CENTER);
+
 	    
 	    panel_1 = new JPanel();
 	    splitPane.setRightComponent(panel_1);
@@ -453,7 +465,7 @@ public class VerifyForm {
 	    // --- Signature validation ---
 	    if (result.validSignature()) {
 	        listModel.addElement("Intact signature!");
-	        listModel.addElement("Digest Algorithm: " + HashAlgorithm.fromOIDString(result.digestAlgorithm()));
+	        listModel.addElement("Digest Algorithm: " +  MessageDigestUtils.getDigestName(new ASN1ObjectIdentifier(result.digestAlgorithm())));
 	        listModel.addElement("Digest: " + HexFormat.of().formatHex(result.contentDigest()));
 
 	        listModel.addElement(" ");

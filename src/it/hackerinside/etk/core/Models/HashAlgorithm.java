@@ -54,21 +54,6 @@ public enum HashAlgorithm {
         }
     }
     
-    /**
-     * Converts a string asn1 string to its corresponding HashAlgorithm enum constant.
-     * 
-     * @param asn1 the asn1 string representation of the hash algorithm
-     * @return the HashAlgorithm enum constant matching the provided algorithm name
-     * @throws IllegalArgumentException if the provided algorithm name doesn't match any supported algorithm
-     */
-    public static HashAlgorithm fromOIDString(String oidString) {
-        for (HashAlgorithm alg : HashAlgorithm.values()) {
-            if (alg.asn1.getId().equals(oidString)) {
-                return alg;
-            }
-        }
-        throw new IllegalArgumentException("Invalid Hash Algorithm OID: " + oidString);
-    }
 
     
     /**
