@@ -11,6 +11,7 @@ import java.awt.Font;
 import java.io.File;
 import java.security.KeyStoreException;
 import java.security.cert.X509Certificate;
+import java.util.HexFormat;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
@@ -28,6 +29,7 @@ import it.hackerinside.etk.core.CAdES.CAdESUtils;
 import it.hackerinside.etk.core.CAdES.CAdESVerifier;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
+import it.hackerinside.etk.core.Models.HashAlgorithm;
 import it.hackerinside.etk.core.Models.VerificationResult;
 import it.hackerinside.etk.core.PEM.PEMUtils;
 
@@ -447,10 +449,14 @@ public class VerifyForm {
 	    splitPane.setRightComponent(panel);
 
 	    listModel.clear();
-
+	    
 	    // --- Signature validation ---
 	    if (result.validSignature()) {
 	        listModel.addElement("Intact signature!");
+	        listModel.addElement("Digest Algorithm: " + HashAlgorithm.fromOIDString(result.digestAlgorithm()));
+	        listModel.addElement("Digest: " + HexFormat.of().formatHex(result.contentDigest()));
+
+	        listModel.addElement(" ");
 	        setStatusText("Valid CAdES Signature!", getSuccessColor());
 	    } else {
 	        listModel.addElement("CAUTION - Signature tampered!");

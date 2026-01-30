@@ -15,6 +15,7 @@ import java.io.*;
 import java.security.cert.X509Certificate;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.cms.AttributeTable;
 import org.bouncycastle.asn1.cms.CMSAttributes;
 import org.bouncycastle.cert.X509CertificateHolder;
@@ -223,7 +224,9 @@ public class CAdESVerifier {
                 hasAttribute(attrs, PKCSObjectIdentifiers.id_aa_signingCertificateV2),
                 hasAttribute(attrs, CMSAttributes.signingTime),
                 cert,
-                signerInfo
+                signerInfo,
+                signerInfo.getDigestAlgOID(),
+                getMessageDigest(signerInfo)
         );
     }
 
@@ -282,6 +285,21 @@ public class CAdESVerifier {
         while ((n = in.read(buf)) >= 0) {
             out.write(buf, 0, n);
         }
+    }
+    
+    /**
+     * Extract the content digest from the SignerInfo ASN1 Structure
+     * @param signerInfo
+     * @return the content digest
+     */
+    private byte[] getMessageDigest(SignerInformation signerInfo) {
+    	ASN1OctetString md = (ASN1OctetString) signerInfo
+    	        .getSignedAttributes()
+    	        .get(CMSAttributes.messageDigest)
+    	        .getAttributeValues()[0];
+
+    	return md.getOctets();
+    	
     }
 }
 

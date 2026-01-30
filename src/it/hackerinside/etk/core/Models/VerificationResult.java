@@ -19,6 +19,8 @@ import org.bouncycastle.cms.SignerInformation;
  * @param hasSigningTime           A boolean indicating whether a signing time is present in the signature.
  * @param signer                   The X509Certificate representing the signer's certificate.
  * @param signerInfo               CMS SignerInfo block
+ * @param digestAlgorithm          The digital signature digest algorithm (OID)
+ * @param contentDigest            The content digest
  * @author Francesco Valentini
  */
 public record VerificationResult(
@@ -26,7 +28,9 @@ public record VerificationResult(
     boolean hasSigningCertificateV2,
     boolean hasSigningTime,
     X509Certificate signer,
-    SignerInformation signerInfo
+    SignerInformation signerInfo,
+    String digestAlgorithm,
+    byte[] contentDigest
 ) {
 	
 	/**

@@ -23,7 +23,7 @@ public enum HashAlgorithm {
     /**
      * SHA-512 hash algorithm (produces 512-bit/64-byte hash values).
      */
-    SHA512("SHA-512",NISTObjectIdentifiers.id_sha384);
+    SHA512("SHA-512",NISTObjectIdentifiers.id_sha512);
     
     private final String algorithm;
     
@@ -52,6 +52,22 @@ public enum HashAlgorithm {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid Hash Algorithm: " + algorithm);
         }
+    }
+    
+    /**
+     * Converts a string asn1 string to its corresponding HashAlgorithm enum constant.
+     * 
+     * @param asn1 the asn1 string representation of the hash algorithm
+     * @return the HashAlgorithm enum constant matching the provided algorithm name
+     * @throws IllegalArgumentException if the provided algorithm name doesn't match any supported algorithm
+     */
+    public static HashAlgorithm fromOIDString(String oidString) {
+        for (HashAlgorithm alg : HashAlgorithm.values()) {
+            if (alg.asn1.getId().equals(oidString)) {
+                return alg;
+            }
+        }
+        throw new IllegalArgumentException("Invalid Hash Algorithm OID: " + oidString);
     }
 
     
