@@ -23,6 +23,16 @@ public enum ApplicationPreferences {
     KNOWN_CERTS_PATH("KNOWN_CERTS_PATH", getHomeFilePath("knowncerts.pfx")),
     
     /**
+     * Path to the keystore file containing CA certificates.
+     */
+    TRUSTED_CERTS_PATH("TRUSTED_CERTS_PATH", getHomeFilePath("truststore.pfx")),
+    
+    /**
+     * Trust Store toggle
+     */
+    USE_TRUST_STORE("USE_TRUST_STORE","false"),
+    
+    /**
      * Default hash algorithm used for cryptographic operations.
      * Default value: "SHA256" (from HashAlgorithm.SHA256)
      */

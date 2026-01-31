@@ -9,8 +9,14 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.io.File;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStoreException;
+import java.security.cert.CertPathValidatorException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
+import java.util.Date;
 import java.util.HexFormat;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -28,14 +34,13 @@ import it.hackerinside.etk.GUI.CertificateDetailsPanel;
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
+import it.hackerinside.etk.Utils.X509TrustChainValidator;
 import it.hackerinside.etk.core.CAdES.CAdESUtils;
 import it.hackerinside.etk.core.CAdES.CAdESVerifier;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
-import it.hackerinside.etk.core.Models.HashAlgorithm;
 import it.hackerinside.etk.core.Models.VerificationResult;
 import it.hackerinside.etk.core.PEM.PEMUtils;
-
 import javax.swing.JSplitPane;
 import javax.swing.JPanel;
 import javax.swing.JList;
@@ -64,6 +69,7 @@ public class VerifyForm {
 	private JPanel panel_1;
 	private JButton btnExportContent;
 	protected EncodingOption encoding;
+	private String caCheckOutput = null;
 
 	/**
 	 * Launch the application.
@@ -373,17 +379,30 @@ public class VerifyForm {
 	                VerificationResult result = get();
 	                finishVerificationUI(this);
 	            } catch (Exception e) {
-	                e.printStackTrace();
-	                finishVerificationUI(null);
+	            	finishVerificationUI(null);
+	                Throwable cause = e;
+
+	                if (e instanceof ExecutionException && e.getCause() != null) {
+	                    cause = e.getCause();
+	                }
+
+	                // find root cause
+	                while (cause.getCause() != null) {
+	                    cause = cause.getCause();
+	                }
+
 	                DialogUtils.showMessageBox(
 	                        null,
 	                        "Verification failed",
 	                        "Error during verification!",
-	                        e.getMessage(),
+	                        cause.getMessage(),
 	                        JOptionPane.ERROR_MESSAGE
 	                );
-	                setStatusText("Verification failed.", Color.RED);
+
+	                setStatusText("Verification failed: " + cause.getMessage() , Color.RED);
+	                
 	            }
+
 	        }
 	    };
 
@@ -392,21 +411,48 @@ public class VerifyForm {
 
 	/**
 	 * Checks if the specified certificate is trusted by comparing it against
-	 * the application's keystore and known certificates.
+	 * the application's keystore, known certificates and CA truststore
 	 * 
 	 * @param cert the X509Certificate to check for trust
-	 * @return true if the certificate is found in the keystore or known certificates,
-	 *         false otherwise
+	 * @return true if the certificate is trusted
 	 */
 	private boolean isTrusted(X509Certificate cert) {
 	    try {
 	        if (ctx.getKeystore() != null && ctx.getKeystore().contains(cert) != null) return true;
 	        if (ctx.getKnownCerts() != null && ctx.getKnownCerts().contains(cert) != null) return true;
+	        if (ctx.useTrustStore() && ctx.getTrustStore() != null) return checkCA(cert);
 	    } catch (KeyStoreException e) {
 	        e.printStackTrace();
 	    }
 	    return false;
 	}
+	
+	/**
+	 * Check if the certificate is issued by a valid CA
+	 * @param cert the X509Certificate to check for trust
+	 * @return true if the certificate is issued by a valid CA
+	 */
+	private boolean checkCA(X509Certificate cert) {
+		boolean valid = false;
+		try {
+			new X509TrustChainValidator(ctx.getTrustStore())
+			.checkCertificate(cert);
+			valid = true;
+			caCheckOutput = "Certificate validated by certification authority!";
+			
+		} catch (CertificateException e) {
+			e.printStackTrace();
+			caCheckOutput = e.getMessage();
+		} catch (CertPathValidatorException e) {
+			e.printStackTrace();
+			caCheckOutput = e.getMessage();
+		} catch (InvalidAlgorithmParameterException e) {
+			e.printStackTrace();
+			caCheckOutput = e.getMessage();
+		}
+		return valid;
+	}
+
 
 	/**
 	 * Updates the UI to indicate that verification is in progress.
@@ -445,6 +491,31 @@ public class VerifyForm {
 	        e.printStackTrace();
 	    }
 	}
+	
+	/**
+	 * Check whether a certificate is valid at the date and time of signing.
+	 * 
+	 * 
+	 * @param cert the X509Certificate to check
+	 * @param signingTime Signature date and time, if null the current date and time is assumed
+	 * @return Message with verification result or empty string
+	 */
+	private String checkCertTimeValidity(X509Certificate cert, Date signingTime) {
+		String outputMessage = "";
+		if(signingTime==null) { // If the signature date is not stated, assume the current date.
+			signingTime = new Date();
+		}
+		
+		try {
+			cert.checkValidity(signingTime);
+			outputMessage = "";
+		}catch (CertificateExpiredException exp) {
+			outputMessage = exp.getMessage();
+		}catch(CertificateNotYetValidException nyValid) {
+			outputMessage = nyValid.getMessage();
+		}
+		return outputMessage;
+	}
 
 	/**
 	 * Displays the verification result in the UI.
@@ -476,11 +547,17 @@ public class VerifyForm {
 	        setStatusText("INVALID DIGITAL SIGNATURE", Color.RED);
 	        return;
 	    }
-
+	    
+	    String timeValidity;
 	    // --- Signing time ---
 	    if (result.hasSigningTime()) {
 	        listModel.addElement("Declared signing time: " + result.getSigningTime());
+	        timeValidity = checkCertTimeValidity(result.signer(),result.getSigningTime());
+	    }else {
+	    	timeValidity = checkCertTimeValidity(result.signer(),null);
 	    }
+	    
+	    
 	    listModel.addElement(" ");
 
 	    // --- SigningCertificateV2 attribute ---
@@ -500,5 +577,18 @@ public class VerifyForm {
 	        listModel.addElement("CAUTION - UNKNOWN SIGNER CERTIFICATE!");
 	        setStatusText("Verified OK, UNKNOWN SIGNER CERTIFICATE", Color.ORANGE);
 	    }
+	    
+	    if(caCheckOutput != null && !caCheckOutput.isEmpty()) {
+	    	listModel.addElement(" ");
+	    	listModel.addElement("CA: " + caCheckOutput);
+	    }
+	    
+	    if(!timeValidity.isEmpty()) {
+	    	listModel.addElement(" ");
+	    	listModel.addElement("CAUTION: " + timeValidity);
+	        setStatusText("Verified OK, " + timeValidity, Color.ORANGE);
+	    }
+	    
+	    
 	}
 }

@@ -41,6 +41,11 @@ public class ETKContext {
     private AbstractKeystore knownCerts;
     
     /**
+     * Keystore containing CA certificates.
+     */
+    private AbstractKeystore trustStore;
+    
+    /**
      * Application preferences storage.
      */
     private Preferences preferences;
@@ -100,6 +105,11 @@ public class ETKContext {
 		}
         try {
             initOrLoadKnownCerts(this.getKnownCertsPath());
+            
+            if(this.getTrustStorePath() != null && this.useTrustStore()) {
+            	initOrLoadTrustStore();
+            }
+            
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("ETKContext initialization error", e);
@@ -191,6 +201,21 @@ public class ETKContext {
     }
     
     /**
+     * Initializes or loads the CA certificates keystore from the specified path.
+     * 
+     * NOTE:
+     * This PKCS12 keystore only contains public certificates (no private keys).
+     *
+     * @param path the file system path to the CA certificates keystore
+     * @throws Exception if loading the keystore fails
+     */
+    public void initOrLoadTrustStore() throws Exception {
+    	ensureDirectoryExists(this.getTrustStorePath());
+        this.trustStore = new PKCS12Keystore(this.getTrustStorePath(), "".toCharArray());
+        trustStore.load();
+    }
+    
+    /**
      * Ensures that the specified directory path exists. If the directory does not exist,
      * it attempts to create it, including any necessary parent directories.
      *
@@ -264,6 +289,15 @@ public class ETKContext {
     public AbstractKeystore getKnownCerts() {
         return knownCerts;
     }
+    
+    /**
+     * Returns the keystore containing CA certificates
+     * 
+     * @return the truststore
+     */
+    public AbstractKeystore getTrustStore() {
+    	return this.trustStore;
+    }
 
     /**
      * Returns the application preferences storage.
@@ -288,12 +322,33 @@ public class ETKContext {
     }
 
     /**
-     * Sets the file system path to the main keystore.
+     * Sets the file system path to the trust store.
      * 
      * @param path the path to the keystore file
      */
     public void setKeyStorePath(String path) {
         preferences.put(ApplicationPreferences.KEYSTORE_PATH.getKey(), path);
+    }
+    
+    /**
+     * returns the file system path to the trust store.
+     * 
+     * @param path the path to the truststore file
+     */
+    public String getTrustStorePath() {
+        return preferences.get(
+            ApplicationPreferences.TRUSTED_CERTS_PATH.getKey(), 
+            ApplicationPreferences.TRUSTED_CERTS_PATH.getValue()
+        );
+    }
+
+    /**
+     * Sets the file system path to the trust store.
+     * 
+     * @param path the path to the keystore file
+     */
+    public void setTrustStorePath(String path) {
+        preferences.put(ApplicationPreferences.TRUSTED_CERTS_PATH.getKey(), path);
     }
 
     /**
@@ -400,12 +455,33 @@ public class ETKContext {
         );
         return Boolean.parseBoolean(usePkcs11);
     }
+    
+    
 
     /**
      * Sets whether the application should use PEM Encoding
      */
     public void setUsePEM(boolean pem) {
         preferences.put(ApplicationPreferences.USE_PEM.getKey(), Boolean.toString(pem));
+    }
+    
+    /**
+     * Returns whether the application should use the truststore
+     */
+    public boolean useTrustStore() {
+        String valusetrustStore = preferences.get(
+            ApplicationPreferences.USE_TRUST_STORE.getKey(), 
+            ApplicationPreferences.USE_TRUST_STORE.getValue()
+        );
+        return Boolean.parseBoolean(valusetrustStore);
+    }
+    
+
+    /**
+     * Sets whether the application should use the truststore
+     */
+    public void setUseTrustStore(boolean val) {
+        preferences.put(ApplicationPreferences.USE_TRUST_STORE.getKey(), Boolean.toString(val));
     }
     
     /**
@@ -420,6 +496,7 @@ public class ETKContext {
         return Boolean.parseBoolean(usePEM);
     }
 
+    
     /**
      * Sets whether the application should use PKCS11 (hardware security module)
      * instead of PKCS12 (software-based keystore).
@@ -582,7 +659,10 @@ public class ETKContext {
 				+ "\n    - getUseCacheEntryPasswords()=" + getUseCacheEntryPasswords() 
 				+ "\n    - getCacheEntryTimeout()=" + getCacheEntryTimeout()
 				+ "\n    - useSKI()=" + useSKI()
-				+ "\n    - hideInvalidCerts()=" + hideInvalidCerts();
+				+ "\n    - hideInvalidCerts()=" + hideInvalidCerts()
+				+ "\n    - useTrustStore()=" + useTrustStore()
+				+ "\n    - getTrustStorePath()=" + getTrustStorePath()
+				+ "\n    - getTrustStorePath()=" + getTrustStore();
 	}
     
 	
