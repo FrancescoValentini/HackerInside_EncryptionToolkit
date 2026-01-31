@@ -4,15 +4,23 @@ import java.awt.EventQueue;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+
 import java.awt.BorderLayout;
 import javax.swing.JTabbedPane;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import java.awt.Font;
+import java.awt.GridLayout;
+
 import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
 import javax.swing.LayoutStyle.ComponentPlacement;
 
+import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
@@ -25,15 +33,31 @@ import javax.swing.JComboBox;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.Collections;
+import java.util.List;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.DefaultListModel;
+
 import it.hackerinside.etk.GUI.UIThemes;
+import it.hackerinside.etk.GUI.Utils;
+import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
+import it.hackerinside.etk.Utils.X509CertificateLoader;
+import it.hackerinside.etk.Utils.X509Utils;
+
 import javax.swing.SwingConstants;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import java.awt.event.ItemListener;
 import java.awt.event.ItemEvent;
+import javax.swing.border.TitledBorder;
+import javax.swing.border.EtchedBorder;
+import java.awt.Color;
 
 public class SettingsForm {
 
@@ -52,6 +76,11 @@ public class SettingsForm {
 	private JSpinner spnCacheTimeout;
 	private JCheckBox chckbxSKI;
 	private JCheckBox chckbHideInvalidCerts;
+	private JTextField txtbTrustStorePath;
+	private JList<CertificateTableRow> caList;
+	private JCheckBox chckbxUseTruststore;
+    DefaultListModel<CertificateTableRow> listModel = new DefaultListModel<>();
+	private JPanel panel_3_1;
 
 	/**
 	 * Launch the application.
@@ -347,6 +376,108 @@ public class SettingsForm {
 		);
 		panel_3.setLayout(gl_panel_3);
 		
+		JPanel panel_4 = new JPanel();
+		tabbedPane.addTab("TrustStore", null, panel_4, null);
+		panel_4.setLayout(null);
+		
+		chckbxUseTruststore = new JCheckBox("Use TrustStore");
+		chckbxUseTruststore.setSelected(false);
+		chckbxUseTruststore.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		chckbxUseTruststore.setBounds(183, 38, 373, 29);
+		panel_4.add(chckbxUseTruststore);
+		
+		txtbTrustStorePath = new JTextField();
+		txtbTrustStorePath.setText("");
+		txtbTrustStorePath.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		txtbTrustStorePath.setColumns(10);
+		txtbTrustStorePath.setBounds(183, 11, 373, 25);
+		panel_4.add(txtbTrustStorePath);
+		
+		JButton btnOpenTrustStore = new JButton("...");
+		btnOpenTrustStore.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				openPKCS12(txtbTrustStorePath);
+			}
+		});
+		btnOpenTrustStore.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		btnOpenTrustStore.setBounds(562, 11, 45, 25);
+		panel_4.add(btnOpenTrustStore);
+		
+		JLabel lblTruststorePath = new JLabel("TrustStore Path:");
+		lblTruststorePath.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblTruststorePath.setBounds(10, 11, 163, 25);
+		panel_4.add(lblTruststorePath);
+		
+		panel_3_1 = new JPanel();
+		panel_3_1.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, new Color(255, 255, 255), new Color(160, 160, 160)), "Certification Authorities", TitledBorder.LEADING, TitledBorder.TOP, null));
+		panel_3_1.setBounds(10, 74, 625, 195);
+		panel_4.add(panel_3_1);
+		panel_3_1.setLayout(new BorderLayout(0, 0));
+		
+		caList = new JList<>(listModel);
+		caList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		JScrollPane scrollPane = new JScrollPane(caList);
+		panel_3_1.add(scrollPane, BorderLayout.CENTER);
+
+		JPanel buttonsPanel = new JPanel();
+		buttonsPanel.setLayout(new GridLayout(3, 1, 5, 5));
+		panel_3_1.add(buttonsPanel, BorderLayout.EAST);
+		
+		JButton btnAddCertFile = new JButton("+");
+
+		btnAddCertFile.setFont(new Font("Tahoma", Font.BOLD, 16));
+		
+		JButton btnRemoveCert = new JButton("-");
+		btnRemoveCert.setFont(new Font("Tahoma", Font.BOLD, 16));
+		
+
+
+		JButton btnCertInfo = new JButton("INFO");
+		btnCertInfo.setFont(new Font("Tahoma", Font.BOLD, 16));
+		
+
+		
+		buttonsPanel.add(btnAddCertFile);
+		buttonsPanel.add(btnRemoveCert);
+		buttonsPanel.add(btnCertInfo);
+		
+		btnAddCertFile.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				X509Certificate cert = loadCertificateFromFile();
+
+				if(cert != null) {
+					addTrustStoreCertificate(cert);
+				}
+			}
+		});
+		
+		btnRemoveCert.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				CertificateTableRow selected = caList.getSelectedValue();
+				if(selected != null) {
+					try {
+						ctx.getTrustStore().deleteKeyOrCertificate(selected.keystoreAlias());
+						ctx.getTrustStore().save();
+					} catch (Exception e1) {
+						e1.printStackTrace();
+			            DialogUtils.showMessageBox(
+			            		null, 
+			            		"Error deleting certificate", 
+			            		"Error deleting certificate!", 
+			                e1.getMessage(), 
+			                JOptionPane.ERROR_MESSAGE);
+					}
+					refreshCaList();
+				}
+			}
+		});
+		
+		btnCertInfo.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				CertificateTableRow selected = caList.getSelectedValue();
+				if(selected != null) showCertificateInfo(selected.original());
+			}
+		});
 		
 		frmHackerinsideEncryptionToolkit.addWindowListener(new WindowAdapter() {
 			@Override
@@ -379,6 +510,21 @@ public class SettingsForm {
 			}
 		});
 		
+		chckbxUseTruststore.addItemListener(new ItemListener() {
+		    @Override
+		    public void itemStateChanged(ItemEvent e) {
+		        if (e.getStateChange() == ItemEvent.SELECTED) {
+		            try {
+		                ctx.initOrLoadTrustStore();
+		                refreshCaList();
+		            } catch (Exception ex) {
+		                ex.printStackTrace();
+		            }
+		        }
+		    }
+		});
+
+		
 		start();
 	}
 	
@@ -391,6 +537,114 @@ public class SettingsForm {
 		loadEncAlgos();
 		loadHashAlgo();
 		loadSettings();
+		refreshCaList();
+	}
+	
+	/**
+	 * Refreshes the list of CA certificates from the trust store.
+	 * Clears the current list model and reloads all stored certificates
+	 * if the trust store is enabled.
+	 */
+
+	private void refreshCaList() {
+		if(!ctx.useTrustStore()) return;
+		try {
+			listModel.clear();
+			List<String> aliases = Collections.list(ctx.getTrustStore().listAliases());
+			for(String alias : aliases) {
+				X509Certificate cert = ctx.getTrustStore().getCertificate(alias);
+				listModel.addElement(new CertificateTableRow(alias, null, cert));
+			}
+
+		} catch (KeyStoreException e) {
+			e.printStackTrace();
+		}
+		
+	}
+	
+	/**
+	 * Displays detailed information for the given X.509 certificate.
+	 *
+	 * @param crt the certificate to display; ignored if {@code null}
+	 */
+
+	private void showCertificateInfo(X509Certificate crt) {
+	    if (crt != null) {
+	        new CertificateDetailsForm(crt);
+	    }
+	}
+	
+	/**
+	 * Adds an X.509 CA certificate to the trust store.
+	 * Prompts the user for an alias, validates that the certificate
+	 * is a CA certificate, and persists it to the trust store.
+	 *
+	 * @param cert the certificate to add to the trust store
+	 */
+
+	private void addTrustStoreCertificate(X509Certificate cert) {
+		String alias;
+		String cn = X509Utils.extractCN(cert.getSubjectX500Principal().getName());
+		
+		if(cn != null && !cn.isEmpty()) {
+			alias = cn;
+		}else {
+			alias = DialogUtils.showInputBox(null, "Certificate Alias", "Enter Certificate Alias", "");
+		}
+		
+        if(alias == null || alias.isEmpty()) return;
+        
+        try {
+        	
+            if (cert.getBasicConstraints() < 0) {
+                throw new Exception("The selected certificate is not a CA certificate.");
+            }
+        	
+            if(Utils.acceptX509Certificate(cert)) {
+                ctx.getTrustStore().addCertificate(alias, cert);
+                ctx.getTrustStore().save();
+                refreshCaList();
+            }
+        }catch (Exception e) {
+            e.printStackTrace();
+            DialogUtils.showMessageBox(
+            		null, 
+            		"Error importing certificate", 
+            		"Error importing certificate!", 
+                e.getMessage(), 
+                JOptionPane.ERROR_MESSAGE);
+        }
+	}
+	
+	/**
+	 * Loads a CA certificate from a file selected via file dialog.
+	 */
+	private X509Certificate loadCertificateFromFile() {
+	    File certFile = FileDialogUtils.openFileDialog(
+	            null,
+	            "Select CA certificate",
+	            ".",
+	            DefaultExtensions.CRYPTO_PEM,
+	            DefaultExtensions.CRYPTO_CER,
+	            DefaultExtensions.CRYPTO_CRT,
+	            DefaultExtensions.CRYPTO_DER
+	    );
+
+	    if (certFile != null) {
+		    try {
+		        return X509CertificateLoader.loadFromFile(certFile);
+		    } catch (CertificateException | IOException e) {
+		        e.printStackTrace();
+				DialogUtils.showMessageBox(
+						null, 
+						"Invalid certificate", 
+						"Invalid certificate!", 
+				        e.getMessage(), 
+				        JOptionPane.ERROR_MESSAGE);
+		        return null;
+		    }
+	    }
+	    return null;
 	}
 	
 	/**
@@ -400,12 +654,14 @@ public class SettingsForm {
 		txtbKeyStorePath.setText(ctx.getKeyStorePath());
 		txtbKnownCertsPath.setText(ctx.getKnownCertsPath());
 		txtPkcs11ConfPath.setText(ctx.getPkcs11Driver());
+		txtbTrustStorePath.setText(ctx.getTrustStorePath());
 		
 		chckbUsePem.setSelected(ctx.usePEM());
 		chckbxSKI.setSelected(ctx.useSKI());
 		chckbUsePkcs11.setSelected(ctx.usePKCS11());
 		chckbPasswordCache.setSelected(ctx.getUseCacheEntryPasswords());
 		chckbHideInvalidCerts.setSelected(ctx.hideInvalidCerts());
+		chckbxUseTruststore.setSelected(ctx.useTrustStore());
 		
 		cmbEncAlgPath.setSelectedItem(ctx.getCipher());
 		cmbHashAlgPath.setSelectedItem(ctx.getHashAlgorithm());
@@ -422,6 +678,7 @@ public class SettingsForm {
 	private void save() {
 		ctx.setKeyStorePath(txtbKeyStorePath.getText());
 		ctx.setKnownCertsPath(txtbKnownCertsPath.getText());
+		ctx.setTrustStorePath(txtbTrustStorePath.getText());
 		ctx.setPkcs11Driver(txtPkcs11ConfPath.getText());
 		ctx.setCipher(((SymmetricAlgorithms) cmbEncAlgPath.getSelectedItem()));
 		ctx.setHashAlgorithm((HashAlgorithm) cmbHashAlgPath.getSelectedItem());
@@ -433,6 +690,7 @@ public class SettingsForm {
 		ctx.setUseCacheEntryPassword(chckbPasswordCache.isSelected());
 		ctx.setCacheEntryTimeout((int) spnCacheTimeout.getValue());
 		ctx.setHideInvalidCerts(chckbHideInvalidCerts.isSelected());
+		ctx.setUseTrustStore(chckbxUseTruststore.isSelected());
 	}
 	
 	/**

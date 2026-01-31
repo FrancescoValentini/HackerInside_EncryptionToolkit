@@ -53,5 +53,20 @@ public class X509Utils {
         return sb.substring(0, sb.length() - 2);
     	
     }
+    
+    /**
+     * Extracts the Common Name (CN) from a Distinguished Name (DN) string.
+     * 
+     * @param dn the Distinguished Name string to parse
+     * @return the Common Name value, or an empty string if not found
+     */
+    public static String extractCN(String dn) {
+        for (String part : dn.split(",")) {
+            if (part.trim().startsWith("CN=")) {
+                return part.trim().substring(3);
+            }
+        }
+        return "";
+    }
 
 }

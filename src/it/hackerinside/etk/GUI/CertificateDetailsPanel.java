@@ -16,9 +16,6 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
 
-import org.bouncycastle.asn1.x500.RDN;
-import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 
 import it.hackerinside.etk.Utils.X509CertificateExporter;
@@ -103,7 +100,7 @@ public class CertificateDetailsPanel extends JPanel {
         String prettySubj = X509Utils.getPrettySubject(cert.getSubjectX500Principal().getEncoded());
 
         // Common Name
-        String cn = extractCN(cert.getSubjectX500Principal().getName());
+        String cn = X509Utils.extractCN(cert.getSubjectX500Principal().getName());
 
         addRow("Common name", cn);
         addRow("Subject", prettySubj);
@@ -139,21 +136,6 @@ public class CertificateDetailsPanel extends JPanel {
      */
     private void addRow(String field, String value) {
         tableModel.addRow(new Object[]{field, value});
-    }
-
-    /**
-     * Extracts the Common Name (CN) from a Distinguished Name (DN) string.
-     * 
-     * @param dn the Distinguished Name string to parse
-     * @return the Common Name value, or an empty string if not found
-     */
-    private String extractCN(String dn) {
-        for (String part : dn.split(",")) {
-            if (part.trim().startsWith("CN=")) {
-                return part.trim().substring(3);
-            }
-        }
-        return "";
     }
     
     /**

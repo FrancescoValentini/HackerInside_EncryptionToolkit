@@ -376,7 +376,7 @@ public class VerifyForm {
 	        @Override
 	        protected void done() {
 	            try {
-	                VerificationResult result = get();
+	                get();
 	                finishVerificationUI(this);
 	            } catch (Exception e) {
 	            	finishVerificationUI(null);
@@ -501,21 +501,33 @@ public class VerifyForm {
 	 * @return Message with verification result or empty string
 	 */
 	private String checkCertTimeValidity(X509Certificate cert, Date signingTime) {
-		String outputMessage = "";
-		if(signingTime==null) { // If the signature date is not stated, assume the current date.
-			signingTime = new Date();
-		}
-		
-		try {
-			cert.checkValidity(signingTime);
-			outputMessage = "";
-		}catch (CertificateExpiredException exp) {
-			outputMessage = exp.getMessage();
-		}catch(CertificateNotYetValidException nyValid) {
-			outputMessage = nyValid.getMessage();
-		}
-		return outputMessage;
+	    Date now = new Date();
+
+	    if (signingTime == null) {
+	        signingTime = now;
+	    }
+
+	    // Check at signing time
+	    try {
+	        cert.checkValidity(signingTime);
+	    } catch (CertificateExpiredException e) {
+	        return "Expired at signing";
+	    } catch (CertificateNotYetValidException e) {
+	        return "Not valid at signing";
+	    }
+
+	    // Check at current time
+	    try {
+	        cert.checkValidity(now);
+	        return ""; // valid
+	    } catch (CertificateExpiredException e) {
+	        return "Expired now (valid at signing)";
+	    } catch (CertificateNotYetValidException e) {
+	        return "Not valid now (valid at signing)";
+	    }
 	}
+
+
 
 	/**
 	 * Displays the verification result in the UI.
@@ -556,7 +568,6 @@ public class VerifyForm {
 	    }else {
 	    	timeValidity = checkCertTimeValidity(result.signer(),null);
 	    }
-	    
 	    
 	    listModel.addElement(" ");
 
