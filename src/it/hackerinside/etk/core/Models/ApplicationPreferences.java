@@ -23,6 +23,16 @@ public enum ApplicationPreferences {
     KNOWN_CERTS_PATH("KNOWN_CERTS_PATH", getHomeFilePath("knowncerts.pfx")),
     
     /**
+     * Path to the keystore file containing CA certificates.
+     */
+    TRUSTED_CERTS_PATH("TRUSTED_CERTS_PATH", getHomeFilePath("truststore.pfx")),
+    
+    /**
+     * Trust Store toggle
+     */
+    USE_TRUST_STORE("USE_TRUST_STORE","false"),
+    
+    /**
      * Default hash algorithm used for cryptographic operations.
      * Default value: "SHA256" (from HashAlgorithm.SHA256)
      */
@@ -74,7 +84,12 @@ public enum ApplicationPreferences {
 	/**
 	 * Use only the recipient SKI for encryption
 	 */
-	USE_SKI("USE_SKI","false");
+	USE_SKI("USE_SKI","false"),
+	
+	/**
+	 * Hides expired or still invalid certificates
+	 */
+	HIDE_INVALID_CERTS("HIDE_INVALID_CERTS","true");
     
     private final String key;
     private final String value;

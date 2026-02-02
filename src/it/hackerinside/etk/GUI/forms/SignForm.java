@@ -12,7 +12,6 @@ import java.awt.Font;
 import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
-import java.util.Enumeration;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.JLabel;
@@ -27,6 +26,7 @@ import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.TimeUtils;
 import it.hackerinside.etk.GUI.Utils;
+import it.hackerinside.etk.Utils.X509Utils;
 import it.hackerinside.etk.core.CAdES.CAdESSigner;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
@@ -281,7 +281,8 @@ public class SignForm {
 	        ctx.getKeystore()
 	           .listAliases(cert -> {
 	               String alg = cert.getPublicKey().getAlgorithm();
-	               return alg != null && !alg.equalsIgnoreCase("ML-KEM"); // Excludes certificates for encryption 
+	               boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
+	               return alg != null && validCert && !alg.contains("ML-KEM"); // Excludes certificates for encryption 
 	           })
 	           .forEach(combo::addItem);
 
@@ -418,6 +419,7 @@ public class SignForm {
 	    if(!Utils.acceptX509Certificate(signerCert)) return;
 	    
 	    PrivateKey priv = getPrivateKey();
+	    if(priv == null) return;
 	    
 	    startSignatureUI();
 	    

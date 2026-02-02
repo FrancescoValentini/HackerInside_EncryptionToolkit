@@ -11,6 +11,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.EdECPrivateKey;
 import java.util.Collections;
 import java.util.Date;
 
@@ -285,27 +286,37 @@ public class CAdESSigner {
      * @throws IllegalArgumentException if the private key algorithm is not supported
      *                                  or cannot be determined
      */
-	private String getSignatureAlgorithm() throws Exception {
-		try {
-			PQCAlgorithms pqcAlgo = PQCAlgorithms.fromString(privateKey.getAlgorithm());
-			if(!pqcAlgo.canSign) throw new Exception(pqcAlgo + " cannot be used for digital signature.");
-			return pqcAlgo.toString();
-		}catch(IllegalArgumentException e) {
-			// Fallback, try standard algorithms
-		} 
-		
-		AsymmetricAlgorithm alg = AsymmetricAlgorithm.fromPrivateKey(privateKey);
+    private String getSignatureAlgorithm() throws Exception {
+        // 1. Try PQC algorithms first
+        try {
+            PQCAlgorithms pqcAlgorithm = PQCAlgorithms.fromString(privateKey.getAlgorithm());
+            if (!pqcAlgorithm.canSign) {
+                throw new Exception(pqcAlgorithm + " cannot be used for digital signature.");
+            }
+            return pqcAlgorithm.toString();
+        } catch (IllegalArgumentException ignored) {
+            // Fallback to standard algorithms
+        }
 
-    	StringBuilder sb = new StringBuilder();
-    	sb.append(hashAlgorithm.toString().toUpperCase().replace("-", ""));
-    	sb.append("with");
-    	
-    	if(alg == AsymmetricAlgorithm.EC) {
-    		sb.append("ECDSA");
-    	}else {
-    		sb.append(AsymmetricAlgorithm.fromPrivateKey(privateKey).toString().toUpperCase());
-    	}
-    	return sb.toString();
+        // 2. EdDSA (Ed25519 / Ed448)
+        if (privateKey instanceof EdECPrivateKey edKey) {
+            return edKey.getParams().getName();
+        }
+
+        // 3. Classic algorithms (RSA, ECDSA, etc.)
+        AsymmetricAlgorithm asymmetricAlgorithm = AsymmetricAlgorithm.fromPrivateKey(privateKey);
+
+        String hashPart = hashAlgorithm
+                .toString()
+                .toUpperCase()
+                .replace("-", "");
+
+        String signaturePart = (asymmetricAlgorithm == AsymmetricAlgorithm.EC)
+                ? "ECDSA"
+                : asymmetricAlgorithm.toString().toUpperCase();
+
+        return hashPart + "with" + signaturePart;
     }
+
 	
 }

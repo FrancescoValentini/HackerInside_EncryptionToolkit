@@ -23,7 +23,7 @@ import it.hackerinside.etk.core.keystore.PKCS12Keystore;
  */
 public class ETKContext {
 	
-	public static final String ETK_VERSION = "1.0.9";
+	public static final String ETK_VERSION = "1.0.10";
 	
     /**
      * Singleton instance of ETKContext.
@@ -39,6 +39,11 @@ public class ETKContext {
      * Keystore containing known/trusted certificates.
      */
     private AbstractKeystore knownCerts;
+    
+    /**
+     * Keystore containing CA certificates.
+     */
+    private AbstractKeystore trustStore;
     
     /**
      * Application preferences storage.
@@ -100,6 +105,11 @@ public class ETKContext {
 		}
         try {
             initOrLoadKnownCerts(this.getKnownCertsPath());
+            
+            if(this.getTrustStorePath() != null && this.useTrustStore()) {
+            	initOrLoadTrustStore();
+            }
+            
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("ETKContext initialization error", e);
@@ -191,6 +201,21 @@ public class ETKContext {
     }
     
     /**
+     * Initializes or loads the CA certificates keystore from the specified path.
+     * 
+     * NOTE:
+     * This PKCS12 keystore only contains public certificates (no private keys).
+     *
+     * @param path the file system path to the CA certificates keystore
+     * @throws Exception if loading the keystore fails
+     */
+    public void initOrLoadTrustStore() throws Exception {
+    	ensureDirectoryExists(this.getTrustStorePath());
+        this.trustStore = new PKCS12Keystore(this.getTrustStorePath(), "".toCharArray());
+        trustStore.load();
+    }
+    
+    /**
      * Ensures that the specified directory path exists. If the directory does not exist,
      * it attempts to create it, including any necessary parent directories.
      *
@@ -264,6 +289,15 @@ public class ETKContext {
     public AbstractKeystore getKnownCerts() {
         return knownCerts;
     }
+    
+    /**
+     * Returns the keystore containing CA certificates
+     * 
+     * @return the truststore
+     */
+    public AbstractKeystore getTrustStore() {
+    	return this.trustStore;
+    }
 
     /**
      * Returns the application preferences storage.
@@ -288,12 +322,33 @@ public class ETKContext {
     }
 
     /**
-     * Sets the file system path to the main keystore.
+     * Sets the file system path to the trust store.
      * 
      * @param path the path to the keystore file
      */
     public void setKeyStorePath(String path) {
         preferences.put(ApplicationPreferences.KEYSTORE_PATH.getKey(), path);
+    }
+    
+    /**
+     * returns the file system path to the trust store.
+     * 
+     * @param path the path to the truststore file
+     */
+    public String getTrustStorePath() {
+        return preferences.get(
+            ApplicationPreferences.TRUSTED_CERTS_PATH.getKey(), 
+            ApplicationPreferences.TRUSTED_CERTS_PATH.getValue()
+        );
+    }
+
+    /**
+     * Sets the file system path to the trust store.
+     * 
+     * @param path the path to the keystore file
+     */
+    public void setTrustStorePath(String path) {
+        preferences.put(ApplicationPreferences.TRUSTED_CERTS_PATH.getKey(), path);
     }
 
     /**
@@ -400,12 +455,33 @@ public class ETKContext {
         );
         return Boolean.parseBoolean(usePkcs11);
     }
+    
+    
 
     /**
      * Sets whether the application should use PEM Encoding
      */
     public void setUsePEM(boolean pem) {
         preferences.put(ApplicationPreferences.USE_PEM.getKey(), Boolean.toString(pem));
+    }
+    
+    /**
+     * Returns whether the application should use the truststore
+     */
+    public boolean useTrustStore() {
+        String valusetrustStore = preferences.get(
+            ApplicationPreferences.USE_TRUST_STORE.getKey(), 
+            ApplicationPreferences.USE_TRUST_STORE.getValue()
+        );
+        return Boolean.parseBoolean(valusetrustStore);
+    }
+    
+
+    /**
+     * Sets whether the application should use the truststore
+     */
+    public void setUseTrustStore(boolean val) {
+        preferences.put(ApplicationPreferences.USE_TRUST_STORE.getKey(), Boolean.toString(val));
     }
     
     /**
@@ -420,6 +496,7 @@ public class ETKContext {
         return Boolean.parseBoolean(usePEM);
     }
 
+    
     /**
      * Sets whether the application should use PKCS11 (hardware security module)
      * instead of PKCS12 (software-based keystore).
@@ -508,7 +585,7 @@ public class ETKContext {
     }
     
     /**
-     * Sets whether the application should use PEM Encoding
+     * Sets whether the application should use SKI to identify the private key
      */
     public void setUseSKI(boolean ski) {
         preferences.put(ApplicationPreferences.USE_SKI.getKey(), Boolean.toString(ski));
@@ -525,6 +602,25 @@ public class ETKContext {
         );
         return Boolean.parseBoolean(vuseSKI);
     }
+    
+    /**
+     * Sets whether the application should use PEM Encoding
+     */
+    public void setHideInvalidCerts(boolean hide) {
+        preferences.put(ApplicationPreferences.HIDE_INVALID_CERTS.getKey(), Boolean.toString(hide));
+    }
+    
+    /**
+     * Returns whether the application should hide invalid certificates
+    */
+    public boolean hideInvalidCerts() {
+        String vHide = preferences.get(
+            ApplicationPreferences.HIDE_INVALID_CERTS.getKey(), 
+            ApplicationPreferences.HIDE_INVALID_CERTS.getValue()
+        );
+        return Boolean.parseBoolean(vHide);
+    }
+    
     
     /**
      * Changes the master password of the keystore.
@@ -562,7 +658,11 @@ public class ETKContext {
 				+ getPkcs11Driver() + "\n    - usePKCS11()=" + usePKCS11() + "\n    - usePEM()=" + usePEM() + "\n    - getTheme()=" + getTheme()+ "\n    - getBufferSize()=" + getBufferSize()
 				+ "\n    - getUseCacheEntryPasswords()=" + getUseCacheEntryPasswords() 
 				+ "\n    - getCacheEntryTimeout()=" + getCacheEntryTimeout()
-				+ "\n    - useSKI()=" + useSKI();
+				+ "\n    - useSKI()=" + useSKI()
+				+ "\n    - hideInvalidCerts()=" + hideInvalidCerts()
+				+ "\n    - useTrustStore()=" + useTrustStore()
+				+ "\n    - getTrustStorePath()=" + getTrustStorePath()
+				+ "\n    - getTrustStorePath()=" + getTrustStore();
 	}
     
 	

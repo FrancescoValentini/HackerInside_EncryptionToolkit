@@ -33,8 +33,10 @@ import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableModel;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
 import it.hackerinside.etk.GUI.DTOs.KeysLocations;
+import it.hackerinside.etk.Utils.HTTPRequest;
 import it.hackerinside.etk.Utils.X509CertificateExporter;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
+import it.hackerinside.etk.Utils.X509Utils;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
 import it.hackerinside.etk.core.keystore.PKCS12Keystore;
@@ -55,7 +57,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.awt.event.ActionEvent;
+import javax.swing.JCheckBoxMenuItem;
 
 public class ETKMain {
 
@@ -67,6 +71,7 @@ public class ETKMain {
 	private JButton btnSign;
 	private JButton btnEncrypt;
 	private JMenuItem mntmChangeKeystorePwd;
+	private JCheckBoxMenuItem chckbxmntmHideInvalidCertificate;
 	/**
 	 * Launch the application.
 	 */
@@ -168,6 +173,19 @@ public class ETKMain {
 	    JMenuItem menuItemImportKnownCertStr = new JMenuItem("From string");
 	    mnNewMenu_1.add(menuItemImportKnownCertStr);
 	    
+	    JMenuItem menuItemImportKnownCertURL = new JMenuItem("From URL");
+	    mnNewMenu_1.add(menuItemImportKnownCertURL);
+	    
+	    chckbxmntmHideInvalidCertificate = new JCheckBoxMenuItem("Hide Invalid Certificates");
+	    mnNewMenu.add(chckbxmntmHideInvalidCertificate);
+	    
+	    chckbxmntmHideInvalidCertificate.addActionListener(new ActionListener() {
+	    	public void actionPerformed(ActionEvent e) {
+	    		updateTable();
+	    	}
+	    });
+	    
+	    
 	    menuItemImportKnownCert.addActionListener(new ActionListener() {
 	    	public void actionPerformed(ActionEvent e) {
 	    		importKnownCert();
@@ -177,6 +195,12 @@ public class ETKMain {
 	    menuItemImportKnownCertStr.addActionListener(new ActionListener() {
 	    	public void actionPerformed(ActionEvent e) {
 	    		importKnownCertFromString();
+	    	}
+	    });
+	    
+	    menuItemImportKnownCertURL.addActionListener(new ActionListener() {
+	    	public void actionPerformed(ActionEvent e) {
+	    		importKnownCertFromURL();
 	    	}
 	    });
 	    
@@ -621,6 +645,7 @@ public class ETKMain {
 	 * the keystore and then updating the certificate table.
 	 */
 	private void startProcedure() {
+		chckbxmntmHideInvalidCertificate.setSelected(ctx.hideInvalidCerts());
 		disablePrivateKeyOperations();
 		if(!new File(ctx.getKnownCertsPath()).exists()  || !ctx.usePKCS11() && !new File(ctx.getKeyStorePath()).exists()) {
 			SetupForm setup = new SetupForm();
@@ -676,6 +701,13 @@ public class ETKMain {
 	 */
 	private void updateTable() {
 	    List<CertificateTableRow> rows = getTableRows();
+	    
+	    if (chckbxmntmHideInvalidCertificate.isSelected()) {
+	        rows = rows.stream()
+	                .filter(row -> {return X509Utils.checkTimeValidity(row.original());})
+	                .collect(Collectors.toList());
+	    }
+	    
 	    tableModel.setRows(rows);
 	}
 
@@ -772,33 +804,24 @@ public class ETKMain {
 	        DefaultExtensions.CRYPTO_DER
 	    );
 	    X509Certificate cert = null;
-	    boolean accepted = false;
 	    if (certFile != null) {
-	        String alias = DialogUtils.showInputBox(null, "Certificate Alias", "Enter Certificate Alias", "");
 	        try {
 	            cert = X509CertificateLoader.loadFromFile(certFile);
-	            accepted = Utils.acceptX509Certificate(cert) && certImportWarning(cert);
-	            
-	            if(accepted) {
-		            ctx.getKnownCerts().addCertificate(alias, cert);
-		            ctx.getKnownCerts().save();
-				    updateTable();
-				    showCertificateInformation(cert);
-	            }
+	            saveKnownCertificate(cert);
 
 	        } catch (CertificateException | IOException e) {
 	            e.printStackTrace();
 	            DialogUtils.showMessageBox(null, "Invalid certificate", "Invalid certificate!", 
 	                e.getMessage(), 
 	                JOptionPane.ERROR_MESSAGE);
-	        } catch (KeyStoreException e) {
+	        }catch (Exception e) {
 	            e.printStackTrace();
-	            DialogUtils.showMessageBox(null, "Error importing certificate", "Error importing certificate!", 
+	            DialogUtils.showMessageBox(
+	            		null, 
+	            		"Error importing certificate", 
+	            		"Error importing certificate!", 
 	                e.getMessage(), 
 	                JOptionPane.ERROR_MESSAGE);
-	        } catch (Exception e) {
-
-	            e.printStackTrace();
 	        }
 	    }
 	}
@@ -809,9 +832,6 @@ public class ETKMain {
 	 * After successful import, updates the table and displays the certificate details.
 	 */
 	private void importKnownCertFromString(){
-		X509Certificate cert = null;
-        String alias = DialogUtils.showInputBox(null, "Certificate Alias", "Enter Certificate Alias", "");
-        if(alias == null || alias.isEmpty()) return;
         String certString = DialogUtils.showLargeInputBox(
         	    null,
         	    "Import Known Certificate",
@@ -820,30 +840,87 @@ public class ETKMain {
         	    true
         	);
         if(certString == null || certString.isEmpty()) return;
+        loadFromString(certString);
+	}
+	
+	/**
+	 * Imports a known X.509 certificate from a URL provided by the user via a dialog.
+	 */
+	private void importKnownCertFromURL() {
+        String url = DialogUtils.showLargeInputBox(
+        	    null,
+        	    "Import Known Certificate",
+        	    "URL",
+        	    "",
+        	    true
+        	);
+        if(url == null || url.isEmpty()) return;
+        String httpResponse = "";
+        try {
+        	 httpResponse = HTTPRequest.getString(url);
+        }catch(Exception e) {
+            e.printStackTrace();
+            DialogUtils.showMessageBox(
+            		null, 
+            		"HTTP request error!", 
+            		"HTTP request error!", 
+            		e.getMessage(), 
+                JOptionPane.ERROR_MESSAGE);
+        }
+        
+        loadFromString(httpResponse);
+	}
+	
+	/**
+	 * Loads an X.509 certificate from a PEM or DER encoded string representation.
+	 * 
+	 * @param certString the string containing the certificate data in PEM format
+	 */
+	private void loadFromString(String certString) {
+		X509Certificate cert = null;
         try {
             cert = X509CertificateLoader.loadFromString(certString);
+            saveKnownCertificate(cert);
+        } catch (CertificateException | IOException e) {
+            e.printStackTrace();
+            DialogUtils.showMessageBox(null, "Invalid certificate", "Invalid certificate!", 
+                e.getMessage(), 
+                JOptionPane.ERROR_MESSAGE);
+        }catch (Exception e) {
+            e.printStackTrace();
+            DialogUtils.showMessageBox(
+            		null, 
+            		"Error importing certificate", 
+            		"Error importing certificate!", 
+                e.getMessage(), 
+                JOptionPane.ERROR_MESSAGE);
+        }
+	}
+	
+	/**
+	 * Saves a known X.509 certificate to the application's certificate store after prompting
+	 * 
+	 * @param cert the X.509 certificate to save
+	 */
+	private void saveKnownCertificate(X509Certificate cert) {
+		String alias = DialogUtils.showInputBox(null, "Certificate Alias", "Enter Certificate Alias", "");
+        if(alias == null || alias.isEmpty()) return;
+        try {
             if(Utils.acceptX509Certificate(cert) && certImportWarning(cert)) {
                 ctx.getKnownCerts().addCertificate(alias, cert);
                 ctx.getKnownCerts().save();
         	    updateTable();
         	    showCertificateInformation(cert);
             }
-
-        } catch (CertificateException | IOException e) {
+        }catch (Exception e) {
             e.printStackTrace();
-            DialogUtils.showMessageBox(null, "Invalid certificate", "Invalid certificate!", 
+            DialogUtils.showMessageBox(
+            		null, 
+            		"Error importing certificate", 
+            		"Error importing certificate!", 
                 e.getMessage(), 
                 JOptionPane.ERROR_MESSAGE);
-        } catch (KeyStoreException e) {
-            e.printStackTrace();
-            DialogUtils.showMessageBox(null, "Error importing certificate", "Error importing certificate!", 
-                e.getMessage(), 
-                JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
-
-            e.printStackTrace();
         }
-
 	}
 	
     /**

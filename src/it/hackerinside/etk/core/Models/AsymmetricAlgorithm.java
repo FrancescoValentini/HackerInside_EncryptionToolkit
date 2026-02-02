@@ -21,7 +21,12 @@ public enum AsymmetricAlgorithm {
     /**
      * Elliptic Curve (EC) cryptography algorithm.
     */
-    EC("EC");
+    EC("EC"),
+    
+    /**
+     * Edwards-curve Digital Signature Algorithm
+     */
+    EdDSA("EdDSA");
     
     private final String algorithm;
     

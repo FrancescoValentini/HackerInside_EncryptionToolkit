@@ -5,6 +5,8 @@ import java.security.cert.X509Certificate;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 
+import it.hackerinside.etk.Utils.X509Utils;
+
 /**
  * Represents a row in a certificate table, containing key certificate information
  * for display and management purposes. This record encapsulates both the original
@@ -56,14 +58,7 @@ public record CertificateTableRow(
     private static String extractCommonName(X509Certificate cert) {
         try {
             String dn = cert.getSubjectX500Principal().getName();
-            // Extract CN from Distinguished Name
-            String[] dnComponents = dn.split(",");
-            for (String component : dnComponents) {
-                if (component.trim().startsWith("CN=")) {
-                    return component.trim().substring(3);
-                }
-            }
-            return ""; // Fallback if CN not found
+            return X509Utils.extractCN(dn);
         } catch (Exception e) {
             return "";
         }

@@ -32,6 +32,7 @@ import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
+import it.hackerinside.etk.Utils.X509Utils;
 import it.hackerinside.etk.core.Encryption.CMSEncryptor;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
@@ -364,22 +365,24 @@ public class EncryptForm {
 	    combo.addItem(null);
 
 	    try {
-	        Predicate<X509Certificate> excludeDSA = cert -> {
+	        Predicate<X509Certificate> validCertConditions = cert -> {
 	            String alg = cert.getPublicKey().getAlgorithm();
-	            return alg != null && !alg.toUpperCase().contains("DSA");
+	            boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
+
+	            return alg != null && validCert &&!alg.toUpperCase().contains("DSA");
 	        };
 
 	        // PERSONAL CERTS
 	        if (ctx.getKeystore() != null) {
 	            ctx.getKeystore()
-	               .listAliases(excludeDSA)
+	               .listAliases(validCertConditions)
 	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKeystore())));
 	        }
 
 	        // KNOWN CERTS
 	        if (ctx.getKnownCerts() != null) {
 	            ctx.getKnownCerts()
-	               .listAliases(excludeDSA)
+	               .listAliases(validCertConditions)
 	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKnownCerts())));
 	        }
 
@@ -594,7 +597,7 @@ public class EncryptForm {
         okMessage.append("\n\nElapsed: " + TimeUtils.formatElapsedTime(startTime, endTime));
         okMessage.append("\n\n\nRecipients: \n");
         recipients.forEach(recipient -> {
-        	okMessage.append("- " + recipient.getSubjectX500Principal().getName("RFC2253") + "\n");
+        	okMessage.append("- " + X509Utils.getPrettySubject(recipient.getSubjectX500Principal().getEncoded()) + "\n");
         });
        
         return okMessage.toString();

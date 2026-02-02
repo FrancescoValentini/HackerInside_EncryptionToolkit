@@ -331,11 +331,12 @@ public class DecryptForm {
 	    File output = new File(txtbOutputFile.getText());
 	    if(!FileDialogUtils.overwriteIfExists(output)) return;
 	    String alias = (String) cmbPrivateKey.getSelectedItem();
-	    PrivateKey priv = Utils.getPrivateKeyDialog(alias);
 	    if (alias == null) {
 	        throw new IllegalStateException("No certificates selected.");
 	    }
-	    
+	    PrivateKey priv = Utils.getPrivateKeyDialog(alias);
+	    if(priv == null) return;
+
 	    startDecryptionUI();
 
 	    SwingWorker<Void, Void> worker = new SwingWorker<>() {

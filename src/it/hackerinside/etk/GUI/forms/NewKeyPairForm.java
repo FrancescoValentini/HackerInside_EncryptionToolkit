@@ -66,14 +66,13 @@ public class NewKeyPairForm {
 	private JTextField txtbCountryCode;
 	private JTextField txtbState;
 	private JTextField txtbCommonName;
-	private JComboBox cmbAlgorithm;
+	private JComboBox<String> cmbAlgorithm;
 	private JSpinner spinnerExpDays;
 	private Runnable callback;
 	private JCheckBox chckbPQC;
 	private JCheckBox chckbX500;
 	private JList<KeyUsageItem> listKeyUsage;
 	private JLabel lblCommonName;
-
 	/**
 	 * Create the application.
 	 */
@@ -163,8 +162,6 @@ public class NewKeyPairForm {
 		panel.add(lblCurve);
 		
 		cmbAlgorithm = new JComboBox();
-		cmbAlgorithm.setModel(new DefaultComboBoxModel(new String[] {"secp256r1", "secp384r1", "secp521r1"}));
-		cmbAlgorithm.setSelectedIndex(1);
 		cmbAlgorithm.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		cmbAlgorithm.setBounds(166, 155, 264, 22);
 		panel.add(cmbAlgorithm);
@@ -250,7 +247,7 @@ public class NewKeyPairForm {
 		    }
 		});
 
-		loadKeyUsages();
+
 		listKeyUsage.setBounds(166, 236, 264, 105);
 
 		panel.add(listKeyUsage);
@@ -259,6 +256,9 @@ public class NewKeyPairForm {
 		lblNewLabel_2.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		lblNewLabel_2.setBounds(10, 231, 146, 23);
 		panel.add(lblNewLabel_2);
+		
+		loadKeyUsages();
+		loadECCurves();
 	}
 	
 	private void loadPqcAlgorithms() {
@@ -270,7 +270,15 @@ public class NewKeyPairForm {
 	
 	private void loadECCurves() {
 		cmbAlgorithm.removeAllItems();
-		cmbAlgorithm.setModel(new DefaultComboBoxModel(new String[] {"secp256r1", "secp384r1", "secp521r1"}));
+		cmbAlgorithm.setModel(
+			    new DefaultComboBoxModel<>(new String[] {
+			            "secp256r1",
+			            "secp384r1",
+			            "secp521r1",
+			            "brainpoolP256r1",
+			            "brainpoolP384r1",
+			            "brainpoolP512r1"
+			        }));
 		cmbAlgorithm.setSelectedIndex(1);
 	}
 	
@@ -485,6 +493,7 @@ public class NewKeyPairForm {
 	        );
 		
 		try {
+			if(ctx.getKeystore().containsAlias(alias)) throw new Exception("Unable to save, alias is already in use!");
 	        ctx.getKeystore().addPrivateKey(alias, priv, pwd, new X509Certificate[]{crt});
 	        ctx.getKeystore().save();
 		}finally {

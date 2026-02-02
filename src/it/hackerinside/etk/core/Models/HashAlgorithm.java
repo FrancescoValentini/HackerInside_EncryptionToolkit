@@ -23,7 +23,7 @@ public enum HashAlgorithm {
     /**
      * SHA-512 hash algorithm (produces 512-bit/64-byte hash values).
      */
-    SHA512("SHA-512",NISTObjectIdentifiers.id_sha384);
+    SHA512("SHA-512",NISTObjectIdentifiers.id_sha512);
     
     private final String algorithm;
     
@@ -53,6 +53,7 @@ public enum HashAlgorithm {
             throw new IllegalArgumentException("Invalid Hash Algorithm: " + algorithm);
         }
     }
+    
 
     
     /**

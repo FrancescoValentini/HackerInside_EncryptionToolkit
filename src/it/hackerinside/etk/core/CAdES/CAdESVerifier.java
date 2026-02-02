@@ -6,15 +6,23 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Collection;
+import java.util.Date;
 
 import org.bouncycastle.cms.SignerInformation;
 import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.VerificationResult;
 
 import java.io.*;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
+import java.text.ParseException;
+
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1OctetString;
+import org.bouncycastle.asn1.ASN1UTCTime;
 import org.bouncycastle.asn1.cms.AttributeTable;
 import org.bouncycastle.asn1.cms.CMSAttributes;
 import org.bouncycastle.cert.X509CertificateHolder;
@@ -180,7 +188,7 @@ public class CAdESVerifier {
         try (InputStream sigIn = new FileInputStream(sig);
              InputStream dataIn = (data != null ? new FileInputStream(data) : null)) {
             return verifyInternal(sigIn, dataIn, errMsg);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new SecurityException(errMsg, e);
         }
     }
@@ -213,6 +221,19 @@ public class CAdESVerifier {
 
         SignerInformation signerInfo = parser.getSignerInfos().getSigners().iterator().next();
         X509Certificate cert = extractCertificate(parser, signerInfo);
+        
+        try {
+            Date signingTime = getSigningTime(signerInfo.getSignedAttributes());
+
+            if (signingTime != null)
+                cert.checkValidity(signingTime);
+            else
+                cert.checkValidity(); // fallback: now
+
+        } catch (CertificateExpiredException | CertificateNotYetValidException e) {
+            throw e; 
+        }
+
 
         boolean valid = signerInfo.verify(new JcaSimpleSignerInfoVerifierBuilder()
                 .setProvider(BouncyCastleProvider.PROVIDER_NAME).build(cert));
@@ -223,9 +244,29 @@ public class CAdESVerifier {
                 hasAttribute(attrs, PKCSObjectIdentifiers.id_aa_signingCertificateV2),
                 hasAttribute(attrs, CMSAttributes.signingTime),
                 cert,
-                signerInfo
+                signerInfo,
+                signerInfo.getDigestAlgOID(),
+                getMessageDigest(signerInfo)
         );
     }
+    
+
+    private Date getSigningTime(AttributeTable attrs) {
+        if (attrs == null || attrs.get(CMSAttributes.signingTime) == null)
+            return null;
+
+        ASN1Encodable value = attrs.get(CMSAttributes.signingTime)
+                                   .getAttributeValues()[0];
+
+        try {
+			return ASN1UTCTime.getInstance(value).getDate();
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+        return null;
+    }
+
+    
 
     /**
      * Extracts the signing certificate from the CMS parser based on the signer information.
@@ -282,6 +323,21 @@ public class CAdESVerifier {
         while ((n = in.read(buf)) >= 0) {
             out.write(buf, 0, n);
         }
+    }
+    
+    /**
+     * Extract the content digest from the SignerInfo ASN1 Structure
+     * @param signerInfo
+     * @return the content digest
+     */
+    private byte[] getMessageDigest(SignerInformation signerInfo) {
+    	ASN1OctetString md = (ASN1OctetString) signerInfo
+    	        .getSignedAttributes()
+    	        .get(CMSAttributes.messageDigest)
+    	        .getAttributeValues()[0];
+
+    	return md.getOctets();
+    	
     }
 }
 
