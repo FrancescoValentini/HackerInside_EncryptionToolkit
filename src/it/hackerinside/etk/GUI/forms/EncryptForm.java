@@ -68,10 +68,11 @@ public class EncryptForm {
 	private JProgressBar progressBarEncrypt;
     private long startTime;
     private long endTime;
-    JList<CertificateTableRow> recipientsList;
-    DefaultListModel<CertificateTableRow> listModel = new DefaultListModel<>();
-    List<X509Certificate> recipients;
-
+    private JList<CertificateTableRow> recipientsList;
+    private DefaultListModel<CertificateTableRow> listModel = new DefaultListModel<>();
+    private List<X509Certificate> recipients;
+    private boolean running = false;
+    private SwingWorker<Void, Void> currentWorker;
     
 	
 	private File plaintextFile;
@@ -279,7 +280,18 @@ public class EncryptForm {
 		
 		btnEncrypt.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				encryptFile();
+				if(!running) {
+					encryptFile();
+				}else {
+					if(DialogUtils.showConfirmBox(null,
+							"Abort?", 
+							"Are you sure you want to cancel the operation?", 
+							"Press OK to abort encryption", 
+							JOptionPane.QUESTION_MESSAGE)) {
+						abortEncryption();
+					}
+					
+				}
 			}
 		});
 		
@@ -517,19 +529,23 @@ public class EncryptForm {
 	        return;
 	    }
 
-	    startEncryptionUI();
-
 	    SymmetricAlgorithms cipher = (SymmetricAlgorithms) cmbEncAlgorithm.getSelectedItem();
 	    EncodingOption encoding = chckbPemOutput.isSelected()
 	            ? EncodingOption.ENCODING_PEM
 	            : EncodingOption.ENCODING_DER;
 	    File cipherFile = new File(txtbOutputFile.getText());
 	    if(!FileDialogUtils.overwriteIfExists(cipherFile)) return;
+	    
+	    startEncryptionUI();
 	    CMSEncryptor encryptor = new CMSEncryptor(cipher, encoding,ctx.getBufferSize());
 	    
 	    recipients.forEach(encryptor::addRecipients); // Add recipients
 	    encryptor.setUseOnlySKI(chckbxUseSki.isSelected());
-	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
+	    
+	    running = true;
+	    btnEncrypt.setText("ABORT"); 
+	    
+	    currentWorker = new SwingWorker<>() {
 	        @Override
 	        protected Void doInBackground() throws Exception {
 	        	startTime = System.currentTimeMillis();
@@ -543,7 +559,7 @@ public class EncryptForm {
 	        }
 	    };
 
-	    worker.execute();
+	    currentWorker.execute();
 	}
 
 	/**
@@ -554,8 +570,18 @@ public class EncryptForm {
 	    progressBarEncrypt.setEnabled(true);
 	    lblStatus.setText("Encrypting...");
 	    lblStatus.setVisible(true);
-	    btnEncrypt.setEnabled(false);
 	}
+	
+	private void abortEncryption() {
+	    if (currentWorker != null && !currentWorker.isDone()) {
+	        currentWorker.cancel(true);
+	        lblStatus.setText("Encryption aborted.");
+	    }
+	    running = false;
+	    btnEncrypt.setText("Encrypt");
+	    progressBarEncrypt.setVisible(false);
+	}
+
 
 	/**
 	 * Finalizes the UI after encryption completes or fails.
@@ -564,6 +590,9 @@ public class EncryptForm {
 	 */
 	private void finishEncryptionUI(SwingWorker<?, ?> worker) {
 	    progressBarEncrypt.setVisible(false);
+	    running = false;
+	    btnEncrypt.setText("ENCRYPT");
+	    
 	    endTime = System.currentTimeMillis();
 	    try {
 	        worker.get();
