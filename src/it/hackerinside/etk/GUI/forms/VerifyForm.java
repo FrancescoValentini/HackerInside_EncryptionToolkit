@@ -55,6 +55,8 @@ import javax.swing.LayoutStyle.ComponentPlacement;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.Toolkit;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 public class VerifyForm {
 
@@ -70,6 +72,9 @@ public class VerifyForm {
 	private JButton btnExportContent;
 	protected EncodingOption encoding;
 	private String caCheckOutput = null;
+    private boolean running = false;
+    private SwingWorker<Void, Void> currentWorker;
+	private CAdESVerifier verifier;
 
 	/**
 	 * Launch the application.
@@ -104,6 +109,12 @@ public class VerifyForm {
 	 */
 	private void initialize() {
 	    frmHackerinsideEncryptionToolkit = new JFrame();
+	    frmHackerinsideEncryptionToolkit.addWindowListener(new WindowAdapter() {
+	    	@Override
+	    	public void windowClosing(WindowEvent e) {
+	    		abortVerification();
+	    	}
+	    });
 	    frmHackerinsideEncryptionToolkit.setTitle("HackerInside Encryption Toolkit | Verify Digital Signature");
 	    frmHackerinsideEncryptionToolkit.setIconImage(Toolkit.getDefaultToolkit().getImage(VerifyForm.class.getResource("/it/hackerinside/etk/GUI/icons/verify.png")));
 	    frmHackerinsideEncryptionToolkit.setBounds(100, 100, 792, 567);
@@ -236,8 +247,8 @@ public class VerifyForm {
 	 */
 	private void verifySignature() {
 	    startVerificationUI();
-
-	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
+	    running = true;
+	    currentWorker = new SwingWorker<>() {
 	        private boolean detached;
 
 	        @Override
@@ -272,7 +283,7 @@ public class VerifyForm {
 	        }
 	    };
 
-	    worker.execute();
+	    currentWorker.execute();
 	}
 
 	/**
@@ -337,7 +348,7 @@ public class VerifyForm {
 	 */
 	private void verifyEnveloping(EncodingOption encoding) {
 	    btnExportContent.setEnabled(true);
-	    CAdESVerifier verifier = new CAdESVerifier(encoding, false,ctx.getBufferSize());
+	    verifier = new CAdESVerifier(encoding, false,ctx.getBufferSize());
 
 	    runVerificationWorker(() -> verifier.verify(fileToVerify));
 	}
@@ -357,7 +368,7 @@ public class VerifyForm {
 
 	    if (dataFile == null) return; // user canceled
 
-	    CAdESVerifier verifier = new CAdESVerifier(encoding, true,ctx.getBufferSize());
+	    verifier = new CAdESVerifier(encoding, true,ctx.getBufferSize());
 	    runVerificationWorker(() -> verifier.verifyDetached(fileToVerify, dataFile));
 	}
 
@@ -601,5 +612,13 @@ public class VerifyForm {
 	    }
 	    
 	    
+	}
+	
+	private void abortVerification() {
+		verifier.abort();
+	    if (currentWorker != null && !currentWorker.isDone()) {
+	        currentWorker.cancel(true);
+	    }
+	    running = false;
 	}
 }

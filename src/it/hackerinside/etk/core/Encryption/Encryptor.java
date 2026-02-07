@@ -39,4 +39,9 @@ public interface Encryptor {
 	 * @param recipient
 	 */
 	public void addRecipients(X509Certificate... recipient);
+	
+	/**
+	 * Aborts the encryption
+	 */
+	public void abort();
 }

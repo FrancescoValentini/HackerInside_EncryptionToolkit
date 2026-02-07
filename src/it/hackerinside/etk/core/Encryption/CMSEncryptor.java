@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyFactory;
@@ -54,6 +55,8 @@ public class CMSEncryptor implements Encryptor {
     private int bufferSize;
     private ArrayList<X509Certificate> recipients;
     private boolean useOnlySKI = false;
+    private volatile boolean aborted = false;
+    
     /**
      * Constructs a new CMSEncryptor with the specified parameters.
      *
@@ -87,7 +90,11 @@ public class CMSEncryptor implements Encryptor {
     public void setUseOnlySKI(boolean value) {
     	this.useOnlySKI = value;
     }
-
+    
+    public void abort() {
+    	this.aborted = true;
+    }
+    
     /**
      * Encrypts data from an InputStream to an OutputStream using CMS encryption.
      * The method automatically handles the appropriate recipient info generation
@@ -114,6 +121,9 @@ public class CMSEncryptor implements Encryptor {
             byte[] buffer = new byte[bufferSize];
             int bytesRead;
             while ((bytesRead = input.read(buffer)) != -1) {
+                if (aborted || Thread.currentThread().isInterrupted()) {
+                    throw new InterruptedIOException("Encryption aborted");
+                }
                 cmsOut.write(buffer, 0, bytesRead);
             }
         }

@@ -47,6 +47,7 @@ public class CAdESVerifier {
     private final EncodingOption encoding;
     private final boolean detachedSignature;
     private int bufferSize;
+    private volatile boolean aborted = false;
 
     /**
      * Constructs a new CAdESVerifier with the specified encoding option and signature type.
@@ -60,6 +61,13 @@ public class CAdESVerifier {
         this.encoding = encoding;
         this.detachedSignature = detachedSignature;
         this.bufferSize = bufferSize;
+    }
+    
+    /**
+     * Aborts the verification
+     */
+    public void abort() {
+    	this.aborted = true;
     }
 
 
@@ -321,6 +329,9 @@ public class CAdESVerifier {
         byte[] buf = new byte[bufferSize];
         int n;
         while ((n = in.read(buf)) >= 0) {
+            if (aborted || Thread.currentThread().isInterrupted()) {
+                throw new InterruptedIOException("Verification aborted");
+            }
             out.write(buf, 0, n);
         }
     }

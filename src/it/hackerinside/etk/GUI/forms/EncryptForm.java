@@ -54,6 +54,8 @@ import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.event.ActionEvent;
 import java.awt.Toolkit;
 
@@ -81,6 +83,7 @@ public class EncryptForm {
 	private JLabel lblStatus;
 	private JButton btnEncrypt;
 	private JCheckBox chckbxUseSki;
+	private CMSEncryptor encryptor;
 	private static ETKContext ctx;
 
 	/**
@@ -118,6 +121,12 @@ public class EncryptForm {
 	private void initialize() {
 		recipients = new ArrayList<>();
 		frmEncrypt = new JFrame();
+		frmEncrypt.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				if(running) abortEncryption();
+			}
+		});
 		frmEncrypt.setIconImage(Toolkit.getDefaultToolkit().getImage(EncryptForm.class.getResource("/it/hackerinside/etk/GUI/icons/encrypt.png")));
 		frmEncrypt.setResizable(false);
 		frmEncrypt.setTitle("HackerInside Encryption Toolkit | Encrypt");
@@ -537,7 +546,7 @@ public class EncryptForm {
 	    if(!FileDialogUtils.overwriteIfExists(cipherFile)) return;
 	    
 	    startEncryptionUI();
-	    CMSEncryptor encryptor = new CMSEncryptor(cipher, encoding,ctx.getBufferSize());
+	    encryptor = new CMSEncryptor(cipher, encoding,ctx.getBufferSize());
 	    
 	    recipients.forEach(encryptor::addRecipients); // Add recipients
 	    encryptor.setUseOnlySKI(chckbxUseSki.isSelected());
@@ -573,6 +582,7 @@ public class EncryptForm {
 	}
 	
 	private void abortEncryption() {
+		encryptor.abort();
 	    if (currentWorker != null && !currentWorker.isDone()) {
 	        currentWorker.cancel(true);
 	        lblStatus.setText("Encryption aborted.");

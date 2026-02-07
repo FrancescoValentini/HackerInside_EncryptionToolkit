@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.security.PrivateKey;
 import java.util.Collection;
@@ -33,6 +34,7 @@ public class CMSDecryptor {
 	private PrivateKey privateKey;
 	private EncodingOption encoding;
 	private int bufferSize;
+	private volatile boolean aborted = false;
 	/**
 	 * Constructs a new CMSDecryptor with the specified parameters.
 	 * 
@@ -45,6 +47,12 @@ public class CMSDecryptor {
 		this.encoding = encoding;
 		this.bufferSize = bufferSize;
 	}
+	/**
+	 * Aborts the decryption
+	 */
+    public void abort() {
+    	this.aborted = true;
+    }
 	
     /**
      * Decrypts data from an InputStream to an OutputStream using CMS decryption.
@@ -68,6 +76,9 @@ public class CMSDecryptor {
     			 byte[] buffer = new byte[bufferSize];
                  int bytesRead;
                  while ((bytesRead = decryptedStream.read(buffer)) != -1) {
+                     if (aborted || Thread.currentThread().isInterrupted()) {
+                         throw new InterruptedIOException("Decryption aborted");
+                     }
                      output.write(buffer, 0, bytesRead);
                  }
                  decryptedStream.close();

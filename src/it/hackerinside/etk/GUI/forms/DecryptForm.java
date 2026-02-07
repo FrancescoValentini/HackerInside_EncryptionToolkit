@@ -39,6 +39,8 @@ import it.hackerinside.etk.core.PEM.PEMUtils;
 
 import javax.swing.JProgressBar;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.awt.event.ActionEvent;
 import java.awt.Toolkit;
@@ -57,6 +59,7 @@ public class DecryptForm {
 	private JButton btnDecrypt;
     private boolean running = false;
     private SwingWorker<Void, Void> currentWorker;
+    private CMSDecryptor decryptor;
     
 
 	/**
@@ -96,6 +99,12 @@ public class DecryptForm {
 		frmHackerinsideEncryptionToolkit.setTitle("HackerInside Encryption Toolkit | Decrypt");
 		frmHackerinsideEncryptionToolkit.setResizable(false);
 		frmHackerinsideEncryptionToolkit.setBounds(100, 100, 593, 550);
+		frmHackerinsideEncryptionToolkit.addWindowListener(new WindowAdapter() {
+	    	@Override
+	    	public void windowClosing(WindowEvent e) {
+	    		if(running) abortDecryption();
+	    	}
+	    });
 		
 		//frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
@@ -357,12 +366,15 @@ public class DecryptForm {
 	    
 	    currentWorker = new SwingWorker<>() {
 
+			
+
+
 			@Override
 			protected Void doInBackground() throws Exception {
 		        startTime = System.currentTimeMillis();
 		        EncodingOption encoding = PEMUtils.findFileEncoding(fileToDecrypt);
 
-		        CMSDecryptor decryptor = new CMSDecryptor(priv, encoding, ctx.getBufferSize());
+		        decryptor = new CMSDecryptor(priv, encoding, ctx.getBufferSize());
 		        decryptor.decrypt(fileToDecrypt, output);
 			    return null;
 			}
@@ -416,6 +428,7 @@ public class DecryptForm {
 	}
 	
 	private void abortDecryption() {
+		decryptor.abort();
 	    if (currentWorker != null && !currentWorker.isDone()) {
 	        currentWorker.cancel(true);
 	        lblStatus.setText("Decryption aborted.");
