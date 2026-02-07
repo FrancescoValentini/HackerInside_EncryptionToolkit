@@ -55,6 +55,9 @@ public class DecryptForm {
     private long startTime;
     private long endTime;
 	private JButton btnDecrypt;
+    private boolean running = false;
+    private SwingWorker<Void, Void> currentWorker;
+    
 
 	/**
 	 * Launch the application.
@@ -160,8 +163,19 @@ public class DecryptForm {
 		});
 		
 		btnDecrypt.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				decrypt();
+			public void actionPerformed(ActionEvent e) {	
+				if(!running) {
+					decrypt();
+				}else {
+					if(DialogUtils.showConfirmBox(null,
+							"Abort?", 
+							"Are you sure you want to cancel the operation?", 
+							"Press OK to abort decryption", 
+							JOptionPane.QUESTION_MESSAGE)) {
+						abortDecryption();
+					}
+					
+				}
 			}
 		});
 		
@@ -338,8 +352,10 @@ public class DecryptForm {
 	    if(priv == null) return;
 
 	    startDecryptionUI();
-
-	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
+	    running = true;
+	    btnDecrypt.setText("ABORT");
+	    
+	    currentWorker = new SwingWorker<>() {
 
 			@Override
 			protected Void doInBackground() throws Exception {
@@ -358,7 +374,7 @@ public class DecryptForm {
 	        }
 	    };
 
-	    worker.execute();
+	    currentWorker.execute();
 	}
 	/**
 	 * Updates the UI to indicate that decryption is in progress.
@@ -369,7 +385,6 @@ public class DecryptForm {
 	    progressBar.setEnabled(true);
 	    lblStatus.setText("Decrypting...");
 	    lblStatus.setVisible(true);
-	    btnDecrypt.setEnabled(false);
 	}
 	
 
@@ -397,6 +412,16 @@ public class DecryptForm {
 	        lblStatus.setText("Decryption failed");
 	        e.printStackTrace();
 	    }
-	    btnDecrypt.setEnabled(true);
+	    btnDecrypt.setText("DECRYPT");
+	}
+	
+	private void abortDecryption() {
+	    if (currentWorker != null && !currentWorker.isDone()) {
+	        currentWorker.cancel(true);
+	        lblStatus.setText("Decryption aborted.");
+	    }
+	    running = false;
+	    btnDecrypt.setText("DECRYPT");
+	    progressBar.setVisible(false);
 	}
 }
