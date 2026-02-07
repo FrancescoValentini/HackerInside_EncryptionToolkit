@@ -662,7 +662,7 @@ public class ETKContext {
 				+ "\n    - hideInvalidCerts()=" + hideInvalidCerts()
 				+ "\n    - useTrustStore()=" + useTrustStore()
 				+ "\n    - getTrustStorePath()=" + getTrustStorePath()
-				+ "\n    - getTrustStorePath()=" + getTrustStore();
+				+ "\n    - getTrustStore()=" + getTrustStore();
 	}
     
 	

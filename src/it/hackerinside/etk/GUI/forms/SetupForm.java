@@ -21,6 +21,8 @@ import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.Utils.X509Builder;
 import it.hackerinside.etk.core.Models.ApplicationPreferences;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
+import it.hackerinside.etk.core.Models.HashAlgorithm;
+import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
 import it.hackerinside.etk.core.keystore.PKCS12Keystore;
 
@@ -38,6 +40,7 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import javax.swing.JComboBox;
 
 public class SetupForm {
 
@@ -57,6 +60,10 @@ public class SetupForm {
     private ETKContext ctx;
 	private JCheckBox chckbPkcs11;
 	private JSpinner spinnerExpDays;
+	private JComboBox<HashAlgorithm> cmbHashAlgPath;
+	private JComboBox<SymmetricAlgorithms> cmbEncAlgPath;
+	private JLabel lblPkcsConfigPath;
+	private JButton btnOpenPKCS11Config;
 
 	/**
 	 * Launch the application.
@@ -105,7 +112,7 @@ public class SetupForm {
         // Step 2: Selection screen
         JPanel selectionPanel = new JPanel();
         selectionPanel.setLayout(null);
-        JLabel lblKeystoreSetup = new JLabel("Keystore Setup");
+        JLabel lblKeystoreSetup = new JLabel("Preferences");
         lblKeystoreSetup.setHorizontalAlignment(SwingConstants.CENTER);
         lblKeystoreSetup.setFont(new Font("Tahoma", Font.PLAIN, 18));
         lblKeystoreSetup.setBounds(135, 5, 428, 30);
@@ -139,24 +146,24 @@ public class SetupForm {
         txtbKeystorePath.setText("keystore.pfx");
         txtbKeystorePath.setFont(new Font("Tahoma", Font.PLAIN, 14));
         txtbKeystorePath.setColumns(10);
-        txtbKeystorePath.setBounds(177, 46, 455, 23);
+        txtbKeystorePath.setBounds(240, 46, 392, 23);
         selectionPanel.add(txtbKeystorePath);
         
         JLabel lblNewLabel = new JLabel("Keystore path:");
         lblNewLabel.setFont(new Font("Tahoma", Font.PLAIN, 14));
-        lblNewLabel.setBounds(68, 49, 91, 17);
+        lblNewLabel.setBounds(10, 49, 149, 17);
         selectionPanel.add(lblNewLabel);
         
         txtbKnownCerts = new JTextField();
         txtbKnownCerts.setText("knowncerts.pfx");
         txtbKnownCerts.setFont(new Font("Tahoma", Font.PLAIN, 14));
         txtbKnownCerts.setColumns(10);
-        txtbKnownCerts.setBounds(177, 78, 455, 23);
+        txtbKnownCerts.setBounds(240, 78, 392, 23);
         selectionPanel.add(txtbKnownCerts);
         
         JLabel lblKnownCertificatesPath = new JLabel("Known Certificates path:");
         lblKnownCertificatesPath.setFont(new Font("Tahoma", Font.PLAIN, 14));
-        lblKnownCertificatesPath.setBounds(10, 81, 149, 17);
+        lblKnownCertificatesPath.setBounds(10, 81, 189, 17);
         selectionPanel.add(lblKnownCertificatesPath);
         
         JButton btnOpenKnownCerts = new JButton("...");
@@ -173,10 +180,10 @@ public class SetupForm {
         
         chckbPkcs11 = new JCheckBox("Use PKCS#11");
         chckbPkcs11.setFont(new Font("Tahoma", Font.PLAIN, 15));
-        chckbPkcs11.setBounds(177, 108, 163, 23);
+        chckbPkcs11.setBounds(240, 108, 200, 23);
         selectionPanel.add(chckbPkcs11);
         
-        JButton btnOpenPKCS11Config = new JButton("...");
+        btnOpenPKCS11Config = new JButton("...");
         btnOpenPKCS11Config.setEnabled(false);
         btnOpenPKCS11Config.setFont(new Font("Tahoma", Font.PLAIN, 16));
         btnOpenPKCS11Config.setBounds(642, 138, 47, 23);
@@ -186,20 +193,40 @@ public class SetupForm {
         txtbPKCS11Config.setEnabled(false);
         txtbPKCS11Config.setFont(new Font("Tahoma", Font.PLAIN, 14));
         txtbPKCS11Config.setColumns(10);
-        txtbPKCS11Config.setBounds(177, 138, 455, 23);
+        txtbPKCS11Config.setBounds(240, 138, 392, 23);
         selectionPanel.add(txtbPKCS11Config);
         
-        JLabel lblPkcsConfigPath = new JLabel("PKCS11 Config path:");
+        lblPkcsConfigPath = new JLabel("PKCS11 Config path:");
         lblPkcsConfigPath.setFont(new Font("Tahoma", Font.PLAIN, 14));
-        lblPkcsConfigPath.setBounds(10, 141, 149, 17);
+        lblPkcsConfigPath.setBounds(10, 141, 172, 17);
         selectionPanel.add(lblPkcsConfigPath);
         
-        JLabel lblNewLabel_1 = new JLabel("<html>\r\nThe personal keystore contains your public/private key pairs. The trusted certificate store (also PKCS12) contains only public keys.\r\n<br><br>\r\nEnabling PKCS#11 lets you configure a cryptographic device. When used, only the trusted certificate store is created, the personal keystore is not generated.\r\n<br><br>\r\n\r\n<p style=\"color: red\">\r\nPKCS#11 is an advanced feature requiring dedicated hardware. Do not enable it unless you are familiar with this technology.\r\n</p>\r\n</html>");
+        JLabel lblNewLabel_1 = new JLabel("<html>\r\nThe personal keystore contains your public/private key pairs. The trusted certificate store contains only public keys.\r\n<br><br>\r\n\r\n<p style=\"color: red\"><b>\r\nPKCS#11 is an advanced feature that requires dedicated hardware and configuration. Do not enable it unless you are familiar with this technology\r\n</p></b>\r\n</html>");
         lblNewLabel_1.setFont(new Font("Tahoma", Font.PLAIN, 15));
         lblNewLabel_1.setVerticalAlignment(SwingConstants.TOP);
         lblNewLabel_1.setHorizontalAlignment(SwingConstants.LEFT);
-        lblNewLabel_1.setBounds(20, 227, 659, 178);
+        lblNewLabel_1.setBounds(20, 303, 659, 135);
         selectionPanel.add(lblNewLabel_1);
+        
+        cmbHashAlgPath = new JComboBox();
+        cmbHashAlgPath.setFont(new Font("Tahoma", Font.PLAIN, 14));
+        cmbHashAlgPath.setBounds(240, 219, 242, 25);
+        selectionPanel.add(cmbHashAlgPath);
+        
+        JLabel lblNewLabel_1_1_1 = new JLabel("Default Hash Algorithm:");
+        lblNewLabel_1_1_1.setFont(new Font("Tahoma", Font.PLAIN, 14));
+        lblNewLabel_1_1_1.setBounds(10, 223, 212, 17);
+        selectionPanel.add(lblNewLabel_1_1_1);
+        
+        cmbEncAlgPath = new JComboBox();
+        cmbEncAlgPath.setFont(new Font("Tahoma", Font.PLAIN, 14));
+        cmbEncAlgPath.setBounds(240, 183, 242, 25);
+        selectionPanel.add(cmbEncAlgPath);
+        
+        JLabel lblNewLabel_1_2 = new JLabel("Default Encryption Algorithm:");
+        lblNewLabel_1_2.setFont(new Font("Tahoma", Font.PLAIN, 14));
+        lblNewLabel_1_2.setBounds(10, 187, 226, 17);
+        selectionPanel.add(lblNewLabel_1_2);
         cardPanel.add(certPanel, "Step2");
         
         txtbCommonName = new JTextField();
@@ -246,11 +273,11 @@ public class SetupForm {
         lblExpire.setBounds(45, 157, 146, 17);
         certPanel.add(lblExpire);
         
-        JLabel lblNewLabel_1_1 = new JLabel("<html>\r\nThis procedure generates a private key and a self-signed X.509 certificate.\r\nThe cryptographic algorithm used is Elliptic Curve Cryptography (ECC) based on the NIST P-384 curve.\r\n<br><br>\r\n\r\n<p color=\"red\">\r\nA self-signed certificate is not signed by a recognized Certificate Authority (CA) and, therefore, has no legal value for trustworthy identification by third parties.\r\n</p>\r\n</html>");
+        JLabel lblNewLabel_1_1 = new JLabel("<html>\r\nThis procedure generates a private key and a self-signed X.509 certificate.\r\nThe cryptographic algorithm used is Elliptic Curve Cryptography (ECC) based on the NIST P-384 curve.\r\n<br><br>\r\nIf you want to skip the procedure, press \"Next\" without filling out the form.\r\n<br><br>\r\n\r\n<p color=\"red\">\r\nA self-signed certificate is not signed by a recognized Certificate Authority (CA) and, therefore, has no legal value for trustworthy identification by third parties.\r\n</p>\r\n</html>");
         lblNewLabel_1_1.setVerticalAlignment(SwingConstants.TOP);
         lblNewLabel_1_1.setHorizontalAlignment(SwingConstants.LEFT);
         lblNewLabel_1_1.setFont(new Font("Tahoma", Font.PLAIN, 15));
-        lblNewLabel_1_1.setBounds(20, 222, 659, 108);
+        lblNewLabel_1_1.setBounds(20, 222, 659, 174);
         certPanel.add(lblNewLabel_1_1);
         cardPanel.add(finalPanel, "Step3");
 
@@ -318,6 +345,10 @@ public class SetupForm {
     			
     			txtbPKCS11Config.setEnabled(chckbPkcs11.isSelected());
     			btnOpenPKCS11Config.setEnabled(chckbPkcs11.isSelected());
+    			
+				txtbPKCS11Config.setVisible(chckbPkcs11.isSelected());
+				lblPkcsConfigPath.setVisible(chckbPkcs11.isSelected());
+				btnOpenPKCS11Config.setVisible(chckbPkcs11.isSelected());
         	}
         });
         
@@ -354,7 +385,9 @@ public class SetupForm {
         ctx.setPkcs11Driver(txtbPKCS11Config.getText());
         ctx.setKnownCertsPath(txtbKnownCerts.getText());
         ctx.setUsePkcs11(chckbPkcs11.isSelected());
-
+        ctx.setHashAlgorithm((HashAlgorithm) cmbHashAlgPath.getSelectedItem());
+        ctx.setCipher((SymmetricAlgorithms) cmbEncAlgPath.getSelectedItem());
+        
         boolean success = true;
         StringBuilder errors = new StringBuilder();
         
@@ -429,11 +462,20 @@ public class SetupForm {
      * This includes keystore paths, known certificates path, PKCS11 driver path, and PKCS11 usage preference.
      */
     private void loadSettings() {
+		txtbPKCS11Config.setVisible(chckbPkcs11.isSelected());
+		lblPkcsConfigPath.setVisible(chckbPkcs11.isSelected());
+		btnOpenPKCS11Config.setVisible(chckbPkcs11.isSelected());
+		
+        loadEncAlgos();
+        loadHashAlgo();
         txtbKeystorePath.setText(ApplicationPreferences.KEYSTORE_PATH.getValue());
         txtbKnownCerts.setText(ApplicationPreferences.KNOWN_CERTS_PATH.getValue());
         txtbPKCS11Config.setText(ApplicationPreferences.PKCS11_DRIVER.getValue());
         
         chckbPkcs11.setSelected(Boolean.valueOf(ApplicationPreferences.USE_PKCS11.getValue()));
+        
+        cmbEncAlgPath.setSelectedItem(SymmetricAlgorithms.fromString(ApplicationPreferences.CIPHER.getValue()));
+        cmbHashAlgPath.setSelectedItem(HashAlgorithm.fromString(ApplicationPreferences.HASH_ALGORITHM.getValue()));
     }
 
     /**
@@ -622,5 +664,25 @@ public class SetupForm {
         ctx.getKeystore().addPrivateKey(alias, privk, pwd, new X509Certificate[]{crt});
         ctx.getKeystore().save();
     }
-
+    
+	/**
+	 * Populates a combo box with all available symmetric algorithms.
+	 */
+	private void loadEncAlgos() {
+		cmbEncAlgPath.removeAllItems();
+	    for (SymmetricAlgorithms alg : SymmetricAlgorithms.values()) {
+	    	cmbEncAlgPath.addItem(alg);
+	    }
+	}
+	
+	/**
+	 * Populates a combo box with all available hash algorithms.
+	 */
+	private void loadHashAlgo() {
+		cmbHashAlgPath.removeAllItems();
+	    for (HashAlgorithm alg : HashAlgorithm.values()) {
+	    	cmbHashAlgPath.addItem(alg);
+	    }
+	}
+	
 }
