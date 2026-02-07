@@ -190,7 +190,7 @@ public class FileHashForm {
 		 btnCalculate = new JButton("CALCULATE");
 
 		btnCalculate.setFont(new Font("Tahoma", Font.BOLD, 18));
-		btnCalculate.setBounds(226, 285, 138, 55);
+		btnCalculate.setBounds(215, 285, 160, 55);
 		panel.add(btnCalculate);
 		
 		progressBar = new JProgressBar();

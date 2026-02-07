@@ -72,6 +72,7 @@ public class ETKMain {
 	private JButton btnEncrypt;
 	private JMenuItem mntmChangeKeystorePwd;
 	private JCheckBoxMenuItem chckbxmntmHideInvalidCertificate;
+	private static boolean loggedIn = false;
 	/**
 	 * Launch the application.
 	 */
@@ -257,8 +258,6 @@ public class ETKMain {
 	    	public void actionPerformed(ActionEvent e) {
 	    		unlockKeystore();
 	    		updateTable();
-	    		btnDecrypt.setEnabled(true);
-	    		btnSign.setEnabled(true);
 	    	}
 	    });
 	    
@@ -679,6 +678,7 @@ public class ETKMain {
 	    );
 	    try {
 	        ctx.loadKeystore(password);
+	        loggedIn = true;
 	        enablePrivateKeyOperations();
 	    } catch (Exception e) {
 	        DialogUtils.showMessageBox(
@@ -688,6 +688,7 @@ public class ETKMain {
 	            e.getMessage(),
 	            JOptionPane.ERROR_MESSAGE
 	        );
+	        loggedIn = false;
 	        disablePrivateKeyOperations();
 	    } finally {
 	    	if(password != null) Arrays.fill(password, (char)0x00);
@@ -723,7 +724,7 @@ public class ETKMain {
 
 	    // --- Private keystore ---
 	    try {
-	        if (ctx.getKeystore() != null) {
+	        if (ctx.getKeystore() != null && loggedIn) {
 	            List<String> privateAliases = Collections.list(ctx.getKeystore().listAliases());
 	            for (String alias : privateAliases) {
 	                X509Certificate crt = (X509Certificate) ctx.getKeystore().getCertificate(alias);
@@ -788,6 +789,7 @@ public class ETKMain {
 	    btnSign.setEnabled(true);
 	    btnDecrypt.setEnabled(true);
 	}
+
 	/**
 	 * Imports a known certificate from a file into the known certificates keystore.
 	 * Prompts the user to select a certificate file and provide an alias for the certificate.
@@ -999,6 +1001,14 @@ public class ETKMain {
             return;
 		}
 		
+		if(!loggedIn) {
+			notLoggedInError();
+			return;
+		}
+		
+		if(ctx.getKeystore() == null) return;
+
+		
 	    File outputFile = FileDialogUtils.saveFileDialog(
 		        null,
 		        "Export KeyPairs",
@@ -1061,6 +1071,11 @@ public class ETKMain {
 	                JOptionPane.ERROR_MESSAGE);
             return;
 		}
+		if(!loggedIn) {
+			notLoggedInError();
+			return;
+		}
+		
 		if(ctx.getKeystore() == null) return;
 	    File sourceKeystore = FileDialogUtils.openFileDialog(
 		        null,
@@ -1203,6 +1218,11 @@ public class ETKMain {
 	        return;
 	    }
 		
+		if(!loggedIn) {
+			notLoggedInError();
+			return;
+		}
+	    
 		if(ctx.getKeystore() == null) return;
 		
 		char[] currPwd = null, newPwd = null, newPwd1 = null;
@@ -1274,7 +1294,14 @@ public class ETKMain {
             return;
 		}
 		
+		if(!loggedIn) {
+			notLoggedInError();
+			return;
+		}
+		
 		if(ctx.getKeystore() == null) return;
+		
+		
 		
 		char[] currPwd = null, newPwd = null, newPwd1 = null;
 		try {
@@ -1393,6 +1420,10 @@ public class ETKMain {
 	 * Opens the key pair generation form
 	 */
 	private void newKeyPair() {
+		if(!loggedIn) {
+			notLoggedInError();
+			return;
+		}
 		NewKeyPairForm nkf = new NewKeyPairForm();
 		nkf.setVisible();
 		nkf.setCallback(() -> {updateTable();});
@@ -1406,5 +1437,9 @@ public class ETKMain {
 		FileHashForm fh = new FileHashForm();
 		fh.setVisible();
 		
+	}
+	
+	private void notLoggedInError() {
+		DialogUtils.showMessageBox(null, "You are not logged in", "You are not logged in", null, 0);
 	}
 }

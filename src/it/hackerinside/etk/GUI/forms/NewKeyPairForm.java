@@ -163,7 +163,7 @@ public class NewKeyPairForm {
 		
 		cmbAlgorithm = new JComboBox();
 		cmbAlgorithm.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		cmbAlgorithm.setBounds(166, 155, 264, 22);
+		cmbAlgorithm.setBounds(166, 155, 237, 22);
 		panel.add(cmbAlgorithm);
 		
 		JLabel lblNewLabel_1_1 = new JLabel("<html>\r\n<p color=\"red\">\r\nA self-signed certificate is not signed by a recognized Certificate Authority (CA) and, therefore, has no legal value for trustworthy identification by third parties.\r\n</p>\r\n</html>");
@@ -197,7 +197,7 @@ public class NewKeyPairForm {
 				}
 			
 		});
-		chckbPQC.setBounds(436, 155, 185, 23);
+		chckbPQC.setBounds(409, 155, 212, 23);
 		panel.add(chckbPQC);
 		
 		JLabel lblNewLabel = new JLabel("Custom X.500:");
