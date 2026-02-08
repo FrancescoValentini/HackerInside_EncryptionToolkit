@@ -180,63 +180,16 @@ public class ETKMain {
 	    chckbxmntmHideInvalidCertificate = new JCheckBoxMenuItem("Hide Invalid Certificates");
 	    mnNewMenu.add(chckbxmntmHideInvalidCertificate);
 	    
-	    chckbxmntmHideInvalidCertificate.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		updateTable();
-	    	}
-	    });
-	    
-	    
-	    menuItemImportKnownCert.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		importKnownCert();
-	    	}
-	    });
-	    
-	    menuItemImportKnownCertStr.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		importKnownCertFromString();
-	    	}
-	    });
-	    
-	    menuItemImportKnownCertURL.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		importKnownCertFromURL();
-	    	}
-	    });
-	    
-	    mntmFilesChecksum.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		filesChecksum();
-	    	}
-	    });
-	    
-	    
-	    
+	    chckbxmntmHideInvalidCertificate.addActionListener(e -> updateTable());
+	    menuItemImportKnownCert.addActionListener(e -> importKnownCert());
+	    menuItemImportKnownCertStr.addActionListener(e -> importKnownCertFromString());
+	    menuItemImportKnownCertURL.addActionListener(e -> importKnownCertFromURL());
+	    mntmFilesChecksum.addActionListener(e -> filesChecksum());
 
-	    btnSign.addActionListener(new ActionListener() {
-	        public void actionPerformed(ActionEvent e) {
-	            sign();
-	        }
-	    });
-
-	    btnVerify.addActionListener(new ActionListener() {
-	        public void actionPerformed(ActionEvent e) {
-	            verify();
-	        }
-	    });
-
-	    btnEncrypt.addActionListener(new ActionListener() {
-	        public void actionPerformed(ActionEvent e) {
-	            encrypt();
-	        }
-	    });
-
-	    btnDecrypt.addActionListener(new ActionListener() {
-	        public void actionPerformed(ActionEvent e) {
-	            decrypt();
-	        }
-	    });
+	    btnSign.addActionListener(e -> sign());
+	    btnVerify.addActionListener(e -> verify());
+	    btnEncrypt.addActionListener(e -> encrypt());
+	    btnDecrypt.addActionListener(e -> decrypt());
 	    
 	    // Table row double click
 	    table.addMouseListener(new MouseAdapter() {
@@ -254,50 +207,20 @@ public class ETKMain {
 	        }
 	    });
 	    
-	    menuItemKeystoreLogin.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		unlockKeystore();
-	    		updateTable();
+	    menuItemKeystoreLogin.addActionListener(e -> {
+	    	if(!loggedIn) {
+		        unlockKeystore();
+		        updateTable();
 	    	}
 	    });
 	    
-	    settingsMenuItem.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		settings();
-	    	}
-	    });
-	    
-	    menuItemImportKeypair.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		importKeypair();
-	    	}
-	    });
-	    
-	    mntmAbout.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		about();
-	    	}
-	    });
-	    
-	    menuItemNewKeypair.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		newKeyPair();
-	    	}
-	    });
-	    
-	    mntmChangeKeystorePwd.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		changeKeystoreMasterKey();
-	    	}
+	    settingsMenuItem.addActionListener(e -> settings());
+	    menuItemImportKeypair.addActionListener(e -> importKeypair());
+	    mntmAbout.addActionListener(e -> about());
+	    menuItemNewKeypair.addActionListener(e -> newKeyPair());
+	    mntmChangeKeystorePwd.addActionListener(e -> changeKeystoreMasterKey());
+	    mntmTextPad.addActionListener(e -> textPad());
 
-	    });
-	    
-	    mntmTextPad.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		textPad();
-	    	}
-
-	    });
 	    
 	    
 	    
