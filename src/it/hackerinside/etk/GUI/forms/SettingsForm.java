@@ -436,9 +436,7 @@ public class SettingsForm {
 
 		JButton btnCertInfo = new JButton("INFO");
 		btnCertInfo.setFont(new Font("Tahoma", Font.BOLD, 16));
-		
-
-		
+	
 		buttonsPanel.add(btnAddCertFile);
 		buttonsPanel.add(btnRemoveCert);
 		buttonsPanel.add(btnCertInfo);
@@ -448,35 +446,16 @@ public class SettingsForm {
 		panel_5.setLayout(null);
 		
 		JButton btnExportPreferences = new JButton("EXPORT PREFERENCES");
-		btnExportPreferences.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				exportPreferences();
-				
-			}
-		});
+
 		btnExportPreferences.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		btnExportPreferences.setBounds(112, 11, 200, 39);
 		panel_5.add(btnExportPreferences);
 		
 		JButton btnImportPreferences = new JButton("IMPORT PREFERENCES");
-		btnImportPreferences.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				importPreferences();
-			}
-		});
 		btnImportPreferences.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		btnImportPreferences.setBounds(322, 11, 200, 39);
 		panel_5.add(btnImportPreferences);
 		
-		btnAddCertFile.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				X509Certificate cert = loadCertificateFromFile();
-
-				if(cert != null) {
-					addTrustStoreCertificate(cert);
-				}
-			}
-		});
 		
 		btnRemoveCert.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -498,44 +477,38 @@ public class SettingsForm {
 				}
 			}
 		});
-		
-		btnCertInfo.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				CertificateTableRow selected = caList.getSelectedValue();
-				if(selected != null) showCertificateInfo(selected.original());
-			}
+		btnAddCertFile.addActionListener(e -> {
+		    X509Certificate cert = loadCertificateFromFile();
+		    if (cert != null) {
+		        addTrustStoreCertificate(cert);
+		    }
 		});
-		
+
+		btnImportPreferences.addActionListener(e -> importPreferences());
+		btnExportPreferences.addActionListener(e -> exportPreferences());
+
+		btnCertInfo.addActionListener(e -> {
+		    CertificateTableRow selected = caList.getSelectedValue();
+		    if (selected != null) {
+		        showCertificateInfo(selected.original());
+		    }
+		});
+
 		frmHackerinsideEncryptionToolkit.addWindowListener(new WindowAdapter() {
-			@Override
-			public void windowClosing(WindowEvent e) {
-				save();
-			}
+		    @Override
+		    public void windowClosing(WindowEvent e) {
+		        save();
+		    }
 		});
-		
-		btnOpenKnownCerts.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				openPKCS12(txtbKnownCertsPath);
-			}
-		});
-		
-		btnOpenKeystore.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				openPKCS12(txtbKeyStorePath);
-			}
-		});
-		
-		btnOpenPKCS11Config.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				openPKCS11Config();
-			}
-		});
-		
-		chckbPasswordCache.addItemListener(new ItemListener() {
-			public void itemStateChanged(ItemEvent e) {
-				handleCache(chckbPasswordCache.isSelected());
-			}
-		});
+
+		btnOpenKnownCerts.addActionListener(e -> openPKCS12(txtbKnownCertsPath));
+		btnOpenKeystore.addActionListener(e -> openPKCS12(txtbKeyStorePath));
+		btnOpenPKCS11Config.addActionListener(e -> openPKCS11Config());
+
+		chckbPasswordCache.addItemListener(e ->
+		    handleCache(chckbPasswordCache.isSelected())
+		);
+
 		
 		chckbxUseTruststore.addItemListener(new ItemListener() {
 		    @Override
@@ -790,6 +763,8 @@ public class SettingsForm {
 				fileName, 
 				DefaultExtensions.STD_XML
 				);
+		
+		if(out == null) return;
 		if(FileDialogUtils.overwriteIfExists(out)) {
 			try {
 				ctx.exportPreferences(out);
@@ -818,7 +793,7 @@ public class SettingsForm {
 				fileName, 
 				DefaultExtensions.STD_XML
 				);
-		
+		if(in == null) return;
 		try {
 			ctx.importPreferences(in);
             DialogUtils.showMessageBox(
