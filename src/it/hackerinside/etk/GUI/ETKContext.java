@@ -1,7 +1,12 @@
 package it.hackerinside.etk.GUI;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.security.Security;
+import java.util.prefs.BackingStoreException;
+import java.util.prefs.InvalidPreferencesFormatException;
 import java.util.prefs.Preferences;
 
 import javax.swing.UIManager;
@@ -648,23 +653,77 @@ public class ETKContext {
             Arrays.fill(newPassword, (char) 0x00);
         }
     }
+    
+    /**
+     * Exports all preferences in this node and its children to the given file.
+     *
+     * @param output the file to write the exported preferences to
+     * @throws IOException if the file cannot be written
+     * @throws BackingStoreException if the preferences cannot be read
+     */
+    public void exportPreferences(File output) throws IOException, BackingStoreException {
+    	FileOutputStream fos = new FileOutputStream(output);
+    	preferences.exportSubtree(fos);
+    	fos.close();
+    }
+    
+    /**
+     * Imports preferences from the given file and merges them into the system preferences.
+     *
+     * @param input the file containing the exported preferences
+     * @throws IOException if the file cannot be read
+     * @throws InvalidPreferencesFormatException if the file format is invalid
+     */
+    public void importPreferences(File input) throws IOException, InvalidPreferencesFormatException {
+    	FileInputStream fis = new FileInputStream(input);
+    	Preferences.importPreferences(fis);
+    }
 
     
 	@Override
 	public String toString() {
-		return "ETKContext\n    - keystore=" + keystore + "\n    - knownCerts=" + knownCerts + "\n    - preferences=" + preferences
-				+ "\n    - getKeyStorePath()=" + getKeyStorePath() + "\n    - getKnownCertsPath()=" + getKnownCertsPath()
-				+ "\n    - getHashAlgorithm()=" + getHashAlgorithm() + "\n    - getCipher()=" + getCipher() + "\n    - getPkcs11Driver()="
-				+ getPkcs11Driver() + "\n    - usePKCS11()=" + usePKCS11() + "\n    - usePEM()=" + usePEM() + "\n    - getTheme()=" + getTheme()+ "\n    - getBufferSize()=" + getBufferSize()
-				+ "\n    - getUseCacheEntryPasswords()=" + getUseCacheEntryPasswords() 
-				+ "\n    - getCacheEntryTimeout()=" + getCacheEntryTimeout()
-				+ "\n    - useSKI()=" + useSKI()
-				+ "\n    - hideInvalidCerts()=" + hideInvalidCerts()
-				+ "\n    - useTrustStore()=" + useTrustStore()
-				+ "\n    - getTrustStorePath()=" + getTrustStorePath()
-				+ "\n    - getTrustStore()=" + getTrustStore();
+	    return """
+	        ETKContext
+	            - keystore=%s
+	            - knownCerts=%s
+	            - preferences=%s
+	            - getKeyStorePath()=%s
+	            - getKnownCertsPath()=%s
+	            - getHashAlgorithm()=%s
+	            - getCipher()=%s
+	            - getPkcs11Driver()=%s
+	            - usePKCS11()=%s
+	            - usePEM()=%s
+	            - getTheme()=%s
+	            - getBufferSize()=%s
+	            - getUseCacheEntryPasswords()=%s
+	            - getCacheEntryTimeout()=%s
+	            - useSKI()=%s
+	            - hideInvalidCerts()=%s
+	            - useTrustStore()=%s
+	            - getTrustStorePath()=%s
+	            - getTrustStore()=%s
+	        """.formatted(
+	            keystore,
+	            knownCerts,
+	            preferences,
+	            getKeyStorePath(),
+	            getKnownCertsPath(),
+	            getHashAlgorithm(),
+	            getCipher(),
+	            getPkcs11Driver(),
+	            usePKCS11(),
+	            usePEM(),
+	            getTheme(),
+	            getBufferSize(),
+	            getUseCacheEntryPasswords(),
+	            getCacheEntryTimeout(),
+	            useSKI(),
+	            hideInvalidCerts(),
+	            useTrustStore(),
+	            getTrustStorePath(),
+	            getTrustStore()
+	        );
 	}
-    
-	
-    
+
 }

@@ -39,6 +39,8 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.List;
+import java.util.prefs.BackingStoreException;
+import java.util.prefs.InvalidPreferencesFormatException;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import javax.swing.DefaultComboBoxModel;
@@ -441,6 +443,31 @@ public class SettingsForm {
 		buttonsPanel.add(btnRemoveCert);
 		buttonsPanel.add(btnCertInfo);
 		
+		JPanel panel_5 = new JPanel();
+		tabbedPane.addTab("Preferences", null, panel_5, null);
+		panel_5.setLayout(null);
+		
+		JButton btnExportPreferences = new JButton("EXPORT PREFERENCES");
+		btnExportPreferences.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				exportPreferences();
+				
+			}
+		});
+		btnExportPreferences.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		btnExportPreferences.setBounds(112, 11, 200, 39);
+		panel_5.add(btnExportPreferences);
+		
+		JButton btnImportPreferences = new JButton("IMPORT PREFERENCES");
+		btnImportPreferences.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				importPreferences();
+			}
+		});
+		btnImportPreferences.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		btnImportPreferences.setBounds(322, 11, 200, 39);
+		panel_5.add(btnImportPreferences);
+		
 		btnAddCertFile.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				X509Certificate cert = loadCertificateFromFile();
@@ -753,5 +780,62 @@ public class SettingsForm {
 	    if (file != null && file.exists() && !file.isDirectory()) {
 	    	txtPkcs11ConfPath.setText(file.getAbsolutePath());
 	    }
+	}
+	
+	private void exportPreferences() {
+		String fileName = "ETKPreferences_" + ETKContext.ETK_VERSION + ".xml";
+		File out = FileDialogUtils.saveFileDialog(
+				null, 
+				"Export Preferences", 
+				fileName, 
+				DefaultExtensions.STD_XML
+				);
+		if(FileDialogUtils.overwriteIfExists(out)) {
+			try {
+				ctx.exportPreferences(out);
+	            DialogUtils.showMessageBox(
+	            		null, 
+	            		"Preferences exported!", 
+	            		"Preferences exported!", 
+	                null,
+	                JOptionPane.INFORMATION_MESSAGE);
+			} catch (IOException | BackingStoreException e1) {
+	            DialogUtils.showMessageBox(
+	            		null, 
+	            		"Error exporting preferences!", 
+	            		"Error exporting preferences!", 
+	                e1.getMessage(), 
+	                JOptionPane.ERROR_MESSAGE);
+			}
+		}
+	}
+	
+	private void importPreferences() {
+		String fileName = "ETKPreferences_" + ETKContext.ETK_VERSION + ".xml";
+		File in = FileDialogUtils.openFileDialog(
+				null, 
+				"Import Preferences", 
+				fileName, 
+				DefaultExtensions.STD_XML
+				);
+		
+		try {
+			ctx.importPreferences(in);
+            DialogUtils.showMessageBox(
+            		null, 
+            		"Preferences loaded!", 
+            		"Preferences loaded!", 
+            		"Restart the software to ensure that the preferences are applied correctly.",
+                JOptionPane.INFORMATION_MESSAGE);
+            loadSettings();
+		} catch (IOException | InvalidPreferencesFormatException e1) {
+            DialogUtils.showMessageBox(
+            		null, 
+            		"Error importing preferences!", 
+            		"Error importing preferences!", 
+                e1.getMessage(), 
+                JOptionPane.ERROR_MESSAGE);
+		}
+		
 	}
 }
