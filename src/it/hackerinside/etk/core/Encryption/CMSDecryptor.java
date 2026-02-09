@@ -66,6 +66,7 @@ public class CMSDecryptor {
     public void decrypt(InputStream input, OutputStream output) throws Exception  {
     	InputStream cmsInput = wrapDecoding(input);
     	boolean success = false;
+    	Exception lastError = null;
     	
     	Collection<RecipientInformation> recipients = findReciepients(cmsInput);
 
@@ -86,12 +87,12 @@ public class CMSDecryptor {
                  break;
                  
     		}catch (Exception e) {
-               
+               lastError = e;
             }
     	}
     	
         if (!success) {
-            throw new Exception("Unable to decrypt CMS data with the provided private key.");
+            throw new Exception("Unable to decrypt CMS data with the provided private key: " + lastError.getMessage());
         }
     }
     
