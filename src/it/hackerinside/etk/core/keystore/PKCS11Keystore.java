@@ -97,4 +97,9 @@ public class PKCS11Keystore extends AbstractKeystore {
 		throw new UnsupportedOperationException("renameEntry not supported for PKCS11");
 		
 	}
+
+	@Override
+	public Provider getProvider() {
+		return this.provider;
+	}
 }
