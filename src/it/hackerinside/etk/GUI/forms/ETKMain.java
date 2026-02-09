@@ -581,7 +581,7 @@ public class ETKMain {
 		 * At the moment the software does not properly support encryption and decryption 
 		 * with pkcs11 devices, so it is better to disable the option to prevent data loss.
 		 */
-		if(ctx.usePKCS11()) {
+		if(ctx.usePKCS11() && ctx.isPkcs11SignOnly()) {
 			btnDecrypt.setEnabled(false);
 			btnEncrypt.setEnabled(false);
 		}

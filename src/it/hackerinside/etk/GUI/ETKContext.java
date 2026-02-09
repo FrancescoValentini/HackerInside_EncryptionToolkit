@@ -626,6 +626,51 @@ public class ETKContext {
         return Boolean.parseBoolean(vHide);
     }
     
+    /**
+     * Sets whether PKCS#11 should be used for signing operations only
+     */
+    public void setPkcs11SignOnly(boolean signOnly) {
+        preferences.put(
+            ApplicationPreferences.PKCS11_SIGN_ONLY.getKey(),
+            Boolean.toString(signOnly)
+        );
+    }
+
+    /**
+     * Returns whether PKCS#11 should be used for signing operations only
+     * @return if PKCS#11 is sign-only
+     */
+    public boolean isPkcs11SignOnly() {
+        String vPkcs11SignOnly = preferences.get(
+            ApplicationPreferences.PKCS11_SIGN_ONLY.getKey(),
+            ApplicationPreferences.PKCS11_SIGN_ONLY.getValue()
+        );
+        return Boolean.parseBoolean(vPkcs11SignOnly);
+    }
+
+    /**
+     * Sets whether RSA-OAEP should be used
+     */
+    public void setUseRsaOaep(boolean useRsaOaep) {
+        preferences.put(
+            ApplicationPreferences.USE_RSAOAEP.getKey(),
+            Boolean.toString(useRsaOaep)
+        );
+    }
+
+    /**
+     * Returns whether RSA-OAEP should be used
+     * @return if RSA-OAEP should be used
+     */
+    public boolean useRsaOaep() {
+        String vUseRsaOaep = preferences.get(
+            ApplicationPreferences.USE_RSAOAEP.getKey(),
+            ApplicationPreferences.USE_RSAOAEP.getValue()
+        );
+        return Boolean.parseBoolean(vUseRsaOaep);
+    }
+
+    
     
     /**
      * Changes the master password of the keystore.
@@ -703,6 +748,8 @@ public class ETKContext {
 	            - useTrustStore()=%s
 	            - getTrustStorePath()=%s
 	            - getTrustStore()=%s
+	            - isPkcs11SignOnly()=%s
+	            - useRsaOaep()=%s
 	        """.formatted(
 	            keystore,
 	            knownCerts,
@@ -722,7 +769,9 @@ public class ETKContext {
 	            hideInvalidCerts(),
 	            useTrustStore(),
 	            getTrustStorePath(),
-	            getTrustStore()
+	            getTrustStore(),
+	            isPkcs11SignOnly(),
+	            useRsaOaep()
 	        );
 	}
 

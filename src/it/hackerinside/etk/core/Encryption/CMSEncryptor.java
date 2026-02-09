@@ -14,6 +14,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.MGF1ParameterSpec;
@@ -56,6 +57,7 @@ public class CMSEncryptor implements Encryptor {
     private ArrayList<X509Certificate> recipients;
     private boolean useOnlySKI = false;
     private volatile boolean aborted = false;
+    private boolean useOAEP = true;
     
     /**
      * Constructs a new CMSEncryptor with the specified parameters.
@@ -93,6 +95,10 @@ public class CMSEncryptor implements Encryptor {
     
     public void abort() {
     	this.aborted = true;
+    }
+    
+    public void setUseOAEP(boolean value) {
+    	this.useOAEP = value;
     }
     
     /**
@@ -197,21 +203,7 @@ public class CMSEncryptor implements Encryptor {
         String algorithm = publicKey.getAlgorithm();
 
         if ("RSA".equalsIgnoreCase(algorithm)) {
-            // RSA Key Transport (OAEP)
-        	JcaAlgorithmParametersConverter paramsConverter = new JcaAlgorithmParametersConverter();
-        	OAEPParameterSpec oaepParams = new OAEPParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, PSource.PSpecified.DEFAULT);
-        	AlgorithmIdentifier algorithmIdentifier = paramsConverter.getAlgorithmIdentifier(PKCSObjectIdentifiers.id_RSAES_OAEP, oaepParams);
-        	
-        	if(this.useOnlySKI) { // SKI only
-        		return new JceKeyTransRecipientInfoGenerator(
-        				getSKI(recipientCert),
-        				algorithmIdentifier,
-        				recipientCert.getPublicKey()
-        		);
-        	}
-        	
-        	// Issuer + Recipient SN
-            return new JceKeyTransRecipientInfoGenerator(recipientCert,algorithmIdentifier);
+        	return buildRSARecipientInfo(recipientCert);
         } 
         else if ("EC".equalsIgnoreCase(algorithm) || "ECDH".equalsIgnoreCase(algorithm)) {
             // Elliptic Curve Diffie-Hellman (ECDH)
@@ -250,6 +242,41 @@ public class CMSEncryptor implements Encryptor {
             throw new IllegalArgumentException("Unsupported public key algorithm: " + algorithm);
         }
     }
+    
+    /**
+     * Creates an RSA RecipientInfoGenerator
+     * @param recipientCert the recipient's X.509 certificate
+     * @return a RecipientInfoGenerator configured for the recipient's public key 
+     */
+    public RecipientInfoGenerator buildRSARecipientInfo(X509Certificate recipientCert) throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, CertificateEncodingException {
+    	if(useOAEP) {
+        	JcaAlgorithmParametersConverter paramsConverter = new JcaAlgorithmParametersConverter();
+        	OAEPParameterSpec oaepParams = new OAEPParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, PSource.PSpecified.DEFAULT);
+        	AlgorithmIdentifier algorithmIdentifier = paramsConverter.getAlgorithmIdentifier(PKCSObjectIdentifiers.id_RSAES_OAEP, oaepParams);
+        	
+        	if(this.useOnlySKI) { // SKI only
+        		return new JceKeyTransRecipientInfoGenerator(
+        				getSKI(recipientCert),
+        				algorithmIdentifier,
+        				recipientCert.getPublicKey()
+        		);
+        	}
+        	
+        	// Issuer + Recipient SN
+            return new JceKeyTransRecipientInfoGenerator(recipientCert,algorithmIdentifier);
+    	}else {
+        	if(this.useOnlySKI) { // SKI only
+        		return new JceKeyTransRecipientInfoGenerator(
+        				getSKI(recipientCert),
+        				recipientCert.getPublicKey()
+        		);
+        	}
+        	
+        	// Issuer + Recipient SN
+            return new JceKeyTransRecipientInfoGenerator(recipientCert);
+    	}
+    }
+    
     
     /**
      * Return a RFC 3280 type 1 key identifier

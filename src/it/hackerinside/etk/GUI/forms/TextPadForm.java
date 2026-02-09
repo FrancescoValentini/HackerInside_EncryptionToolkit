@@ -388,24 +388,37 @@ public class TextPadForm {
 	    combo.addItem(null);
 
 	    try {
-	        Predicate<X509Certificate> validCertConditions = cert -> {
+	        Predicate<X509Certificate> personalCertPredicate = cert -> {
 	            String alg = cert.getPublicKey().getAlgorithm();
 	            boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
 
-	            return alg != null && validCert &&!alg.toUpperCase().contains("DSA");
+	            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
+	            boolean hideECC = ctx.usePKCS11() && !ctx.isPkcs11SignOnly()
+	                              && alg != null && alg.toUpperCase().contains("EC");
+
+	            return alg != null && validCert && !isDSA && !hideECC;
+	        };
+
+	        
+	        Predicate<X509Certificate> knownCertPredicate = cert -> {
+	            String alg = cert.getPublicKey().getAlgorithm();
+	            boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
+	            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
+
+	            return alg != null && validCert && !isDSA;
 	        };
 
 	        // PERSONAL CERTS
 	        if (ctx.getKeystore() != null) {
 	            ctx.getKeystore()
-	               .listAliases(validCertConditions)
+	               .listAliases(personalCertPredicate)
 	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKeystore())));
 	        }
 
 	        // KNOWN CERTS
 	        if (ctx.getKnownCerts() != null) {
 	            ctx.getKnownCerts()
-	               .listAliases(validCertConditions)
+	               .listAliases(knownCertPredicate)
 	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKnownCerts())));
 	        }
 
@@ -425,6 +438,7 @@ public class TextPadForm {
 		CMSEncryptor encryptor = new CMSEncryptor(cipher, EncodingOption.ENCODING_PEM, ctx.getBufferSize());
 		encryptor.addRecipients(recipient);
 		encryptor.setUseOnlySKI(chckbUseSKI.isSelected());
+		encryptor.setUseOAEP(ctx.useRsaOaep());
 		String text = txtbData.getText();
 	    ByteArrayInputStream input = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
 	    ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -512,6 +526,9 @@ public class TextPadForm {
         boolean ok = true;
 		try {
 			CMSDecryptor decryptor = new CMSDecryptor(priv, EncodingOption.ENCODING_PEM, ctx.getBufferSize());
+			
+			if(ctx.usePKCS11()) decryptor.setProvider(ctx.getKeystore().getProvider());
+			
 			decryptor.decrypt(input, output);
 		} catch (Exception e) {
 	        DialogUtils.showMessageBox(

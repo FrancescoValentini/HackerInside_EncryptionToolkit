@@ -14,6 +14,7 @@ import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Predicate;
 
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -30,6 +31,7 @@ import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.TimeUtils;
 import it.hackerinside.etk.GUI.Utils;
+import it.hackerinside.etk.Utils.X509Utils;
 import it.hackerinside.etk.core.Encryption.CMSCryptoUtils;
 import it.hackerinside.etk.core.Encryption.CMSDecryptor;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
@@ -320,13 +322,18 @@ public class DecryptForm {
 	
 	private void populaterCerts(JComboBox<String> combo) {
 	    combo.removeAllItems();
+        Predicate<X509Certificate> personalCertPredicate = cert -> {
+            String alg = cert.getPublicKey().getAlgorithm();
 
+            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
+            boolean hideECC = ctx.usePKCS11() && !ctx.isPkcs11SignOnly()
+                              && alg != null && alg.toUpperCase().contains("EC");
+
+            return alg != null && !isDSA && !hideECC;
+        };
 	    try {
 	        ctx.getKeystore()
-	           .listAliases(cert -> {
-	               String alg = cert.getPublicKey().getAlgorithm();
-	               return alg != null && !alg.contains("DSA"); // Excludes certificates for digital signatures 
-	           })
+	           .listAliases(personalCertPredicate)
 	           .forEach(combo::addItem);
 
 	    } catch (KeyStoreException e) {
@@ -375,6 +382,7 @@ public class DecryptForm {
 		        EncodingOption encoding = PEMUtils.findFileEncoding(fileToDecrypt);
 
 		        decryptor = new CMSDecryptor(priv, encoding, ctx.getBufferSize());
+		        if(ctx.usePKCS11()) decryptor.setProvider(ctx.getKeystore().getProvider());
 		        decryptor.decrypt(fileToDecrypt, output);
 			    return null;
 			}
