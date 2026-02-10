@@ -17,6 +17,7 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPublicKey;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.MGF1ParameterSpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
@@ -93,10 +94,18 @@ public class CMSEncryptor implements Encryptor {
     	this.useOnlySKI = value;
     }
     
+    /**
+     * Aborts the encryption
+     */
     public void abort() {
     	this.aborted = true;
     }
     
+    /**
+     * Enables or disables the use of OAEP padding.
+     *
+     * @param value {@code true} to use OAEP, {@code false} otherwise
+     */
     public void setUseOAEP(boolean value) {
     	this.useOAEP = value;
     }
@@ -191,64 +200,98 @@ public class CMSEncryptor implements Encryptor {
 
     /**
      * Creates an appropriate RecipientInfoGenerator based on the recipient certificate's
-     * public key algorithm. Supports RSA key transport and ECC key agreement schemes.
+     * public key algorithm. Supports RSA key transport, ECC key agreement schemes and PQC
      *
      * @param recipientCert the recipient's X.509 certificate
      * @return a RecipientInfoGenerator configured for the recipient's public key algorithm
      * @throws Exception if the public key algorithm is not supported or if key generation fails
      */
     private RecipientInfoGenerator createRecipientInfoGenerator(X509Certificate recipientCert) throws Exception {
+        String algorithm = recipientCert.getPublicKey().getAlgorithm().toUpperCase();
 
-        PublicKey publicKey = recipientCert.getPublicKey();
-        String algorithm = publicKey.getAlgorithm();
+        if (isRSA(algorithm)) return buildRSARecipientInfo(recipientCert);
+        if (isEC(algorithm)) return buildECRecipientInfo(recipientCert);
+        if (isSupportedPQC(algorithm)) return buildPQCRecipientInfo(recipientCert);
 
-        if ("RSA".equalsIgnoreCase(algorithm)) {
-        	return buildRSARecipientInfo(recipientCert);
-        } 
-        else if ("EC".equalsIgnoreCase(algorithm) || "ECDH".equalsIgnoreCase(algorithm)) {
-            // Elliptic Curve Diffie-Hellman (ECDH)
-            KeyPair eph = getEphemeralECCKeys(recipientCert);
-            
-            JceKeyAgreeRecipientInfoGenerator recipientInfoGenerator = new JceKeyAgreeRecipientInfoGenerator(
-                    CMSAlgorithm.ECDH_SHA256KDF,
-                    eph.getPrivate(),
-                    eph.getPublic(),
-                    encryptionAlgorithm.suggestedKeyWrap()
-            );
-            if(this.useOnlySKI) { // SKI only
-            	recipientInfoGenerator.addRecipient(getSKI(recipientCert),recipientCert.getPublicKey());
-            }else { // Issuer + Recipient SN
-            	recipientInfoGenerator.addRecipient(recipientCert);
-            }
-            return recipientInfoGenerator;
-        } else if(PQCAlgorithms.isPQC(algorithm)) { //PQC KEM
-        	if(!algorithm.toUpperCase().contains("ML-KEM")) {
-        		throw new IllegalArgumentException("PQC algorithm not supported for encryption: " + algorithm);
-        	}
-        	ASN1ObjectIdentifier keyWrapAlg = encryptionAlgorithm.suggestedKeyWrap(); 
-        	byte[] encoded = recipientCert.getPublicKey().getEncoded();
-
-        	// Force loading as ML-KEM instead of Kyber
-        	KeyFactory kf = KeyFactory.getInstance("ML-KEM", "BC");
-        	PublicKey mlkemPub = kf.generatePublic(new X509EncodedKeySpec(encoded));
-
-        	return new JceKEMRecipientInfoGenerator(
-        			getSKI(recipientCert),
-        			mlkemPub,
-        	        keyWrapAlg
-        	).setProvider("BC");
-        }
-        else {
-            throw new IllegalArgumentException("Unsupported public key algorithm: " + algorithm);
-        }
+        throw new IllegalArgumentException(
+                "Unsupported public key algorithm: " + algorithm
+        );
     }
+
+    
+    
+    private boolean isRSA(String algorithm) {
+        return "RSA".equals(algorithm);
+    }
+
+    private boolean isEC(String algorithm) {
+        return "EC".equals(algorithm) || "ECDH".equals(algorithm);
+    }
+
+    private boolean isSupportedPQC(String algorithm) {
+        if (!PQCAlgorithms.isPQC(algorithm)) {
+            return false;
+        }
+
+        if (!algorithm.contains("ML-KEM")) {
+            throw new IllegalArgumentException(
+                    "PQC algorithm not supported for encryption: " + algorithm
+            );
+        }
+
+        return true;
+    }
+
+    /**
+     * Creates an ML-KEM RecipientInfoGenerator
+     * @param recipientCert the recipient's X.509 certificate
+     * @return a RecipientInfoGenerator configured for the recipient's public key 
+     */    
+    private RecipientInfoGenerator buildPQCRecipientInfo(X509Certificate recipientCert) throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, CertificateEncodingException, NoSuchProviderException, InvalidKeySpecException {
+    	ASN1ObjectIdentifier keyWrapAlg = encryptionAlgorithm.suggestedKeyWrap(); 
+    	byte[] encoded = recipientCert.getPublicKey().getEncoded();
+
+    	// Force loading as ML-KEM instead of Kyber
+    	KeyFactory kf = KeyFactory.getInstance("ML-KEM", "BC");
+    	PublicKey mlkemPub = kf.generatePublic(new X509EncodedKeySpec(encoded));
+
+    	return new JceKEMRecipientInfoGenerator(
+    			getSKI(recipientCert),
+    			mlkemPub,
+    	        keyWrapAlg
+    	).setProvider("BC");
+    }
+    
+    /**
+     * Creates an ECC RecipientInfoGenerator
+     * @param recipientCert the recipient's X.509 certificate
+     * @return a RecipientInfoGenerator configured for the recipient's public key 
+     */
+    private RecipientInfoGenerator buildECRecipientInfo(X509Certificate recipientCert) throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, CertificateEncodingException, NoSuchProviderException {
+        // Elliptic Curve Diffie-Hellman (ECDH)
+        KeyPair eph = getEphemeralECCKeys(recipientCert);
+        
+        JceKeyAgreeRecipientInfoGenerator recipientInfoGenerator = new JceKeyAgreeRecipientInfoGenerator(
+                CMSAlgorithm.ECDH_SHA256KDF,
+                eph.getPrivate(),
+                eph.getPublic(),
+                encryptionAlgorithm.suggestedKeyWrap()
+        );
+        if(this.useOnlySKI) { // SKI only
+        	recipientInfoGenerator.addRecipient(getSKI(recipientCert),recipientCert.getPublicKey());
+        }else { // Issuer + Recipient SN
+        	recipientInfoGenerator.addRecipient(recipientCert);
+        }
+        return recipientInfoGenerator;
+    }
+
     
     /**
      * Creates an RSA RecipientInfoGenerator
      * @param recipientCert the recipient's X.509 certificate
      * @return a RecipientInfoGenerator configured for the recipient's public key 
      */
-    public RecipientInfoGenerator buildRSARecipientInfo(X509Certificate recipientCert) throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, CertificateEncodingException {
+    private RecipientInfoGenerator buildRSARecipientInfo(X509Certificate recipientCert) throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, CertificateEncodingException {
     	if(useOAEP) {
         	JcaAlgorithmParametersConverter paramsConverter = new JcaAlgorithmParametersConverter();
         	OAEPParameterSpec oaepParams = new OAEPParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, PSource.PSpecified.DEFAULT);
@@ -276,8 +319,7 @@ public class CMSEncryptor implements Encryptor {
             return new JceKeyTransRecipientInfoGenerator(recipientCert);
     	}
     }
-    
-    
+
     /**
      * Return a RFC 3280 type 1 key identifier
      * @param recipientCert

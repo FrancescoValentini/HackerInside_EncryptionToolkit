@@ -103,7 +103,9 @@ public class ETKContext {
         }
         enforceKeystoreSecurityParameters();
 		try {
+			System.setProperty("flatlaf.uiScale","1.0");
 		    UIManager.setLookAndFeel( getTheme().getLookAndFeel());
+		    
 		} catch( Exception ex ) {
 			System.out.println(ex.toString());
 		    System.err.println( "Failed to initialize LaF" );
