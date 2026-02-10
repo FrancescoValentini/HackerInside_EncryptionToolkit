@@ -7,8 +7,21 @@ On first startup, if the **PKCS#12 keystore** of trusted certificates is not pre
 In this window, you can:
 
 * choose where to create and save the keystores;
+- **Optional:** Choose your desired encryption and hashing algorithms 
 * generate a *self-signed* digital certificate with **NIST P-384** keys.
 
+>[!NOTE]
+> **Choice of algorithms:** By default the software chooses `AES-256-CBC` and `SHA-256` however alternative configurations are possible:
+> 
+> **Maximum security**
+> - **Encryption:** `AES-256-GCM` or `ChaCha20-Poly1305`
+> - **Hash:** `SHA-384` or `SHA-512`
+> - **Asymmetric keys:** `NIST P-384`, `NIST P-521`, or PQC algorithms
+>
+> **Better Compatibility**
+> - **Encryption:** `AES-128-CBC` or `AES-256-CBC`
+> - **Hash:** `SHA-256`
+> - **Asymmetric Keys:** `RSA-3072` or `RSA-8192`
 ---
 
 ### 🔐 Encryption (Encrypt)
@@ -59,14 +72,33 @@ In this window, you can:
 
 The application supports devices compliant with the **PKCS#11** standard.
 To use them, a configuration file following the *SunPKCS11* specification is required.
+> [!NOTE]
+> PKCS#11 configuration may vary depending on your operating system, PKCS#11 driver, and token.
+>
+> **For more information on configuring PKCS#11:** [SunPKCS11 Reference Guide](https://docs.oracle.com/en/java/javase/24/security/pkcs11-reference-guide1.html)
 
 ### 🔧 Example Configuration (Windows with OpenSC)
-
 ```text
 name = OpenSC
 library = C:\Program Files\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll
 slotListIndex = 0
+allowLegacy=true
+showInfo=true
 ```
 
+### ⚠️ Limitations
 > [!WARNING]
 > The software **does not support** creating or deleting key pairs on PKCS#11 devices.
+
+> [!WARNING]
+> When using a PKCS#11 token, the software disables encryption and decryption operations (“encrypt” and “decrypt”) by default. 
+> 
+> You can enable them in the settings by unchecking:
+> - "PKCS#11 sign-only mode"
+> - "Use RSA OAEP" in the "Algorithms" section
+
+> [!WARNING]
+> In PKCS#11 mode, the software cannot decrypt contents encrypted with RSA OAEP or ECC.
+
+> [!WARNING]
+> The software doesn't explicitly limit support for PQC algorithms when using PKCS#11, but this has never been tested. Therefore, using PKCS#11 PQC tokens may not work properly.

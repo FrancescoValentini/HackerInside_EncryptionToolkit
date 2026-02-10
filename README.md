@@ -36,22 +36,10 @@ Supporta operazioni di **cifratura, decifratura, gestione delle chiavi e firme d
 > Versioni future del programma non comprometteranno la compatibilità, poiché lo standard CMS non viene alterato.
 > Eventuali incompatibilità possono derivare solo dal supporto di specifici algoritmi crittografici.
 >
-> **Configurazioni consigliate:**
->
-> 🔒 *Massima sicurezza*
->
-> - **Cifratura:** `AES-256-GCM` o `ChaCha20-Poly1305`
-> - **Hash:** `SHA-384` o `SHA-512`
-> - **Chiavi asimmetriche:** `NIST P-384` o `NIST P-521`
->
-> 🔄 *Maggiore compatibilità*
->
-> - **Cifratura:** `AES-128-CBC` o `AES-256-CBC`
-> - **Hash:** `SHA-256`
-> - **Chiavi asimmetriche:** `RSA-3072` o `RSA-8192`
 
 ### 🔑 Gestione certificati e chiavi
 - Import/export di certificati in formato **PEM**
+- Import di certificati da URL
 - Import da file **PKCS#12** (`.p12`, `.pfx`) per coppie chiave/certificato
 - Esportazione in formato **PEM**
 - Integrazione con dispositivi **PKCS#11** (HSM/token)
@@ -68,8 +56,6 @@ Supporta operazioni di **cifratura, decifratura, gestione delle chiavi e firme d
 
 ### 📁 Formati di input/output
 - `PEM`
-
-
 
 ## 🧭 Utilizzo di base
 - [Guida](USAGE.md)

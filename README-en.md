@@ -37,22 +37,10 @@ It supports **encryption, decryption, key management, and digital signature** wi
 > Future versions of the program will not compromise compatibility, since the CMS standard is not altered.
 > Any incompatibilities may only arise from support for specific cryptographic algorithms.
 >
-> **Recommended configurations:**
->
-> 🔒 *Maximum Security*
->
-> - **Encryption:** `AES-256-GCM` or `ChaCha20-Poly1305`
-> - **Hash:** `SHA-384` or `SHA-512`
-> - **Asymmetric keys:** `NIST P-384` or `NIST P-521`
->
-> 🔄 *Greater Compatibility*
->
-> - **Encryption:** `AES-128-CBC` or `AES-256-CBC`
-> - **Hash:** `SHA-256`
-> - **Asymmetric keys:** `RSA-3072` or `RSA-8192`
 
 ### 🔑 Certificate and Key Management
 - Import/export of certificates in **PEM** format
+- Import certificates from URLs
 - Import from **PKCS#12** files (`.p12`, `.pfx`) for key/certificate pairs
 - Export in **PEM** or **DER** format
 - Integration with **PKCS#11** devices (HSM/token)
@@ -70,7 +58,7 @@ It supports **encryption, decryption, key management, and digital signature** wi
 ### 📁 Input/Output Formats
 - `PEM`
 
-## 🧭 Basic Usage
+## 🧭 Quick Start Guide
 - [Guide](USAGE-en.md)
 
 ## 🧰 Technologies Used
