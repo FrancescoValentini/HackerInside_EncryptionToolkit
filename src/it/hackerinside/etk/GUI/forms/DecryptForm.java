@@ -14,6 +14,7 @@ import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Predicate;
 
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -30,6 +31,7 @@ import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.TimeUtils;
 import it.hackerinside.etk.GUI.Utils;
+import it.hackerinside.etk.Utils.X509Utils;
 import it.hackerinside.etk.core.Encryption.CMSCryptoUtils;
 import it.hackerinside.etk.core.Encryption.CMSDecryptor;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
@@ -39,6 +41,8 @@ import it.hackerinside.etk.core.PEM.PEMUtils;
 
 import javax.swing.JProgressBar;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.awt.event.ActionEvent;
 import java.awt.Toolkit;
@@ -55,6 +59,10 @@ public class DecryptForm {
     private long startTime;
     private long endTime;
 	private JButton btnDecrypt;
+    private boolean running = false;
+    private SwingWorker<Void, Void> currentWorker;
+    private CMSDecryptor decryptor;
+    
 
 	/**
 	 * Launch the application.
@@ -93,6 +101,12 @@ public class DecryptForm {
 		frmHackerinsideEncryptionToolkit.setTitle("HackerInside Encryption Toolkit | Decrypt");
 		frmHackerinsideEncryptionToolkit.setResizable(false);
 		frmHackerinsideEncryptionToolkit.setBounds(100, 100, 593, 550);
+		frmHackerinsideEncryptionToolkit.addWindowListener(new WindowAdapter() {
+	    	@Override
+	    	public void windowClosing(WindowEvent e) {
+	    		if(running) abortDecryption();
+	    	}
+	    });
 		
 		//frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
@@ -160,8 +174,19 @@ public class DecryptForm {
 		});
 		
 		btnDecrypt.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				decrypt();
+			public void actionPerformed(ActionEvent e) {	
+				if(!running) {
+					decrypt();
+				}else {
+					if(DialogUtils.showConfirmBox(null,
+							"Abort?", 
+							"Are you sure you want to cancel the operation?", 
+							"Press OK to abort decryption", 
+							JOptionPane.QUESTION_MESSAGE)) {
+						abortDecryption();
+					}
+					
+				}
 			}
 		});
 		
@@ -297,13 +322,18 @@ public class DecryptForm {
 	
 	private void populaterCerts(JComboBox<String> combo) {
 	    combo.removeAllItems();
+        Predicate<X509Certificate> personalCertPredicate = cert -> {
+            String alg = cert.getPublicKey().getAlgorithm();
 
+            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
+            boolean hideECC = ctx.usePKCS11() && !ctx.isPkcs11SignOnly()
+                              && alg != null && alg.toUpperCase().contains("EC");
+
+            return alg != null && !isDSA && !hideECC;
+        };
 	    try {
 	        ctx.getKeystore()
-	           .listAliases(cert -> {
-	               String alg = cert.getPublicKey().getAlgorithm();
-	               return alg != null && !alg.contains("DSA"); // Excludes certificates for digital signatures 
-	           })
+	           .listAliases(personalCertPredicate)
 	           .forEach(combo::addItem);
 
 	    } catch (KeyStoreException e) {
@@ -338,15 +368,21 @@ public class DecryptForm {
 	    if(priv == null) return;
 
 	    startDecryptionUI();
+	    running = true;
+	    btnDecrypt.setText("ABORT");
+	    
+	    currentWorker = new SwingWorker<>() {
 
-	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
+			
+
 
 			@Override
 			protected Void doInBackground() throws Exception {
 		        startTime = System.currentTimeMillis();
 		        EncodingOption encoding = PEMUtils.findFileEncoding(fileToDecrypt);
 
-		        CMSDecryptor decryptor = new CMSDecryptor(priv, encoding, ctx.getBufferSize());
+		        decryptor = new CMSDecryptor(priv, encoding, ctx.getBufferSize());
+		        if(ctx.usePKCS11()) decryptor.setProvider(ctx.getKeystore().getProvider());
 		        decryptor.decrypt(fileToDecrypt, output);
 			    return null;
 			}
@@ -358,7 +394,7 @@ public class DecryptForm {
 	        }
 	    };
 
-	    worker.execute();
+	    currentWorker.execute();
 	}
 	/**
 	 * Updates the UI to indicate that decryption is in progress.
@@ -369,7 +405,6 @@ public class DecryptForm {
 	    progressBar.setEnabled(true);
 	    lblStatus.setText("Decrypting...");
 	    lblStatus.setVisible(true);
-	    btnDecrypt.setEnabled(false);
 	}
 	
 
@@ -397,6 +432,17 @@ public class DecryptForm {
 	        lblStatus.setText("Decryption failed");
 	        e.printStackTrace();
 	    }
-	    btnDecrypt.setEnabled(true);
+	    btnDecrypt.setText("DECRYPT");
+	}
+	
+	private void abortDecryption() {
+		decryptor.abort();
+	    if (currentWorker != null && !currentWorker.isDone()) {
+	        currentWorker.cancel(true);
+	        lblStatus.setText("Decryption aborted.");
+	    }
+	    running = false;
+	    btnDecrypt.setText("DECRYPT");
+	    progressBar.setVisible(false);
 	}
 }

@@ -15,6 +15,8 @@ import javax.swing.JScrollPane;
 
 import java.awt.Font;
 import java.security.*;
+import java.security.Provider.Service;
+
 import javax.crypto.*;
 
 public class AboutForm {
@@ -103,6 +105,8 @@ public class AboutForm {
         info.append(getAlgorithmInfo());
         info.append(getKeyLengthInfo());
         info.append(getHashingInfo());
+        
+        if(ctx.usePKCS11()) info.append(pkcs11Info());
 
         return info.toString();
     }
@@ -123,7 +127,7 @@ public class AboutForm {
     private String swInfo() {
     	StringBuilder sb = new StringBuilder();
     	sb.append("=== ETK CONTEXT ===\n");
-    	sb.append("Software Version: " + ctx.ETK_VERSION + "\n");
+    	sb.append("Software Version: " + ETKContext.ETK_VERSION + "\n");
     	sb.append(ctx.toString());
     	sb.append("\n\n");
     	return sb.toString();
@@ -198,6 +202,20 @@ public class AboutForm {
             }
             sb.append("\n");
         }
+        sb.append("\n");
+        return sb.toString();
+    }
+    
+    private String pkcs11Info() {
+    	StringBuilder sb = new StringBuilder();
+    	Provider provider = ctx.getKeystore().getProvider();
+    	sb.append("=== PKCS11 PROVIDER ===\n");
+        sb.append(provider.getInfo() + "\n\n");
+        sb.append("Services: \n");
+        for(Service s : provider.getServices()) {
+        	 sb.append(s.toString() + "\n\n");
+        }
+    	
         sb.append("\n");
         return sb.toString();
     }

@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
 import java.security.UnrecoverableEntryException;
 import java.util.Objects;
 
@@ -177,5 +178,10 @@ public class PKCS12Keystore extends AbstractKeystore {
         keyStore.setEntry(newAlias, entry, protection);
         keyStore.deleteEntry(oldAlias);
     }
+
+	@Override
+	public Provider getProvider() {
+		return keyStore.getProvider();
+	}
 
 }

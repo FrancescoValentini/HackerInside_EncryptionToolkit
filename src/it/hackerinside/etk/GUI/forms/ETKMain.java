@@ -72,6 +72,7 @@ public class ETKMain {
 	private JButton btnEncrypt;
 	private JMenuItem mntmChangeKeystorePwd;
 	private JCheckBoxMenuItem chckbxmntmHideInvalidCertificate;
+	private static boolean loggedIn = false;
 	/**
 	 * Launch the application.
 	 */
@@ -179,63 +180,16 @@ public class ETKMain {
 	    chckbxmntmHideInvalidCertificate = new JCheckBoxMenuItem("Hide Invalid Certificates");
 	    mnNewMenu.add(chckbxmntmHideInvalidCertificate);
 	    
-	    chckbxmntmHideInvalidCertificate.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		updateTable();
-	    	}
-	    });
-	    
-	    
-	    menuItemImportKnownCert.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		importKnownCert();
-	    	}
-	    });
-	    
-	    menuItemImportKnownCertStr.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		importKnownCertFromString();
-	    	}
-	    });
-	    
-	    menuItemImportKnownCertURL.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		importKnownCertFromURL();
-	    	}
-	    });
-	    
-	    mntmFilesChecksum.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		filesChecksum();
-	    	}
-	    });
-	    
-	    
-	    
+	    chckbxmntmHideInvalidCertificate.addActionListener(e -> updateTable());
+	    menuItemImportKnownCert.addActionListener(e -> importKnownCert());
+	    menuItemImportKnownCertStr.addActionListener(e -> importKnownCertFromString());
+	    menuItemImportKnownCertURL.addActionListener(e -> importKnownCertFromURL());
+	    mntmFilesChecksum.addActionListener(e -> filesChecksum());
 
-	    btnSign.addActionListener(new ActionListener() {
-	        public void actionPerformed(ActionEvent e) {
-	            sign();
-	        }
-	    });
-
-	    btnVerify.addActionListener(new ActionListener() {
-	        public void actionPerformed(ActionEvent e) {
-	            verify();
-	        }
-	    });
-
-	    btnEncrypt.addActionListener(new ActionListener() {
-	        public void actionPerformed(ActionEvent e) {
-	            encrypt();
-	        }
-	    });
-
-	    btnDecrypt.addActionListener(new ActionListener() {
-	        public void actionPerformed(ActionEvent e) {
-	            decrypt();
-	        }
-	    });
+	    btnSign.addActionListener(e -> sign());
+	    btnVerify.addActionListener(e -> verify());
+	    btnEncrypt.addActionListener(e -> encrypt());
+	    btnDecrypt.addActionListener(e -> decrypt());
 	    
 	    // Table row double click
 	    table.addMouseListener(new MouseAdapter() {
@@ -253,52 +207,20 @@ public class ETKMain {
 	        }
 	    });
 	    
-	    menuItemKeystoreLogin.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		unlockKeystore();
-	    		updateTable();
-	    		btnDecrypt.setEnabled(true);
-	    		btnSign.setEnabled(true);
+	    menuItemKeystoreLogin.addActionListener(e -> {
+	    	if(!loggedIn) {
+		        unlockKeystore();
+		        updateTable();
 	    	}
 	    });
 	    
-	    settingsMenuItem.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		settings();
-	    	}
-	    });
-	    
-	    menuItemImportKeypair.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		importKeypair();
-	    	}
-	    });
-	    
-	    mntmAbout.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		about();
-	    	}
-	    });
-	    
-	    menuItemNewKeypair.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		newKeyPair();
-	    	}
-	    });
-	    
-	    mntmChangeKeystorePwd.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		changeKeystoreMasterKey();
-	    	}
+	    settingsMenuItem.addActionListener(e -> settings());
+	    menuItemImportKeypair.addActionListener(e -> importKeypair());
+	    mntmAbout.addActionListener(e -> about());
+	    menuItemNewKeypair.addActionListener(e -> newKeyPair());
+	    mntmChangeKeystorePwd.addActionListener(e -> changeKeystoreMasterKey());
+	    mntmTextPad.addActionListener(e -> textPad());
 
-	    });
-	    
-	    mntmTextPad.addActionListener(new ActionListener() {
-	    	public void actionPerformed(ActionEvent e) {
-	    		textPad();
-	    	}
-
-	    });
 	    
 	    
 	    
@@ -659,7 +581,7 @@ public class ETKMain {
 		 * At the moment the software does not properly support encryption and decryption 
 		 * with pkcs11 devices, so it is better to disable the option to prevent data loss.
 		 */
-		if(ctx.usePKCS11()) {
+		if(ctx.usePKCS11() && ctx.isPkcs11SignOnly()) {
 			btnDecrypt.setEnabled(false);
 			btnEncrypt.setEnabled(false);
 		}
@@ -679,6 +601,7 @@ public class ETKMain {
 	    );
 	    try {
 	        ctx.loadKeystore(password);
+	        loggedIn = true;
 	        enablePrivateKeyOperations();
 	    } catch (Exception e) {
 	        DialogUtils.showMessageBox(
@@ -688,6 +611,7 @@ public class ETKMain {
 	            e.getMessage(),
 	            JOptionPane.ERROR_MESSAGE
 	        );
+	        loggedIn = false;
 	        disablePrivateKeyOperations();
 	    } finally {
 	    	if(password != null) Arrays.fill(password, (char)0x00);
@@ -723,7 +647,7 @@ public class ETKMain {
 
 	    // --- Private keystore ---
 	    try {
-	        if (ctx.getKeystore() != null) {
+	        if (ctx.getKeystore() != null && loggedIn) {
 	            List<String> privateAliases = Collections.list(ctx.getKeystore().listAliases());
 	            for (String alias : privateAliases) {
 	                X509Certificate crt = (X509Certificate) ctx.getKeystore().getCertificate(alias);
@@ -788,6 +712,7 @@ public class ETKMain {
 	    btnSign.setEnabled(true);
 	    btnDecrypt.setEnabled(true);
 	}
+
 	/**
 	 * Imports a known certificate from a file into the known certificates keystore.
 	 * Prompts the user to select a certificate file and provide an alias for the certificate.
@@ -999,6 +924,14 @@ public class ETKMain {
             return;
 		}
 		
+		if(!loggedIn) {
+			notLoggedInError();
+			return;
+		}
+		
+		if(ctx.getKeystore() == null) return;
+
+		
 	    File outputFile = FileDialogUtils.saveFileDialog(
 		        null,
 		        "Export KeyPairs",
@@ -1061,6 +994,11 @@ public class ETKMain {
 	                JOptionPane.ERROR_MESSAGE);
             return;
 		}
+		if(!loggedIn) {
+			notLoggedInError();
+			return;
+		}
+		
 		if(ctx.getKeystore() == null) return;
 	    File sourceKeystore = FileDialogUtils.openFileDialog(
 		        null,
@@ -1203,6 +1141,11 @@ public class ETKMain {
 	        return;
 	    }
 		
+		if(!loggedIn) {
+			notLoggedInError();
+			return;
+		}
+	    
 		if(ctx.getKeystore() == null) return;
 		
 		char[] currPwd = null, newPwd = null, newPwd1 = null;
@@ -1274,7 +1217,14 @@ public class ETKMain {
             return;
 		}
 		
+		if(!loggedIn) {
+			notLoggedInError();
+			return;
+		}
+		
 		if(ctx.getKeystore() == null) return;
+		
+		
 		
 		char[] currPwd = null, newPwd = null, newPwd1 = null;
 		try {
@@ -1393,6 +1343,10 @@ public class ETKMain {
 	 * Opens the key pair generation form
 	 */
 	private void newKeyPair() {
+		if(!loggedIn) {
+			notLoggedInError();
+			return;
+		}
 		NewKeyPairForm nkf = new NewKeyPairForm();
 		nkf.setVisible();
 		nkf.setCallback(() -> {updateTable();});
@@ -1406,5 +1360,9 @@ public class ETKMain {
 		FileHashForm fh = new FileHashForm();
 		fh.setVisible();
 		
+	}
+	
+	private void notLoggedInError() {
+		DialogUtils.showMessageBox(null, "You are not logged in", "You are not logged in", null, 0);
 	}
 }

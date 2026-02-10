@@ -5,6 +5,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.Provider;
 import java.security.UnrecoverableEntryException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
@@ -102,6 +103,12 @@ public abstract class AbstractKeystore {
 	 */
 	public abstract void renameEntry(String oldAlias, String newAlias, char[] passWord) throws KeyStoreException, NoSuchAlgorithmException, UnrecoverableEntryException;
 
+	/**
+	 * Returns the Java Security Provider used by the keystore
+	 * @return the Java Security Provider used by the keystore
+	 */
+	public abstract Provider getProvider();
+	
 	/**
 	 * Constructs a new AbstractKeystore with the specified keystore type.
 	 *

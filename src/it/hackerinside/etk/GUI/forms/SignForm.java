@@ -37,6 +37,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.JProgressBar;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.awt.event.ActionEvent;
 import java.awt.Toolkit;
@@ -59,6 +61,9 @@ public class SignForm {
 	private JLabel lblStatus;
 	private JProgressBar progressSignature;
 	private JButton btnSign;
+    private boolean running = false;
+    private SwingWorker<Void, Void> currentWorker;
+	private CAdESSigner signer;
 
 	/**
 	 * Launch the application.
@@ -98,6 +103,14 @@ public class SignForm {
 		frmSign.setTitle("SIGN");
 		frmSign.setBounds(100, 100, 593, 715);
 		//frmSign.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		
+		frmSign.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				if(running) abortSignature();
+			}
+		});
+		
 		
 		JPanel panel = new JPanel();
 		frmSign.getContentPane().add(panel, BorderLayout.CENTER);
@@ -238,7 +251,18 @@ public class SignForm {
 		
 		btnSign.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				sign();
+				if(!running) {
+					sign();
+				}else {
+					if(DialogUtils.showConfirmBox(null,
+							"Abort?", 
+							"Are you sure you want to cancel the operation?", 
+							"Press OK to abort the signing process.", 
+							JOptionPane.QUESTION_MESSAGE)) {
+						abortSignature();
+					}
+					
+				}
 			}
 		});
 		
@@ -422,8 +446,10 @@ public class SignForm {
 	    if(priv == null) return;
 	    
 	    startSignatureUI();
+	    running = true;
+	    btnSign.setText("ABORT");
 	    
-	    CAdESSigner signer = new CAdESSigner(priv, signerCert, encoding, hash, detached,ctx.getBufferSize());
+	    signer = new CAdESSigner(priv, signerCert, encoding, hash, detached,ctx.getBufferSize());
 	    
 	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
 	        @Override
@@ -451,7 +477,6 @@ public class SignForm {
 		progressSignature.setEnabled(true);
 	    lblStatus.setText("Signing...");
 	    lblStatus.setVisible(true);
-	    btnSign.setEnabled(false);
 	}
 
 	/**
@@ -477,9 +502,21 @@ public class SignForm {
 	        lblStatus.setText("Digital Signature failed");
 	        e.printStackTrace();
 	    }
-	    btnSign.setEnabled(true);
+	    btnSign.setText("SIGN");
 	}
 
+	private void abortSignature() {
+		signer.abort();
+	    if (currentWorker != null && !currentWorker.isDone()) {
+	        currentWorker.cancel(true);
+	        lblStatus.setText("Signature aborted.");
+	        
+	    }
+	    running = false;
+	    btnSign.setText("SIGN");
+	    progressSignature.setVisible(false);
+	}
+	
 	/**
 	 * Checks if all required inputs are ready.
 	 * 

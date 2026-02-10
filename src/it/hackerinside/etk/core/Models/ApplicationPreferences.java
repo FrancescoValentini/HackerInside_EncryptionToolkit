@@ -89,7 +89,18 @@ public enum ApplicationPreferences {
 	/**
 	 * Hides expired or still invalid certificates
 	 */
-	HIDE_INVALID_CERTS("HIDE_INVALID_CERTS","true");
+	HIDE_INVALID_CERTS("HIDE_INVALID_CERTS","true"),
+	
+	/**
+	 * Enable or disable RSA OAEP
+	 */
+	USE_RSAOAEP("USE_RSAOAEP","true"),
+	
+	/**
+	 * If true, the encrypt and decrypt options 
+	 * will be disabled with PKCS11 tokens.
+	 */
+	PKCS11_SIGN_ONLY("PKCS11_SIGN_ONLY","true");
     
     private final String key;
     private final String value;

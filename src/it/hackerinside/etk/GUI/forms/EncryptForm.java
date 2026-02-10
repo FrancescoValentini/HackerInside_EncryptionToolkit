@@ -54,6 +54,8 @@ import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.event.ActionEvent;
 import java.awt.Toolkit;
 
@@ -68,10 +70,11 @@ public class EncryptForm {
 	private JProgressBar progressBarEncrypt;
     private long startTime;
     private long endTime;
-    JList<CertificateTableRow> recipientsList;
-    DefaultListModel<CertificateTableRow> listModel = new DefaultListModel<>();
-    List<X509Certificate> recipients;
-
+    private JList<CertificateTableRow> recipientsList;
+    private DefaultListModel<CertificateTableRow> listModel = new DefaultListModel<>();
+    private List<X509Certificate> recipients;
+    private boolean running = false;
+    private SwingWorker<Void, Void> currentWorker;
     
 	
 	private File plaintextFile;
@@ -80,6 +83,7 @@ public class EncryptForm {
 	private JLabel lblStatus;
 	private JButton btnEncrypt;
 	private JCheckBox chckbxUseSki;
+	private CMSEncryptor encryptor;
 	private static ETKContext ctx;
 
 	/**
@@ -117,6 +121,12 @@ public class EncryptForm {
 	private void initialize() {
 		recipients = new ArrayList<>();
 		frmEncrypt = new JFrame();
+		frmEncrypt.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				if(running) abortEncryption();
+			}
+		});
 		frmEncrypt.setIconImage(Toolkit.getDefaultToolkit().getImage(EncryptForm.class.getResource("/it/hackerinside/etk/GUI/icons/encrypt.png")));
 		frmEncrypt.setResizable(false);
 		frmEncrypt.setTitle("HackerInside Encryption Toolkit | Encrypt");
@@ -279,7 +289,18 @@ public class EncryptForm {
 		
 		btnEncrypt.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				encryptFile();
+				if(!running) {
+					encryptFile();
+				}else {
+					if(DialogUtils.showConfirmBox(null,
+							"Abort?", 
+							"Are you sure you want to cancel the operation?", 
+							"Press OK to abort encryption", 
+							JOptionPane.QUESTION_MESSAGE)) {
+						abortEncryption();
+					}
+					
+				}
 			}
 		});
 		
@@ -365,24 +386,37 @@ public class EncryptForm {
 	    combo.addItem(null);
 
 	    try {
-	        Predicate<X509Certificate> validCertConditions = cert -> {
+	        Predicate<X509Certificate> personalCertPredicate = cert -> {
 	            String alg = cert.getPublicKey().getAlgorithm();
 	            boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
 
-	            return alg != null && validCert &&!alg.toUpperCase().contains("DSA");
+	            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
+	            boolean hideECC = ctx.usePKCS11() && !ctx.isPkcs11SignOnly()
+	                              && alg != null && alg.toUpperCase().contains("EC");
+
+	            return alg != null && validCert && !isDSA && !hideECC;
+	        };
+
+	        
+	        Predicate<X509Certificate> knownCertPredicate = cert -> {
+	            String alg = cert.getPublicKey().getAlgorithm();
+	            boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
+	            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
+
+	            return alg != null && validCert && !isDSA;
 	        };
 
 	        // PERSONAL CERTS
 	        if (ctx.getKeystore() != null) {
 	            ctx.getKeystore()
-	               .listAliases(validCertConditions)
+	               .listAliases(personalCertPredicate)
 	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKeystore())));
 	        }
 
 	        // KNOWN CERTS
 	        if (ctx.getKnownCerts() != null) {
 	            ctx.getKnownCerts()
-	               .listAliases(validCertConditions)
+	               .listAliases(knownCertPredicate)
 	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKnownCerts())));
 	        }
 
@@ -517,19 +551,24 @@ public class EncryptForm {
 	        return;
 	    }
 
-	    startEncryptionUI();
-
 	    SymmetricAlgorithms cipher = (SymmetricAlgorithms) cmbEncAlgorithm.getSelectedItem();
 	    EncodingOption encoding = chckbPemOutput.isSelected()
 	            ? EncodingOption.ENCODING_PEM
 	            : EncodingOption.ENCODING_DER;
 	    File cipherFile = new File(txtbOutputFile.getText());
 	    if(!FileDialogUtils.overwriteIfExists(cipherFile)) return;
-	    CMSEncryptor encryptor = new CMSEncryptor(cipher, encoding,ctx.getBufferSize());
+	    
+	    startEncryptionUI();
+	    encryptor = new CMSEncryptor(cipher, encoding,ctx.getBufferSize());
 	    
 	    recipients.forEach(encryptor::addRecipients); // Add recipients
 	    encryptor.setUseOnlySKI(chckbxUseSki.isSelected());
-	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
+	    encryptor.setUseOAEP(ctx.useRsaOaep());
+	    
+	    running = true;
+	    btnEncrypt.setText("ABORT"); 
+	    
+	    currentWorker = new SwingWorker<>() {
 	        @Override
 	        protected Void doInBackground() throws Exception {
 	        	startTime = System.currentTimeMillis();
@@ -543,7 +582,7 @@ public class EncryptForm {
 	        }
 	    };
 
-	    worker.execute();
+	    currentWorker.execute();
 	}
 
 	/**
@@ -554,8 +593,19 @@ public class EncryptForm {
 	    progressBarEncrypt.setEnabled(true);
 	    lblStatus.setText("Encrypting...");
 	    lblStatus.setVisible(true);
-	    btnEncrypt.setEnabled(false);
 	}
+	
+	private void abortEncryption() {
+		encryptor.abort();
+	    if (currentWorker != null && !currentWorker.isDone()) {
+	        currentWorker.cancel(true);
+	        lblStatus.setText("Encryption aborted.");
+	    }
+	    running = false;
+	    btnEncrypt.setText("Encrypt");
+	    progressBarEncrypt.setVisible(false);
+	}
+
 
 	/**
 	 * Finalizes the UI after encryption completes or fails.
@@ -564,6 +614,9 @@ public class EncryptForm {
 	 */
 	private void finishEncryptionUI(SwingWorker<?, ?> worker) {
 	    progressBarEncrypt.setVisible(false);
+	    running = false;
+	    btnEncrypt.setText("ENCRYPT");
+	    
 	    endTime = System.currentTimeMillis();
 	    try {
 	        worker.get();

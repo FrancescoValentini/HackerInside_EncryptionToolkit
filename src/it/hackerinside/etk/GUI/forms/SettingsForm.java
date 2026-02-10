@@ -39,6 +39,8 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.List;
+import java.util.prefs.BackingStoreException;
+import java.util.prefs.InvalidPreferencesFormatException;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import javax.swing.DefaultComboBoxModel;
@@ -81,6 +83,8 @@ public class SettingsForm {
 	private JCheckBox chckbxUseTruststore;
     DefaultListModel<CertificateTableRow> listModel = new DefaultListModel<>();
 	private JPanel panel_3_1;
+	private JCheckBox chckbRSAOAEP;
+	private JCheckBox chckbPKCS11SignOnly;
 
 	/**
 	 * Launch the application.
@@ -171,41 +175,57 @@ public class SettingsForm {
 		spnCacheTimeout.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		chckbxSKI = new JCheckBox("Use SKI during encryption");
+		chckbxSKI.setToolTipText("Uses the Subject Key Identifier (SKI) to identify the certificate instead of the issuer name and serial number.");
 		chckbxSKI.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		chckbHideInvalidCerts = new JCheckBox("Hide invalid certificates");
 		chckbHideInvalidCerts.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		
+		chckbPKCS11SignOnly = new JCheckBox("PKCS#11 sign-only mode");
+		chckbPKCS11SignOnly.setToolTipText("Prevents decryption issues with PKCS#11 tokens that do not support decryption.");
+		chckbPKCS11SignOnly.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		GroupLayout gl_panel = new GroupLayout(panel);
 		gl_panel.setHorizontalGroup(
 			gl_panel.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panel.createSequentialGroup()
 					.addContainerGap()
-					.addGroup(gl_panel.createParallelGroup(Alignment.LEADING, false)
-						.addGroup(gl_panel.createSequentialGroup()
-							.addGap(58)
-							.addComponent(lblNewLabel, GroupLayout.PREFERRED_SIZE, 119, GroupLayout.PREFERRED_SIZE))
-						.addComponent(lblKnownCertificatesPath, GroupLayout.DEFAULT_SIZE, 183, Short.MAX_VALUE)
-						.addComponent(lblNewLabel_3, GroupLayout.PREFERRED_SIZE, 149, GroupLayout.PREFERRED_SIZE)
-						.addComponent(lblNewLabel_3_1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-					.addPreferredGap(ComponentPlacement.RELATED)
 					.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-						.addComponent(chckbHideInvalidCerts)
-						.addComponent(chckbxSKI)
-						.addGroup(gl_panel.createSequentialGroup()
-							.addComponent(spnCacheTimeout, GroupLayout.PREFERRED_SIZE, 86, GroupLayout.PREFERRED_SIZE)
-							.addGap(18)
-							.addComponent(chckbPasswordCache))
 						.addGroup(gl_panel.createSequentialGroup()
 							.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-								.addComponent(txtbKeyStorePath, GroupLayout.PREFERRED_SIZE, 381, GroupLayout.PREFERRED_SIZE)
-								.addComponent(txtbKnownCertsPath, GroupLayout.PREFERRED_SIZE, 381, GroupLayout.PREFERRED_SIZE))
-							.addGap(10)
+								.addGroup(gl_panel.createSequentialGroup()
+									.addGap(187)
+									.addGroup(gl_panel.createSequentialGroup()
+										.addGap(104)
+										.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
+											.addComponent(chckbPKCS11SignOnly, GroupLayout.DEFAULT_SIZE, 335, Short.MAX_VALUE)
+											.addComponent(chckbHideInvalidCerts, GroupLayout.DEFAULT_SIZE, 265, Short.MAX_VALUE))))
+								.addComponent(chckbUsePem)
+								.addComponent(chckbxSKI, GroupLayout.PREFERRED_SIZE, 255, GroupLayout.PREFERRED_SIZE))
+							.addContainerGap())
+						.addGroup(gl_panel.createSequentialGroup()
 							.addGroup(gl_panel.createParallelGroup(Alignment.LEADING, false)
-								.addComponent(btnOpenKeystore, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(btnOpenKnownCerts, GroupLayout.DEFAULT_SIZE, 48, Short.MAX_VALUE)))
-						.addComponent(spnBufferSize, GroupLayout.PREFERRED_SIZE, 86, GroupLayout.PREFERRED_SIZE)
-						.addComponent(chckbUsePem, GroupLayout.PREFERRED_SIZE, 147, GroupLayout.PREFERRED_SIZE))
-					.addContainerGap(161, Short.MAX_VALUE))
+								.addGroup(gl_panel.createSequentialGroup()
+									.addGap(58)
+									.addComponent(lblNewLabel, GroupLayout.PREFERRED_SIZE, 119, GroupLayout.PREFERRED_SIZE))
+								.addComponent(lblKnownCertificatesPath, GroupLayout.DEFAULT_SIZE, 183, Short.MAX_VALUE)
+								.addComponent(lblNewLabel_3, GroupLayout.PREFERRED_SIZE, 149, GroupLayout.PREFERRED_SIZE)
+								.addComponent(lblNewLabel_3_1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
+								.addGroup(gl_panel.createSequentialGroup()
+									.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
+										.addComponent(txtbKeyStorePath, GroupLayout.PREFERRED_SIZE, 381, GroupLayout.PREFERRED_SIZE)
+										.addComponent(txtbKnownCertsPath, GroupLayout.PREFERRED_SIZE, 381, GroupLayout.PREFERRED_SIZE))
+									.addGap(10)
+									.addGroup(gl_panel.createParallelGroup(Alignment.LEADING, false)
+										.addComponent(btnOpenKeystore, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+										.addComponent(btnOpenKnownCerts, GroupLayout.DEFAULT_SIZE, 48, Short.MAX_VALUE)))
+								.addComponent(spnBufferSize, GroupLayout.PREFERRED_SIZE, 86, GroupLayout.PREFERRED_SIZE)
+								.addGroup(gl_panel.createSequentialGroup()
+									.addComponent(spnCacheTimeout, GroupLayout.PREFERRED_SIZE, 86, GroupLayout.PREFERRED_SIZE)
+									.addGap(18)
+									.addComponent(chckbPasswordCache)))
+							.addGap(161))))
 		);
 		gl_panel.setVerticalGroup(
 			gl_panel.createParallelGroup(Alignment.LEADING)
@@ -233,13 +253,15 @@ public class SettingsForm {
 						.addComponent(lblNewLabel_3_1, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
 						.addComponent(spnCacheTimeout, GroupLayout.PREFERRED_SIZE, 25, GroupLayout.PREFERRED_SIZE)
 						.addComponent(chckbPasswordCache))
+					.addGap(18)
+					.addGroup(gl_panel.createParallelGroup(Alignment.BASELINE)
+						.addComponent(chckbUsePem)
+						.addComponent(chckbHideInvalidCerts))
 					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addComponent(chckbUsePem)
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addComponent(chckbxSKI)
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addComponent(chckbHideInvalidCerts)
-					.addContainerGap(387, Short.MAX_VALUE))
+					.addGroup(gl_panel.createParallelGroup(Alignment.BASELINE)
+						.addComponent(chckbxSKI)
+						.addComponent(chckbPKCS11SignOnly))
+					.addContainerGap(408, Short.MAX_VALUE))
 		);
 		panel.setLayout(gl_panel);
 		
@@ -257,21 +279,26 @@ public class SettingsForm {
 		
 		cmbHashAlgPath = new JComboBox();
 		cmbHashAlgPath.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		chckbRSAOAEP = new JCheckBox("Use RSA OAEP");
+		chckbRSAOAEP.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		GroupLayout gl_panel_1 = new GroupLayout(panel_1);
 		gl_panel_1.setHorizontalGroup(
 			gl_panel_1.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panel_1.createSequentialGroup()
 					.addContainerGap()
-					.addGroup(gl_panel_1.createParallelGroup(Alignment.TRAILING, false)
-						.addGroup(gl_panel_1.createSequentialGroup()
-							.addComponent(lblNewLabel_1, GroupLayout.PREFERRED_SIZE, 226, GroupLayout.PREFERRED_SIZE)
-							.addPreferredGap(ComponentPlacement.RELATED)
-							.addComponent(cmbEncAlgPath, GroupLayout.PREFERRED_SIZE, 339, GroupLayout.PREFERRED_SIZE))
-						.addGroup(gl_panel_1.createSequentialGroup()
-							.addComponent(lblNewLabel_1_1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-							.addGap(18)
-							.addComponent(cmbHashAlgPath, GroupLayout.PREFERRED_SIZE, 339, GroupLayout.PREFERRED_SIZE)))
-					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+					.addGroup(gl_panel_1.createParallelGroup(Alignment.LEADING)
+						.addComponent(chckbRSAOAEP, GroupLayout.PREFERRED_SIZE, 317, GroupLayout.PREFERRED_SIZE)
+						.addGroup(gl_panel_1.createParallelGroup(Alignment.TRAILING, false)
+							.addGroup(gl_panel_1.createSequentialGroup()
+								.addComponent(lblNewLabel_1, GroupLayout.PREFERRED_SIZE, 226, GroupLayout.PREFERRED_SIZE)
+								.addPreferredGap(ComponentPlacement.RELATED)
+								.addComponent(cmbEncAlgPath, GroupLayout.PREFERRED_SIZE, 339, GroupLayout.PREFERRED_SIZE))
+							.addGroup(gl_panel_1.createSequentialGroup()
+								.addComponent(lblNewLabel_1_1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+								.addGap(18)
+								.addComponent(cmbHashAlgPath, GroupLayout.PREFERRED_SIZE, 339, GroupLayout.PREFERRED_SIZE))))
+					.addContainerGap(218, Short.MAX_VALUE))
 		);
 		gl_panel_1.setVerticalGroup(
 			gl_panel_1.createParallelGroup(Alignment.LEADING)
@@ -284,7 +311,9 @@ public class SettingsForm {
 					.addGroup(gl_panel_1.createParallelGroup(Alignment.BASELINE)
 						.addComponent(lblNewLabel_1_1, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
 						.addComponent(cmbHashAlgPath, GroupLayout.PREFERRED_SIZE, 25, GroupLayout.PREFERRED_SIZE))
-					.addContainerGap(534, Short.MAX_VALUE))
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addComponent(chckbRSAOAEP)
+					.addContainerGap(523, Short.MAX_VALUE))
 		);
 		panel_1.setLayout(gl_panel_1);
 		
@@ -434,22 +463,26 @@ public class SettingsForm {
 
 		JButton btnCertInfo = new JButton("INFO");
 		btnCertInfo.setFont(new Font("Tahoma", Font.BOLD, 16));
-		
-
-		
+	
 		buttonsPanel.add(btnAddCertFile);
 		buttonsPanel.add(btnRemoveCert);
 		buttonsPanel.add(btnCertInfo);
 		
-		btnAddCertFile.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				X509Certificate cert = loadCertificateFromFile();
+		JPanel panel_5 = new JPanel();
+		tabbedPane.addTab("Preferences", null, panel_5, null);
+		panel_5.setLayout(null);
+		
+		JButton btnExportPreferences = new JButton("EXPORT PREFERENCES");
 
-				if(cert != null) {
-					addTrustStoreCertificate(cert);
-				}
-			}
-		});
+		btnExportPreferences.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		btnExportPreferences.setBounds(112, 11, 200, 39);
+		panel_5.add(btnExportPreferences);
+		
+		JButton btnImportPreferences = new JButton("IMPORT PREFERENCES");
+		btnImportPreferences.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		btnImportPreferences.setBounds(322, 11, 200, 39);
+		panel_5.add(btnImportPreferences);
+		
 		
 		btnRemoveCert.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -471,44 +504,38 @@ public class SettingsForm {
 				}
 			}
 		});
-		
-		btnCertInfo.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				CertificateTableRow selected = caList.getSelectedValue();
-				if(selected != null) showCertificateInfo(selected.original());
-			}
+		btnAddCertFile.addActionListener(e -> {
+		    X509Certificate cert = loadCertificateFromFile();
+		    if (cert != null) {
+		        addTrustStoreCertificate(cert);
+		    }
 		});
-		
+
+		btnImportPreferences.addActionListener(e -> importPreferences());
+		btnExportPreferences.addActionListener(e -> exportPreferences());
+
+		btnCertInfo.addActionListener(e -> {
+		    CertificateTableRow selected = caList.getSelectedValue();
+		    if (selected != null) {
+		        showCertificateInfo(selected.original());
+		    }
+		});
+
 		frmHackerinsideEncryptionToolkit.addWindowListener(new WindowAdapter() {
-			@Override
-			public void windowClosing(WindowEvent e) {
-				save();
-			}
+		    @Override
+		    public void windowClosing(WindowEvent e) {
+		        save();
+		    }
 		});
-		
-		btnOpenKnownCerts.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				openPKCS12(txtbKnownCertsPath);
-			}
-		});
-		
-		btnOpenKeystore.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				openPKCS12(txtbKeyStorePath);
-			}
-		});
-		
-		btnOpenPKCS11Config.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				openPKCS11Config();
-			}
-		});
-		
-		chckbPasswordCache.addItemListener(new ItemListener() {
-			public void itemStateChanged(ItemEvent e) {
-				handleCache(chckbPasswordCache.isSelected());
-			}
-		});
+
+		btnOpenKnownCerts.addActionListener(e -> openPKCS12(txtbKnownCertsPath));
+		btnOpenKeystore.addActionListener(e -> openPKCS12(txtbKeyStorePath));
+		btnOpenPKCS11Config.addActionListener(e -> openPKCS11Config());
+
+		chckbPasswordCache.addItemListener(e ->
+		    handleCache(chckbPasswordCache.isSelected())
+		);
+
 		
 		chckbxUseTruststore.addItemListener(new ItemListener() {
 		    @Override
@@ -523,7 +550,6 @@ public class SettingsForm {
 		        }
 		    }
 		});
-
 		
 		start();
 	}
@@ -662,6 +688,9 @@ public class SettingsForm {
 		chckbPasswordCache.setSelected(ctx.getUseCacheEntryPasswords());
 		chckbHideInvalidCerts.setSelected(ctx.hideInvalidCerts());
 		chckbxUseTruststore.setSelected(ctx.useTrustStore());
+		chckbPKCS11SignOnly.setSelected(ctx.isPkcs11SignOnly());
+		chckbRSAOAEP.setSelected(ctx.useRsaOaep());
+		
 		
 		cmbEncAlgPath.setSelectedItem(ctx.getCipher());
 		cmbHashAlgPath.setSelectedItem(ctx.getHashAlgorithm());
@@ -691,6 +720,8 @@ public class SettingsForm {
 		ctx.setCacheEntryTimeout((int) spnCacheTimeout.getValue());
 		ctx.setHideInvalidCerts(chckbHideInvalidCerts.isSelected());
 		ctx.setUseTrustStore(chckbxUseTruststore.isSelected());
+		ctx.setUseRsaOaep(chckbRSAOAEP.isSelected());
+		ctx.setPkcs11SignOnly(chckbPKCS11SignOnly.isSelected());
 	}
 	
 	/**
@@ -753,5 +784,64 @@ public class SettingsForm {
 	    if (file != null && file.exists() && !file.isDirectory()) {
 	    	txtPkcs11ConfPath.setText(file.getAbsolutePath());
 	    }
+	}
+	
+	private void exportPreferences() {
+		String fileName = "ETKPreferences_" + ETKContext.ETK_VERSION + ".xml";
+		File out = FileDialogUtils.saveFileDialog(
+				null, 
+				"Export Preferences", 
+				fileName, 
+				DefaultExtensions.STD_XML
+				);
+		
+		if(out == null) return;
+		if(FileDialogUtils.overwriteIfExists(out)) {
+			try {
+				ctx.exportPreferences(out);
+	            DialogUtils.showMessageBox(
+	            		null, 
+	            		"Preferences exported!", 
+	            		"Preferences exported!", 
+	                null,
+	                JOptionPane.INFORMATION_MESSAGE);
+			} catch (IOException | BackingStoreException e1) {
+	            DialogUtils.showMessageBox(
+	            		null, 
+	            		"Error exporting preferences!", 
+	            		"Error exporting preferences!", 
+	                e1.getMessage(), 
+	                JOptionPane.ERROR_MESSAGE);
+			}
+		}
+	}
+	
+	private void importPreferences() {
+		String fileName = "ETKPreferences_" + ETKContext.ETK_VERSION + ".xml";
+		File in = FileDialogUtils.openFileDialog(
+				null, 
+				"Import Preferences", 
+				fileName, 
+				DefaultExtensions.STD_XML
+				);
+		if(in == null) return;
+		try {
+			ctx.importPreferences(in);
+            DialogUtils.showMessageBox(
+            		null, 
+            		"Preferences loaded!", 
+            		"Preferences loaded!", 
+            		"Restart the software to ensure that the preferences are applied correctly.",
+                JOptionPane.INFORMATION_MESSAGE);
+            loadSettings();
+		} catch (IOException | InvalidPreferencesFormatException e1) {
+            DialogUtils.showMessageBox(
+            		null, 
+            		"Error importing preferences!", 
+            		"Error importing preferences!", 
+                e1.getMessage(), 
+                JOptionPane.ERROR_MESSAGE);
+		}
+		
 	}
 }

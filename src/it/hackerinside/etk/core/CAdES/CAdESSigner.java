@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -61,6 +62,7 @@ public class CAdESSigner {
 	private HashAlgorithm hashAlgorithm;
 	private boolean detachedSignature;
 	private int bufferSize;
+	private volatile boolean aborted = false;
 	
     /**
      * Constructs a new CAdESSigner with the specified configuration parameters.
@@ -80,6 +82,13 @@ public class CAdESSigner {
 		this.detachedSignature = detachedSignature;
 		this.bufferSize = bufferSize;
 	}
+	
+	/**
+	 * Aborts the signature
+	 */
+    public void abort() {
+    	this.aborted = true;
+    }
 	
     /**
      * Signs the input data from the specified input stream and writes the signature
@@ -243,6 +252,9 @@ public class CAdESSigner {
         byte[] buffer = new byte[bufferSize];
         int n;
         while ((n = input.read(buffer)) != -1) {
+            if (aborted || Thread.currentThread().isInterrupted()) {
+                throw new InterruptedIOException("Signature aborted");
+            }
             sigOut.write(buffer, 0, n);
         }
         sigOut.flush();

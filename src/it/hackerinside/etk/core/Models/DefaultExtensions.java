@@ -26,6 +26,9 @@ public enum DefaultExtensions {
     /** Compressed archive file format. */
     STD_ZIP(".zip", "ZIP File"),
     
+    /** XML document */
+    STD_XML(".xml", "XML File"),
+    
     /** PKCS#12 format keystore file (commonly used for personal information exchange). */
     CRYPTO_PFX(".pfx", "PKCS#12 Keystore"),
     

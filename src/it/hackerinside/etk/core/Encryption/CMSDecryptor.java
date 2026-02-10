@@ -5,8 +5,10 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.security.PrivateKey;
+import java.security.Provider;
 import java.util.Collection;
 
 import org.bouncycastle.cms.CMSEnvelopedDataParser;
@@ -33,6 +35,9 @@ public class CMSDecryptor {
 	private PrivateKey privateKey;
 	private EncodingOption encoding;
 	private int bufferSize;
+	private volatile boolean aborted = false;
+	private Provider provider;
+	
 	/**
 	 * Constructs a new CMSDecryptor with the specified parameters.
 	 * 
@@ -45,6 +50,20 @@ public class CMSDecryptor {
 		this.encoding = encoding;
 		this.bufferSize = bufferSize;
 	}
+	/**
+	 * Aborts the decryption
+	 */
+    public void abort() {
+    	this.aborted = true;
+    }
+    
+    /**
+     * Set the cryptographic provider
+     * @param p
+     */
+    public void setProvider(Provider p) {
+    	this.provider = p;
+    }
 	
     /**
      * Decrypts data from an InputStream to an OutputStream using CMS decryption.
@@ -58,16 +77,22 @@ public class CMSDecryptor {
     public void decrypt(InputStream input, OutputStream output) throws Exception  {
     	InputStream cmsInput = wrapDecoding(input);
     	boolean success = false;
+    	Exception lastError = null;
     	
     	Collection<RecipientInformation> recipients = findReciepients(cmsInput);
 
     	for (RecipientInformation recipient : recipients) {
     		try {
-    			InputStream decryptedStream = createRecipientContentStream(recipient);
+    			InputStream decryptedStream = 
+    					isPKCS11Key(privateKey) ? createRecipientContentStreamPKCS11(recipient) :
+    							createRecipientContentStream(recipient);
 
     			 byte[] buffer = new byte[bufferSize];
                  int bytesRead;
                  while ((bytesRead = decryptedStream.read(buffer)) != -1) {
+                     if (aborted || Thread.currentThread().isInterrupted()) {
+                         throw new InterruptedIOException("Decryption aborted");
+                     }
                      output.write(buffer, 0, bytesRead);
                  }
                  decryptedStream.close();
@@ -75,12 +100,12 @@ public class CMSDecryptor {
                  break;
                  
     		}catch (Exception e) {
-               
+               lastError = e;
             }
     	}
     	
         if (!success) {
-            throw new Exception("Unable to decrypt CMS data with the provided private key.");
+            throw new Exception("Unable to decrypt CMS data with the provided private key: " + lastError.getMessage());
         }
     }
     
@@ -154,6 +179,39 @@ public class CMSDecryptor {
         };
     }
 	
+	private InputStream createRecipientContentStreamPKCS11(RecipientInformation recipient) throws CMSException, IOException {
+		if(PQCAlgorithms.isPQC(privateKey.getAlgorithm())) { // PQC
+			return recipient
+                    .getContentStream(
+                    		new JceKEMEnvelopedRecipient(privateKey)
+                    		.setProvider(provider)
+                    		.setContentProvider("BC")
+                    		)
+                    .getContentStream();
+		}
+		
+        AsymmetricAlgorithm keyAlgo = AsymmetricAlgorithm.fromPrivateKey(privateKey); 
+        return switch (keyAlgo) {
+            case RSA -> recipient
+                        .getContentStream(
+                        		new JceKeyTransEnvelopedRecipient(privateKey)
+                        		.setProvider(provider)
+                        		.setContentProvider("BC")
+                        		.setMustProduceEncodableUnwrappedKey(false)
+                        		)
+                        .getContentStream();
+            case EC -> recipient
+                        .getContentStream(
+                        		new JceKeyAgreeEnvelopedRecipient(privateKey)
+                        		.setProvider(provider)
+                        		.setUnwrappingProvider(provider)
+                        		.setContentProvider("BC")
+                        		)
+                        .getContentStream();
+            default -> throw new CMSException("Unsupported asymmetric algorithm: " + keyAlgo);
+        };
+    }
+	
     /**
      * Wraps the input stream with the appropriate decoding based on the encoding option.
      * If PEM encoding is selected, returns a PemInputStream; otherwise returns the
@@ -171,5 +229,15 @@ public class CMSDecryptor {
         }
     }
 
+    
+    /**
+     * Checks if the provided PrivateKey is a PKCS#11 key.
+     *
+     * @param key The PrivateKey to be checked.
+     * @return true if the key is a PKCS#11 key, false otherwise.
+     */
+    private boolean isPKCS11Key(PrivateKey key) {
+        return key.getClass().getName().startsWith("sun.security.pkcs11");
+    }
 
 }

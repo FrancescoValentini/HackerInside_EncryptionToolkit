@@ -1,7 +1,12 @@
 package it.hackerinside.etk.GUI;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.security.Security;
+import java.util.prefs.BackingStoreException;
+import java.util.prefs.InvalidPreferencesFormatException;
 import java.util.prefs.Preferences;
 
 import javax.swing.UIManager;
@@ -23,7 +28,7 @@ import it.hackerinside.etk.core.keystore.PKCS12Keystore;
  */
 public class ETKContext {
 	
-	public static final String ETK_VERSION = "1.0.10";
+	public static final String ETK_VERSION = "1.0.11";
 	
     /**
      * Singleton instance of ETKContext.
@@ -98,7 +103,9 @@ public class ETKContext {
         }
         enforceKeystoreSecurityParameters();
 		try {
+			System.setProperty("flatlaf.uiScale","1.0");
 		    UIManager.setLookAndFeel( getTheme().getLookAndFeel());
+		    
 		} catch( Exception ex ) {
 			System.out.println(ex.toString());
 		    System.err.println( "Failed to initialize LaF" );
@@ -621,6 +628,51 @@ public class ETKContext {
         return Boolean.parseBoolean(vHide);
     }
     
+    /**
+     * Sets whether PKCS#11 should be used for signing operations only
+     */
+    public void setPkcs11SignOnly(boolean signOnly) {
+        preferences.put(
+            ApplicationPreferences.PKCS11_SIGN_ONLY.getKey(),
+            Boolean.toString(signOnly)
+        );
+    }
+
+    /**
+     * Returns whether PKCS#11 should be used for signing operations only
+     * @return if PKCS#11 is sign-only
+     */
+    public boolean isPkcs11SignOnly() {
+        String vPkcs11SignOnly = preferences.get(
+            ApplicationPreferences.PKCS11_SIGN_ONLY.getKey(),
+            ApplicationPreferences.PKCS11_SIGN_ONLY.getValue()
+        );
+        return Boolean.parseBoolean(vPkcs11SignOnly);
+    }
+
+    /**
+     * Sets whether RSA-OAEP should be used
+     */
+    public void setUseRsaOaep(boolean useRsaOaep) {
+        preferences.put(
+            ApplicationPreferences.USE_RSAOAEP.getKey(),
+            Boolean.toString(useRsaOaep)
+        );
+    }
+
+    /**
+     * Returns whether RSA-OAEP should be used
+     * @return if RSA-OAEP should be used
+     */
+    public boolean useRsaOaep() {
+        String vUseRsaOaep = preferences.get(
+            ApplicationPreferences.USE_RSAOAEP.getKey(),
+            ApplicationPreferences.USE_RSAOAEP.getValue()
+        );
+        return Boolean.parseBoolean(vUseRsaOaep);
+    }
+
+    
     
     /**
      * Changes the master password of the keystore.
@@ -648,23 +700,81 @@ public class ETKContext {
             Arrays.fill(newPassword, (char) 0x00);
         }
     }
+    
+    /**
+     * Exports all preferences in this node and its children to the given file.
+     *
+     * @param output the file to write the exported preferences to
+     * @throws IOException if the file cannot be written
+     * @throws BackingStoreException if the preferences cannot be read
+     */
+    public void exportPreferences(File output) throws IOException, BackingStoreException {
+    	FileOutputStream fos = new FileOutputStream(output);
+    	preferences.exportSubtree(fos);
+    	fos.close();
+    }
+    
+    /**
+     * Imports preferences from the given file and merges them into the system preferences.
+     *
+     * @param input the file containing the exported preferences
+     * @throws IOException if the file cannot be read
+     * @throws InvalidPreferencesFormatException if the file format is invalid
+     */
+    public void importPreferences(File input) throws IOException, InvalidPreferencesFormatException {
+    	FileInputStream fis = new FileInputStream(input);
+    	Preferences.importPreferences(fis);
+    }
 
     
 	@Override
 	public String toString() {
-		return "ETKContext\n    - keystore=" + keystore + "\n    - knownCerts=" + knownCerts + "\n    - preferences=" + preferences
-				+ "\n    - getKeyStorePath()=" + getKeyStorePath() + "\n    - getKnownCertsPath()=" + getKnownCertsPath()
-				+ "\n    - getHashAlgorithm()=" + getHashAlgorithm() + "\n    - getCipher()=" + getCipher() + "\n    - getPkcs11Driver()="
-				+ getPkcs11Driver() + "\n    - usePKCS11()=" + usePKCS11() + "\n    - usePEM()=" + usePEM() + "\n    - getTheme()=" + getTheme()+ "\n    - getBufferSize()=" + getBufferSize()
-				+ "\n    - getUseCacheEntryPasswords()=" + getUseCacheEntryPasswords() 
-				+ "\n    - getCacheEntryTimeout()=" + getCacheEntryTimeout()
-				+ "\n    - useSKI()=" + useSKI()
-				+ "\n    - hideInvalidCerts()=" + hideInvalidCerts()
-				+ "\n    - useTrustStore()=" + useTrustStore()
-				+ "\n    - getTrustStorePath()=" + getTrustStorePath()
-				+ "\n    - getTrustStorePath()=" + getTrustStore();
+	    return """
+	        ETKContext
+	            - keystore=%s
+	            - knownCerts=%s
+	            - preferences=%s
+	            - getKeyStorePath()=%s
+	            - getKnownCertsPath()=%s
+	            - getHashAlgorithm()=%s
+	            - getCipher()=%s
+	            - getPkcs11Driver()=%s
+	            - usePKCS11()=%s
+	            - usePEM()=%s
+	            - getTheme()=%s
+	            - getBufferSize()=%s
+	            - getUseCacheEntryPasswords()=%s
+	            - getCacheEntryTimeout()=%s
+	            - useSKI()=%s
+	            - hideInvalidCerts()=%s
+	            - useTrustStore()=%s
+	            - getTrustStorePath()=%s
+	            - getTrustStore()=%s
+	            - isPkcs11SignOnly()=%s
+	            - useRsaOaep()=%s
+	        """.formatted(
+	            keystore,
+	            knownCerts,
+	            preferences,
+	            getKeyStorePath(),
+	            getKnownCertsPath(),
+	            getHashAlgorithm(),
+	            getCipher(),
+	            getPkcs11Driver(),
+	            usePKCS11(),
+	            usePEM(),
+	            getTheme(),
+	            getBufferSize(),
+	            getUseCacheEntryPasswords(),
+	            getCacheEntryTimeout(),
+	            useSKI(),
+	            hideInvalidCerts(),
+	            useTrustStore(),
+	            getTrustStorePath(),
+	            getTrustStore(),
+	            isPkcs11SignOnly(),
+	            useRsaOaep()
+	        );
 	}
-    
-	
-    
+
 }
