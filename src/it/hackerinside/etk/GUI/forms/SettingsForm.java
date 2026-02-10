@@ -705,6 +705,7 @@ public class SettingsForm {
 	 * Save settings automatically when closing the form
 	 */
 	private void save() {
+		if(!checkSettings()) return;
 		ctx.setKeyStorePath(txtbKeyStorePath.getText());
 		ctx.setKnownCertsPath(txtbKnownCertsPath.getText());
 		ctx.setTrustStorePath(txtbTrustStorePath.getText());
@@ -722,6 +723,23 @@ public class SettingsForm {
 		ctx.setUseTrustStore(chckbxUseTruststore.isSelected());
 		ctx.setUseRsaOaep(chckbRSAOAEP.isSelected());
 		ctx.setPkcs11SignOnly(chckbPKCS11SignOnly.isSelected());
+	}
+	
+	private boolean checkSettings() {
+		if(!chckbPKCS11SignOnly.isSelected()) {
+			return DialogUtils.showConfirmBox(
+						null, 
+						"BE CAREFUL", 
+						"You have enabled PKCS11 also for encrypt and decrypt operations!", 
+						"The software cannot decrypt documents encrypted with RSA-OAEP.\r\n"
+						+ "\r\n"
+						+ "Make sure you've disabled RSA-OAEP in the Algorithms section.\r\n"
+						+ "\r\n"
+						+ "Press OK to confirm the changes; CANCEL to exit without saving.",
+						 0
+					);
+		}
+		return true;
 	}
 	
 	/**
