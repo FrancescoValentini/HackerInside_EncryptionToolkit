@@ -31,7 +31,6 @@ import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.TimeUtils;
 import it.hackerinside.etk.GUI.Utils;
-import it.hackerinside.etk.Utils.X509Utils;
 import it.hackerinside.etk.core.Encryption.CMSCryptoUtils;
 import it.hackerinside.etk.core.Encryption.CMSDecryptor;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
@@ -104,7 +103,12 @@ public class DecryptForm {
 		frmHackerinsideEncryptionToolkit.addWindowListener(new WindowAdapter() {
 	    	@Override
 	    	public void windowClosing(WindowEvent e) {
-	    		if(running) abortDecryption();
+	    		try {
+	    			if(running && decryptor != null) abortDecryption();
+	    		}catch (Exception ex) {
+	    			
+	    		}
+				
 	    	}
 	    });
 		

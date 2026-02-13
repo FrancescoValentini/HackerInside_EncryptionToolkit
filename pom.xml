@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>HackerInside_EncryptionToolkit</groupId>
 	<artifactId>HackerInside_EncryptionToolkit</artifactId>
-	<version>1.0.11</version>
+	<version>1.0.12</version>
 	<name>HackerInside EncryptionToolkit</name>
 	<properties>
     	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
