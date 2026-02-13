@@ -112,7 +112,11 @@ public class VerifyForm {
 	    frmHackerinsideEncryptionToolkit.addWindowListener(new WindowAdapter() {
 	    	@Override
 	    	public void windowClosing(WindowEvent e) {
-	    		abortVerification();
+	    		try {
+	    			if(verifier != null) abortVerification();
+	    		}catch (Exception ex) {
+	    			
+	    		}
 	    	}
 	    });
 	    frmHackerinsideEncryptionToolkit.setTitle("HackerInside Encryption Toolkit | Verify Digital Signature");

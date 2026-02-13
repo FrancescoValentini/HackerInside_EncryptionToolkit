@@ -124,7 +124,12 @@ public class EncryptForm {
 		frmEncrypt.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
-				if(running) abortEncryption();
+	    		try {
+	    			if(running && encryptor != null) abortEncryption();
+	    		}catch (Exception ex) {
+	    			
+	    		}
+				
 			}
 		});
 		frmEncrypt.setIconImage(Toolkit.getDefaultToolkit().getImage(EncryptForm.class.getResource("/it/hackerinside/etk/GUI/icons/encrypt.png")));

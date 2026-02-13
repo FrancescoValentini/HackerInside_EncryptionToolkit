@@ -107,7 +107,11 @@ public class SignForm {
 		frmSign.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
-				if(running) abortSignature();
+	    		try {
+	    			if(running && signer != null) abortSignature();
+	    		}catch (Exception ex) {
+	    			
+	    		}
 			}
 		});
 		
