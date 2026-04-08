@@ -104,6 +104,8 @@ public class Utils {
 					"Password:"
 					);
 		});
+		
+		if(pwd == null) return null;
 
 		PrivateKey priv = null;
 		try {

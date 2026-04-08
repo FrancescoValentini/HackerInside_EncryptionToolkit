@@ -37,6 +37,7 @@ import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.RecipientIdentifier;
 import it.hackerinside.etk.core.PEM.PEMUtils;
+import it.hackerinside.etk.core.Services.DecryptionService;
 
 import javax.swing.JProgressBar;
 import java.awt.event.ActionListener;
@@ -61,6 +62,7 @@ public class DecryptForm {
     private boolean running = false;
     private SwingWorker<Void, Void> currentWorker;
     private CMSDecryptor decryptor;
+    private DecryptionService decryptionService;
     
 
 	/**
@@ -193,7 +195,7 @@ public class DecryptForm {
 				}
 			}
 		});
-		
+		this.decryptionService = new DecryptionService(ctx);
 		populaterCerts(cmbPrivateKey);
 		panel.setLayout(null);
 		panel.add(lblNewLabel);
@@ -233,9 +235,7 @@ public class DecryptForm {
 
 	        @Override
 	        protected Optional<String> doInBackground() throws Exception {
-	            encoding = PEMUtils.findFileEncoding(fileToDecrypt);
-	            recipients = CMSCryptoUtils.extractRecipientIdentifiers(fileToDecrypt, encoding);
-	            return ctx.getKeystore().findAliasForRecipients(recipients);
+	        	return decryptionService.identifyRecipient(fileToDecrypt);
 	        }
 
 	        @Override
@@ -368,30 +368,27 @@ public class DecryptForm {
 	    if (alias == null) {
 	        throw new IllegalStateException("No certificates selected.");
 	    }
+	    
+	    
 	    PrivateKey priv = Utils.getPrivateKeyDialog(alias);
 	    if(priv == null) return;
-
+	    
 	    startDecryptionUI();
 	    running = true;
 	    btnDecrypt.setText("ABORT");
 	    
 	    currentWorker = new SwingWorker<>() {
-
-			
-
-
 			@Override
 			protected Void doInBackground() throws Exception {
 		        startTime = System.currentTimeMillis();
-		        EncodingOption encoding = PEMUtils.findFileEncoding(fileToDecrypt);
+		        decryptionService.decrypt(
+		        		priv,
+		                fileToDecrypt,
+		                output
+		            );
 
-		        decryptor = new CMSDecryptor(priv, encoding, ctx.getBufferSize());
-		        if(ctx.usePKCS11()) decryptor.setProvider(ctx.getKeystore().getProvider());
-		        decryptor.decrypt(fileToDecrypt, output);
 			    return null;
 			}
-
-
 	        @Override
 	        protected void done() {
 	            finishDecryptionUI(this);
@@ -440,7 +437,7 @@ public class DecryptForm {
 	}
 	
 	private void abortDecryption() {
-		decryptor.abort();
+		decryptionService.abort();
 	    if (currentWorker != null && !currentWorker.isDone()) {
 	        currentWorker.cancel(true);
 	        lblStatus.setText("Decryption aborted.");
