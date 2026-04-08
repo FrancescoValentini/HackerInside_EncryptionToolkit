@@ -410,6 +410,7 @@ public class DecryptForm {
 	
 
 	private void finishDecryptionUI(SwingWorker<?, ?> worker) {
+		running = false;
 	    progressBar.setVisible(false);
 	    endTime = System.currentTimeMillis();
 

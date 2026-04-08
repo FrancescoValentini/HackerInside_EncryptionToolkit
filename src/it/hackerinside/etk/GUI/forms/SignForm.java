@@ -490,6 +490,7 @@ public class SignForm {
 	 */
 	private void finishSignatureUI(SwingWorker<?, ?> worker) {
 	    progressSignature.setVisible(false);
+	    running = false;
 	    endTime = System.currentTimeMillis();
 	    try {
 	        worker.get();
