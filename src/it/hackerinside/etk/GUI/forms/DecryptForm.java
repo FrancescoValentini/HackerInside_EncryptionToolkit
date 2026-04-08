@@ -30,7 +30,6 @@ import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.TimeUtils;
 import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
-import it.hackerinside.etk.core.Encryption.CMSDecryptor;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Services.DecryptionService;
 
@@ -56,7 +55,6 @@ public class DecryptForm {
 	private JButton btnDecrypt;
     private boolean running = false;
     private SwingWorker<Void, Void> currentWorker;
-    private CMSDecryptor decryptor;
     private DecryptionService decryptionService;
     
 
@@ -101,7 +99,7 @@ public class DecryptForm {
 	    	@Override
 	    	public void windowClosing(WindowEvent e) {
 	    		try {
-	    			if(running && decryptor != null) abortDecryption();
+	    			if(running && decryptionService != null) abortDecryption();
 	    		}catch (Exception ex) {
 	    			
 	    		}

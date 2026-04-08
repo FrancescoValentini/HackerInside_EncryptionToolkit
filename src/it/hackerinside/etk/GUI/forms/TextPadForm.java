@@ -24,12 +24,10 @@ import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Scanner;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import javax.swing.GroupLayout;
@@ -53,13 +51,11 @@ import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
 import it.hackerinside.etk.Utils.X509Utils;
-import it.hackerinside.etk.core.Encryption.CMSCryptoUtils;
-import it.hackerinside.etk.core.Encryption.CMSDecryptor;
 import it.hackerinside.etk.core.Encryption.CMSEncryptor;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
-import it.hackerinside.etk.core.Models.RecipientIdentifier;
 import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
+import it.hackerinside.etk.core.Services.DecryptionService;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
 
 import javax.swing.LayoutStyle.ComponentPlacement;
@@ -78,7 +74,7 @@ public class TextPadForm {
 	private JTextArea txtbData;
 	private JButton btnDecrypt;
 	private JCheckBox chckbUseSKI;
-
+	private DecryptionService dc;
 	/**
 	 * Launch the application.
 	 */
@@ -358,6 +354,8 @@ public class TextPadForm {
 		
 		if(ctx.getKeystore() == null) {
 			 btnDecrypt.setEnabled(false);
+		}else {
+			dc = new DecryptionService(ctx);
 		}
 	}
 	
@@ -447,11 +445,9 @@ public class TextPadForm {
 	 * @return An Optional containing the recipient alias if found, empty Optional otherwise
 	 */
 	private Optional<String> findRecipientAlias(ByteArrayInputStream data) {
-        Collection<RecipientIdentifier> recipients;
         Optional<String> recipient = java.util.Optional.empty();
         try {
-        	recipients = CMSCryptoUtils.extractRecipientIdentifiers(data, EncodingOption.ENCODING_PEM);
-        	recipient = ctx.getKeystore().findAliasForRecipients(recipients);
+        	recipient = dc.identifyRecipient(data, EncodingOption.ENCODING_PEM);
 		} catch (Exception e) {
             DialogUtils.showMessageBox(
                     null,
@@ -507,11 +503,7 @@ public class TextPadForm {
         
         boolean ok = true;
 		try {
-			CMSDecryptor decryptor = new CMSDecryptor(priv, EncodingOption.ENCODING_PEM, ctx.getBufferSize());
-			
-			if(ctx.usePKCS11()) decryptor.setProvider(ctx.getKeystore().getProvider());
-			
-			decryptor.decrypt(input, output);
+			dc.decrypt(priv, EncodingOption.ENCODING_PEM, input, output);
 		} catch (Exception e) {
 	        DialogUtils.showMessageBox(
 	                null,

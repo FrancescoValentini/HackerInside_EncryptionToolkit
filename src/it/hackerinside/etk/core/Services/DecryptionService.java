@@ -50,6 +50,21 @@ public class DecryptionService {
 
         return ctx.getKeystore().findAliasForRecipients(recipients);
     }
+    
+    /**
+     * Identifies the recipient of an encrypted CMS file by matching recipient identifiers
+     * found in the file against the aliases available in the keystore.
+     *
+     * @param in the encrypted InputStream to analyze; must not be {@code null}
+     * @param encoding the encoding format of the encrypted input
+     * @return an {@link Optional} containing the alias of the matching recipient in the keystore.
+     */
+    public Optional<String> identifyRecipient(InputStream in, EncodingOption encoding) throws Exception {
+        Collection<RecipientIdentifier> recipients =
+                CMSCryptoUtils.extractRecipientIdentifiers(in, encoding);
+
+        return ctx.getKeystore().findAliasForRecipients(recipients);
+    }
 
     /**
      * Decrypts an encrypted input file and writes the decrypted content to the specified output file.
