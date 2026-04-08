@@ -25,9 +25,12 @@ import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import javax.swing.GroupLayout;
 import javax.swing.JButton;
@@ -57,6 +60,7 @@ import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.RecipientIdentifier;
 import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
+import it.hackerinside.etk.core.keystore.AbstractKeystore;
 
 import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.JTabbedPane;
@@ -384,47 +388,25 @@ public class TextPadForm {
 	 * @param combo the combo box to populate with certificate wrappers
 	 */
 	private void populateKnowCerts(JComboBox<CertificateWrapper> combo) {
-	    combo.removeAllItems();
 	    combo.addItem(null);
 
-	    try {
-	        Predicate<X509Certificate> personalCertPredicate = cert -> {
-	            String alg = cert.getPublicKey().getAlgorithm();
-	            boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
 
-	            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
-	            boolean hideECC = ctx.usePKCS11() && !ctx.isPkcs11SignOnly()
-	                              && alg != null && alg.toUpperCase().contains("EC");
-
-	            return alg != null && validCert && !isDSA && !hideECC;
-	        };
-
-	        
-	        Predicate<X509Certificate> knownCertPredicate = cert -> {
-	            String alg = cert.getPublicKey().getAlgorithm();
-	            boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
-	            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
-
-	            return alg != null && validCert && !isDSA;
-	        };
-
-	        // PERSONAL CERTS
-	        if (ctx.getKeystore() != null) {
-	            ctx.getKeystore()
-	               .listAliases(personalCertPredicate)
-	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKeystore())));
-	        }
-
-	        // KNOWN CERTS
-	        if (ctx.getKnownCerts() != null) {
-	            ctx.getKnownCerts()
-	               .listAliases(knownCertPredicate)
-	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKnownCerts())));
-	        }
-
-	    } catch (KeyStoreException e) {
-	        e.printStackTrace();
-	    }
+		List<AbstractKeystore> keystores = Stream.of(
+		        ctx.getKeystore(),
+		        ctx.getKnownCerts()
+		    )
+		    .filter(Objects::nonNull)
+		    .toList();
+		Utils.populateCerts(combo,
+				keystores,
+			    cert -> {
+			        String alg = cert.getPublicKey().getAlgorithm();
+			        boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
+				    boolean hideECC = ctx.usePKCS11() && !ctx.isPkcs11SignOnly()
+				    		&& alg != null && alg.toUpperCase().contains("EC");
+			        return alg != null && validCert && !alg.toUpperCase().contains("DSA") && !hideECC;
+			    }
+			);
 	}
 	
 	/**

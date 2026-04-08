@@ -11,11 +11,9 @@ import java.awt.Font;
 import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
-import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Predicate;
-
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -31,12 +29,9 @@ import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.TimeUtils;
 import it.hackerinside.etk.GUI.Utils;
-import it.hackerinside.etk.core.Encryption.CMSCryptoUtils;
+import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.core.Encryption.CMSDecryptor;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
-import it.hackerinside.etk.core.Models.EncodingOption;
-import it.hackerinside.etk.core.Models.RecipientIdentifier;
-import it.hackerinside.etk.core.PEM.PEMUtils;
 import it.hackerinside.etk.core.Services.DecryptionService;
 
 import javax.swing.JProgressBar;
@@ -51,7 +46,7 @@ public class DecryptForm {
 
 	private JFrame frmHackerinsideEncryptionToolkit;
 	private JTextField txtbOutputFile;
-	private JComboBox cmbPrivateKey;
+	private JComboBox<CertificateWrapper> cmbPrivateKey;
 	private JProgressBar progressBar;
 	private static ETKContext ctx;
 	private File fileToDecrypt;
@@ -230,8 +225,6 @@ public class DecryptForm {
 	
 	private void identifyRecipientKeyAsync() {
 	    SwingWorker<Optional<String>, Void> worker = new SwingWorker<>() {
-	        private EncodingOption encoding;
-	        private Collection<RecipientIdentifier> recipients;
 
 	        @Override
 	        protected Optional<String> doInBackground() throws Exception {
@@ -272,9 +265,10 @@ public class DecryptForm {
 	}
 
 	private void selectAliasInCombo(String alias) {
-	    ComboBoxModel<String> model = cmbPrivateKey.getModel();
+	    ComboBoxModel<CertificateWrapper> model = cmbPrivateKey.getModel();
 	    for (int i = 0; i < model.getSize(); i++) {
-	        if (alias.equals(model.getElementAt(i))) {
+	        CertificateWrapper certWrapper = model.getElementAt(i);
+	        if (certWrapper != null && alias.equals(certWrapper.getAlias())) {
 	            cmbPrivateKey.setSelectedIndex(i);
 	            return;
 	        }
@@ -324,30 +318,25 @@ public class DecryptForm {
 	    txtbOutputFile.setText(file.getAbsolutePath());
 	}
 	
-	private void populaterCerts(JComboBox<String> combo) {
-	    combo.removeAllItems();
-        Predicate<X509Certificate> personalCertPredicate = cert -> {
-            String alg = cert.getPublicKey().getAlgorithm();
+	private void populaterCerts(JComboBox<CertificateWrapper> combo) {
+	    Utils.populateCerts(
+	        combo,
+	        List.of(ctx.getKeystore()),
+	        cert -> {
+	            String alg = cert.getPublicKey().getAlgorithm();
 
-            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
-            boolean hideECC = ctx.usePKCS11() && !ctx.isPkcs11SignOnly()
-                              && alg != null && alg.toUpperCase().contains("EC");
+	            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
+	            boolean hideECC = ctx.usePKCS11() && !ctx.isPkcs11SignOnly()
+	                              && alg != null && alg.toUpperCase().contains("EC");
 
-            return alg != null && !isDSA && !hideECC;
-        };
-	    try {
-	        ctx.getKeystore()
-	           .listAliases(personalCertPredicate)
-	           .forEach(combo::addItem);
-
-	    } catch (KeyStoreException e) {
-	        e.printStackTrace();
-	    }
+	            return alg != null && !isDSA && !hideECC;
+	        }
+	    );
 	}
 	
 	private X509Certificate getCertificate() {
 		try {
-			return ctx.getKeystore().getCertificate((String) cmbPrivateKey.getSelectedItem());
+			return ctx.getKeystore().getCertificate(((CertificateWrapper) cmbPrivateKey.getSelectedItem()).getAlias());
 		} catch (KeyStoreException e) {
 			e.printStackTrace();
 		}
@@ -364,7 +353,7 @@ public class DecryptForm {
 	private void decrypt() {
 	    File output = new File(txtbOutputFile.getText());
 	    if(!FileDialogUtils.overwriteIfExists(output)) return;
-	    String alias = (String) cmbPrivateKey.getSelectedItem();
+	    String alias = ((CertificateWrapper) cmbPrivateKey.getSelectedItem()).getAlias();
 	    if (alias == null) {
 	        throw new IllegalStateException("No certificates selected.");
 	    }
