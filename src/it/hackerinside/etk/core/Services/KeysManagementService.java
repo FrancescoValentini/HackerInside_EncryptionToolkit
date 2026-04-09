@@ -3,8 +3,10 @@ package it.hackerinside.etk.core.Services;
 import java.security.KeyStoreException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
@@ -24,6 +26,15 @@ public class KeysManagementService {
 	public void setPwdProvider(PasswordProvider pwdProvider) {this.pwdProvider = pwdProvider;}
 	public void setConfirmationProvider(ConfirmationProvider confirmationProvider) {this.confirmationProvider = confirmationProvider;}
 	public void setAliasProvider(AliasProvider aliasProvider) {this.aliasProvider = aliasProvider;}
+	
+	private <T> T requireProvider(T provider, String name) {
+		Objects.requireNonNull(provider,name + " is not set");
+	    return provider;
+	}
+	
+	public char[] invokePwdProvider() {return requireProvider(pwdProvider, "PasswordProvider").getPassword();}
+	public boolean invokeConfirmationProvider() {return requireProvider(confirmationProvider, "ConfirmationProvider").confirm();}
+	public String invokeAliasProvider() {return requireProvider(aliasProvider, "AliasProvider").getAlias();}
 	
 	/*
 	 * ====
@@ -80,6 +91,47 @@ public class KeysManagementService {
 	    }
 
 	    return getDtos(keystore, location);
+	}
+	
+	/**
+	 * Rename an alias
+	 * @param row the entry to rename
+	 */
+	public String renameAlias(CertificateTableRow row) throws Exception {
+	    String currentAlias = row.keystoreAlias();
+	    KeysLocations location = row.location();
+
+	    if (location == KeysLocations.PKCS11) {
+	        throw new UnsupportedOperationException(
+	            "Renaming certificates from PKCS11 devices is not supported!"
+	        );
+	    }
+
+	    String newAlias = invokeAliasProvider();
+	    if (newAlias == null || newAlias.isBlank()) {
+	        return null;
+	    }
+
+	    char[] pwd = null;
+
+	    try {
+	        if (location == KeysLocations.PKCS12) {
+	            pwd = invokePwdProvider();
+	            if (pwd == null || pwd.length == 0) return null;
+
+	            ctx.getKeystore().renameEntry(currentAlias, newAlias, pwd);
+	            ctx.getKeystore().save();
+
+	        } else if (location == KeysLocations.KNWOWN_CERTIFICATES) {
+	            ctx.getKnownCerts().renameEntry(currentAlias, newAlias, null);
+	            ctx.getKnownCerts().save();
+	        }
+	        
+	        return newAlias;
+
+	    } finally {
+	        if (pwd != null) Arrays.fill(pwd, (char) 0x00);
+	    }
 	}
 	
 

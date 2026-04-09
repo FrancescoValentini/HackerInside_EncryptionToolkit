@@ -1012,47 +1012,30 @@ public class ETKMain {
 	 * @param row the entry to rename
 	 */
 	private void renameAlias(CertificateTableRow row) {
-		String currAlias = row.keystoreAlias();
-		KeysLocations location = row.location();
-	    if (location == KeysLocations.PKCS11) {
-	        DialogUtils.showMessageBox(
-	            null, 
-	            "Operation not supported!", 
-	            "Renaming certificates from PKCS11 devices is not supported!", 
-	            "", 
-	            JOptionPane.WARNING_MESSAGE
-	        );
-	        return;
-	    }
+	    String currAlias = row.keystoreAlias();
+
+	    // Alias input
+	    kms.setAliasProvider(() -> DialogUtils.showInputBox(
+	        null,
+	        "RENAME CERTIFICATE",
+	        "Old name: " + currAlias,
+	        "New Name:"
+	    ));
 	    
-	    char pwd[] = null;
-	    String newName = DialogUtils.showInputBox(null, 
-	    		"RENAME CERTIFICATE", 
-	    		"Old name: " + currAlias, 
-	    		"New Name:"
-	    		);
-	    
-	    if(newName.isBlank()) return;
-	    
-	    
+	    kms.setPwdProvider(() -> 
+	        Utils.passwordCacheHitOrMiss(currAlias, () ->
+	            DialogUtils.showPasswordInputBox(
+	                null,
+	                "Unlock Private key",
+	                "Password for " + currAlias,
+	                "Password:"
+	            )
+	        ));
+
 	    try {
-		    if(location == KeysLocations.PKCS12) {
-		        pwd = Utils.passwordCacheHitOrMiss(currAlias, () -> {
-		        	return DialogUtils.showPasswordInputBox(
-		                    null,
-		                    "Unlock Private key",
-		                    "Password for " + currAlias,
-		                    "Password:"
-		                );
-		        });
-		        
-		        if(pwd.length == 0) return;
-		    	ctx.getKeystore().renameEntry(currAlias, newName, pwd);
-		    	ctx.getKeystore().save();
-		    }else if(location == KeysLocations.KNWOWN_CERTIFICATES) {
-		    	ctx.getKnownCerts().renameEntry(currAlias, newName, null);
-		    	ctx.getKnownCerts().save();
-		    }
+	        String newName = kms.renameAlias(row);
+	        if(newName == null) return;
+	        
 	        DialogUtils.showMessageBox(
 		            null, 
 		            "Alias Renamed!", 
@@ -1061,16 +1044,23 @@ public class ETKMain {
 		            JOptionPane.INFORMATION_MESSAGE
 		        );
 	        updateTable();
-	    }catch(Exception e) {
+
+	    } catch (UnsupportedOperationException e) {
 	        DialogUtils.showMessageBox(
-		            null, 
-		            "ERROR!", 
-		            "An error occurred while renaming the certificate!" , 
-		            e.getMessage(), 
-		            JOptionPane.ERROR_MESSAGE
-		        );
-	    }finally {
-	    	if(pwd != null) Arrays.fill(pwd, (char)0x00);
+	            null,
+	            "Operation not supported!",
+	            e.getMessage(),
+	            "",
+	            JOptionPane.WARNING_MESSAGE
+	        );
+	    } catch (Exception e) {
+	        DialogUtils.showMessageBox(
+	            null,
+	            "ERROR!",
+	            "An error occurred while renaming the certificate!",
+	            e.getMessage(),
+	            JOptionPane.ERROR_MESSAGE
+	        );
 	    }
 	}
 	
