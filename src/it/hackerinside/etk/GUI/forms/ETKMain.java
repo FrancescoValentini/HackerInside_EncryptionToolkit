@@ -38,6 +38,7 @@ import it.hackerinside.etk.Utils.X509CertificateExporter;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
 import it.hackerinside.etk.Utils.X509Utils;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
+import it.hackerinside.etk.core.Services.KeysManagementService;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
 import it.hackerinside.etk.core.keystore.PKCS12Keystore;
 
@@ -73,6 +74,7 @@ public class ETKMain {
 	private JMenuItem mntmChangeKeystorePwd;
 	private JCheckBoxMenuItem chckbxmntmHideInvalidCertificate;
 	private static boolean loggedIn = false;
+	private KeysManagementService kms;
 	/**
 	 * Launch the application.
 	 */
@@ -567,6 +569,7 @@ public class ETKMain {
 	 * the keystore and then updating the certificate table.
 	 */
 	private void startProcedure() {
+		kms = new KeysManagementService(ctx);
 		chckbxmntmHideInvalidCertificate.setSelected(ctx.hideInvalidCerts());
 		disablePrivateKeyOperations();
 		if(!new File(ctx.getKnownCertsPath()).exists()  || !ctx.usePKCS11() && !new File(ctx.getKeyStorePath()).exists()) {
@@ -575,6 +578,7 @@ public class ETKMain {
 		}else {
 		    unlockKeystore();
 		    updateTable();
+		    
 		}
 		
 		/*
@@ -624,7 +628,13 @@ public class ETKMain {
 	 * from both private keystores and known certificates keystore.
 	 */
 	private void updateTable() {
-	    List<CertificateTableRow> rows = getTableRows();
+	    List<CertificateTableRow> rows = new ArrayList<>();
+	    
+	    try {
+	        rows = kms.getAllCertificates(loggedIn);
+	    } catch (KeyStoreException e) {
+	        System.err.println(e.getMessage());
+	    }
 	    
 	    if (chckbxmntmHideInvalidCertificate.isSelected()) {
 	        rows = rows.stream()
@@ -633,57 +643,6 @@ public class ETKMain {
 	    }
 	    
 	    tableModel.setRows(rows);
-	}
-
-	/**
-	 * Retrieves certificate table rows from all available keystores.
-	 * This method collects certificates from both the private keystore
-	 * and the known certificates keystore, creating table rows for each certificate found.
-	 * 
-	 * @return a list of CertificateTableRow objects representing all available certificates
-	 */
-	private List<CertificateTableRow> getTableRows() {
-	    List<CertificateTableRow> dtos = new ArrayList<>();
-
-	    // --- Private keystore ---
-	    try {
-	        if (ctx.getKeystore() != null && loggedIn) {
-	            List<String> privateAliases = Collections.list(ctx.getKeystore().listAliases());
-	            for (String alias : privateAliases) {
-	                X509Certificate crt = (X509Certificate) ctx.getKeystore().getCertificate(alias);
-	                if (crt != null) {
-	                    dtos.add(new CertificateTableRow(
-	                        alias,
-	                        ctx.usePKCS11() ? KeysLocations.PKCS11 : KeysLocations.PKCS12,
-	                        crt
-	                    ));
-	                }
-	            }
-	        }
-	    } catch (KeyStoreException e) {
-	        System.err.println("Unable to access private keystore: " + e.getMessage());
-	    }
-
-	    // --- Known certificates keystore ---
-	    try {
-	        if (ctx.getKnownCerts() != null) {
-	            List<String> knownAliases = Collections.list(ctx.getKnownCerts().listAliases());
-	            for (String alias : knownAliases) {
-	                X509Certificate crt = (X509Certificate) ctx.getKnownCerts().getCertificate(alias);
-	                if (crt != null) {
-	                    dtos.add(new CertificateTableRow(
-	                        alias,
-	                        KeysLocations.KNWOWN_CERTIFICATES,
-	                        crt
-	                    ));
-	                }
-	            }
-	        }
-	    } catch (KeyStoreException e) {
-	        System.err.println("Unable to access known certificates keystore: " + e.getMessage());
-	    }
-
-	    return dtos;
 	}
 
 	/**
