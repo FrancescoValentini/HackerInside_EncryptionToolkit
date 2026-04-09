@@ -18,6 +18,9 @@ public class KeysManagementService {
 	PasswordProvider pwdProvider;
 	ConfirmationProvider confirmationProvider;
 	AliasProvider aliasProvider;
+	PasswordProvider newPwdProvider;
+	PasswordProvider confirmPwdProvider;
+	
 	
 	public KeysManagementService(ETKContext ctx) {
 		this.ctx = ctx;
@@ -26,7 +29,8 @@ public class KeysManagementService {
 	public void setPwdProvider(PasswordProvider pwdProvider) {this.pwdProvider = pwdProvider;}
 	public void setConfirmationProvider(ConfirmationProvider confirmationProvider) {this.confirmationProvider = confirmationProvider;}
 	public void setAliasProvider(AliasProvider aliasProvider) {this.aliasProvider = aliasProvider;}
-	
+	public void setConfirmPwdProvider(PasswordProvider provider) { this.confirmPwdProvider = provider; }
+	public void setNewPwdProvider(PasswordProvider provider) { this.newPwdProvider = provider; }
 	private <T> T requireProvider(T provider, String name) {
 		Objects.requireNonNull(provider,name + " is not set");
 	    return provider;
@@ -35,6 +39,8 @@ public class KeysManagementService {
 	public char[] invokePwdProvider() {return requireProvider(pwdProvider, "PasswordProvider").getPassword();}
 	public boolean invokeConfirmationProvider() {return requireProvider(confirmationProvider, "ConfirmationProvider").confirm();}
 	public String invokeAliasProvider() {return requireProvider(aliasProvider, "AliasProvider").getAlias();}
+	private char[] invokeNewPwdProvider() {return requireProvider(confirmPwdProvider, "NewPasswordProvider").getPassword();}
+	private char[] invokeConfirmPwdProvider() { return requireProvider(confirmPwdProvider, "ConfirmPasswordProvider").getPassword();}
 	
 	/*
 	 * ====
@@ -134,6 +140,65 @@ public class KeysManagementService {
 	    }
 	}
 	
+	/**
+	 * Changes the password for a certificate entry in the keystore.
+	 *
+	 * @param row the certificate table row containing alias and location
+	 * @return true if the password was successfully changed, false otherwise
+	 * @throws Exception if password retrieval fails or passwords do not match
+	 * @throws UnsupportedOperationException if the operation is not supported for the certificate type
+	 */
+	public boolean changeEntryPassword(CertificateTableRow row) throws Exception {
+	    String alias = row.keystoreAlias();
+	    KeysLocations location = row.location();
+
+	    if(location == KeysLocations.PKCS12) {
+
+	        char[] currPwd = null;
+	        char[] newPwd  = null;
+
+	        try {
+	            currPwd = invokePwdProvider();
+
+	            if(currPwd == null || currPwd.length == 0) return false;
+	            
+	            newPwd = passwordConfirm();
+	            if(newPwd == null || newPwd.length == 0) return false;
+	            
+	            ctx.getKeystore().updateEntryPassword(alias, currPwd, newPwd);
+	            ctx.getKeystore().save();
+	            return true;
+	        } finally {
+	            if(currPwd != null) Arrays.fill(currPwd, (char)0x00);
+	            if(newPwd != null) Arrays.fill(newPwd, (char)0x00);
+	        }
+
+	    } else if(location == KeysLocations.KNWOWN_CERTIFICATES) {
+	        throw new UnsupportedOperationException("Cannot change password for certificates without private key");
+	    } else if(location == KeysLocations.PKCS11) {
+	        throw new UnsupportedOperationException("Operation not supported for PKCS11");
+	    }
+	    return false;
+	}
+	
+	/**
+	 * Prompts the user to enter a new password and confirm it.
+	 *
+	 * @return the confirmed password, or null if input was cancelled or empty
+	 * @throws Exception if the new password and confirmation do not match
+	 */
+	private char[] passwordConfirm() throws Exception {
+        char newPwd[] = invokeNewPwdProvider();
+        if(newPwd == null || newPwd.length == 0) return null;
+        char confirmPwd[] = invokeConfirmPwdProvider();
+        if(confirmPwd == null || confirmPwd.length == 0) return null;
+        
+        if(!Arrays.equals(newPwd, confirmPwd)) {
+            throw new Exception("The two entry passwords do not match");
+        }
+        if(newPwd != null) Arrays.fill(newPwd, (char)0x00);
+        return confirmPwd;
+	}
 
 	/**
 	 * Converts certificates from the given keystore into data transfer objects.
