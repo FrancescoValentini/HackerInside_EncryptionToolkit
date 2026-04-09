@@ -29,10 +29,11 @@ import it.hackerinside.etk.GUI.TimeUtils;
 import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.Utils.X509Utils;
-import it.hackerinside.etk.core.CAdES.CAdESSigner;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.HashAlgorithm;
+import it.hackerinside.etk.core.Services.SignService;
+
 import javax.swing.JCheckBox;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -65,7 +66,7 @@ public class SignForm {
 	private JButton btnSign;
     private boolean running = false;
     private SwingWorker<Void, Void> currentWorker;
-	private CAdESSigner signer;
+	private SignService sc;
 
 	/**
 	 * Launch the application.
@@ -110,7 +111,7 @@ public class SignForm {
 			@Override
 			public void windowClosing(WindowEvent e) {
 	    		try {
-	    			if(running && signer != null) abortSignature();
+	    			if(running && sc != null) abortSignature();
 	    		}catch (Exception ex) {
 	    			
 	    		}
@@ -280,7 +281,7 @@ public class SignForm {
 		
 		populateHashAlgorithms(cmbAlgorithm);
 		populateSignerCerts(cmbSignerCert);
-		
+		sc = new SignService(ctx);
 		cmbAlgorithm.setSelectedItem(ctx.getHashAlgorithm());
 		chckbPem.setSelected(ctx.usePEM());
 		
@@ -423,49 +424,53 @@ public class SignForm {
 	        lblStatus.setText("Missing required inputs.");
 	        return;
 	    }
-	    
-	    
+
 	    boolean detached = chckbDetachedSignature.isSelected();
-	    
+
 	    File signedFile = new File(txtbOutputFile.getText());
-	    
-	    if(!FileDialogUtils.overwriteIfExists(signedFile)) return;
-	    
-	    
+	    if (!FileDialogUtils.overwriteIfExists(signedFile)) return;
+
 	    EncodingOption encoding = chckbPem.isSelected()
 	            ? EncodingOption.ENCODING_PEM
 	            : EncodingOption.ENCODING_DER;
-	    
+
 	    HashAlgorithm hash = (HashAlgorithm) cmbAlgorithm.getSelectedItem();
-	    
+
 	    X509Certificate signerCert = getCertificate();
-	    if(!Utils.acceptX509Certificate(signerCert)) return;
-	    
+	    if (!Utils.acceptX509Certificate(signerCert)) return;
+
 	    PrivateKey priv = getPrivateKey();
-	    if(priv == null) return;
-	    
+	    if (priv == null) return;
+
 	    startSignatureUI();
 	    running = true;
 	    btnSign.setText("ABORT");
-	    
-	    signer = new CAdESSigner(priv, signerCert, encoding, hash, detached,ctx.getBufferSize());
-	    
+
 	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
 	        @Override
 	        protected Void doInBackground() throws Exception {
 	            startTime = System.currentTimeMillis();
-	        	signer.sign(fileToSign, signedFile);
+
+	            sc.sign(
+	                    priv,
+	                    signerCert,
+	                    encoding,
+	                    hash,
+	                    detached,
+	                    fileToSign,
+	                    signedFile
+	            );
+
 	            return null;
 	        }
 
 	        @Override
 	        protected void done() {
-	        	finishSignatureUI(this);
+	            finishSignatureUI(this);
 	        }
 	    };
 
 	    worker.execute();
-	    
 	}
 	
 	/**
@@ -506,7 +511,7 @@ public class SignForm {
 	}
 
 	private void abortSignature() {
-		signer.abort();
+		sc.abort();
 	    if (currentWorker != null && !currentWorker.isDone()) {
 	        currentWorker.cancel(true);
 	        lblStatus.setText("Signature aborted.");
