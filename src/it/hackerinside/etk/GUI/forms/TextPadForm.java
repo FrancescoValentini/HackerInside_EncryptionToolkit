@@ -56,6 +56,7 @@ import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
 import it.hackerinside.etk.core.Services.DecryptionService;
+import it.hackerinside.etk.core.Services.EncryptionService;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
 
 import javax.swing.LayoutStyle.ComponentPlacement;
@@ -75,6 +76,7 @@ public class TextPadForm {
 	private JButton btnDecrypt;
 	private JCheckBox chckbUseSKI;
 	private DecryptionService dc;
+	private EncryptionService ec;
 	/**
 	 * Launch the application.
 	 */
@@ -349,6 +351,7 @@ public class TextPadForm {
 		loadAlgorithms();
 		this.cmbEncAlgorithm.setSelectedItem(ctx.getCipher());
 		this.chckbUseSKI.setSelected(ctx.useSKI());
+		this.ec = new EncryptionService(ctx);
 		
 		populateKnowCerts(cmbRecipientCert);
 		
@@ -413,27 +416,41 @@ public class TextPadForm {
 	 * If encryption fails, an error dialog is displayed and the original data remains unchanged.
 	 */
 	private void encrypt() {
-		if(!Utils.acceptX509Certificate(recipient)) return;
-		SymmetricAlgorithms cipher = (SymmetricAlgorithms) cmbEncAlgorithm.getSelectedItem();
-		CMSEncryptor encryptor = new CMSEncryptor(cipher, EncodingOption.ENCODING_PEM, ctx.getBufferSize());
-		encryptor.addRecipients(recipient);
-		encryptor.setUseOnlySKI(chckbUseSKI.isSelected());
-		encryptor.setUseOAEP(ctx.useRsaOaep());
-		String text = txtbData.getText();
+	    if (!Utils.acceptX509Certificate(recipient)) return;
+
+	    SymmetricAlgorithms cipher = (SymmetricAlgorithms) cmbEncAlgorithm.getSelectedItem();
+	    String text = txtbData.getText();
+
 	    ByteArrayInputStream input = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
 	    ByteArrayOutputStream output = new ByteArrayOutputStream();
+
 	    boolean ok = true;
+
 	    try {
-			encryptor.encrypt(input, output);
-		} catch (Exception e) {
-			DialogUtils.showMessageBox(null, "Error during encryption", "Error during encryption!", 
-			        e.getMessage(), 
-			        JOptionPane.ERROR_MESSAGE);
-			e.printStackTrace();
-			ok = false;
-		}
-	    
-	    if(ok) txtbData.setText(new String(output.toByteArray()));
+	        ec.encrypt(
+	                cipher,
+	                EncodingOption.ENCODING_PEM,
+	                List.of(recipient),
+	                input,
+	                output,
+	                chckbUseSKI.isSelected(),
+	                ctx.useRsaOaep()
+	        );
+	    } catch (Exception e) {
+	        DialogUtils.showMessageBox(
+	                null,
+	                "Error during encryption",
+	                "Error during encryption!",
+	                e.getMessage(),
+	                JOptionPane.ERROR_MESSAGE
+	        );
+	        e.printStackTrace();
+	        ok = false;
+	    }
+
+	    if (ok) {
+	        txtbData.setText(new String(output.toByteArray(), StandardCharsets.UTF_8));
+	    }
 	}
 	
 
