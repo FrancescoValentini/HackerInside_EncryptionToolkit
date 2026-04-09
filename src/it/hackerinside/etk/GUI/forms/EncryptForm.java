@@ -39,6 +39,7 @@ import it.hackerinside.etk.core.Encryption.CMSEncryptor;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
+import it.hackerinside.etk.core.Services.EncryptionService;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
 
 import javax.swing.JPanel;
@@ -86,8 +87,8 @@ public class EncryptForm {
 	private JLabel lblStatus;
 	private JButton btnEncrypt;
 	private JCheckBox chckbxUseSki;
-	private CMSEncryptor encryptor;
 	private static ETKContext ctx;
+	private EncryptionService encryptionService;
 
 	/**
 	 * Launch the application.
@@ -128,7 +129,7 @@ public class EncryptForm {
 			@Override
 			public void windowClosing(WindowEvent e) {
 	    		try {
-	    			if(running && encryptor != null) abortEncryption();
+	    			if(running && encryptionService != null) abortEncryption();
 	    		}catch (Exception ex) {
 	    			
 	    		}
@@ -361,6 +362,7 @@ public class EncryptForm {
 			}
 		});
 		
+		encryptionService = new EncryptionService(ctx);
 		populateSymmetricAlgorithms(cmbEncAlgorithm);
 		populateKnowCerts(cmbRecipientCert);
 		this.chckbPemOutput.setSelected(ctx.usePEM());
@@ -537,24 +539,30 @@ public class EncryptForm {
 	    EncodingOption encoding = chckbPemOutput.isSelected()
 	            ? EncodingOption.ENCODING_PEM
 	            : EncodingOption.ENCODING_DER;
+
 	    File cipherFile = new File(txtbOutputFile.getText());
-	    if(!FileDialogUtils.overwriteIfExists(cipherFile)) return;
-	    
+	    if (!FileDialogUtils.overwriteIfExists(cipherFile)) return;
+
 	    startEncryptionUI();
-	    encryptor = new CMSEncryptor(cipher, encoding,ctx.getBufferSize());
-	    
-	    recipients.forEach(encryptor::addRecipients); // Add recipients
-	    encryptor.setUseOnlySKI(chckbxUseSki.isSelected());
-	    encryptor.setUseOAEP(ctx.useRsaOaep());
-	    
+
 	    running = true;
-	    btnEncrypt.setText("ABORT"); 
-	    
+	    btnEncrypt.setText("ABORT");
+
 	    currentWorker = new SwingWorker<>() {
 	        @Override
 	        protected Void doInBackground() throws Exception {
-	        	startTime = System.currentTimeMillis();
-	            encryptor.encrypt(plaintextFile, cipherFile);
+	            startTime = System.currentTimeMillis();
+
+	            encryptionService.encrypt(
+	                    cipher,
+	                    encoding,
+	                    recipients,
+	                    plaintextFile,
+	                    cipherFile,
+	                    chckbxUseSki.isSelected(),
+	                    ctx.useRsaOaep()
+	            );
+
 	            return null;
 	        }
 
@@ -578,7 +586,7 @@ public class EncryptForm {
 	}
 	
 	private void abortEncryption() {
-		encryptor.abort();
+		encryptionService.abort();
 	    if (currentWorker != null && !currentWorker.isDone()) {
 	        currentWorker.cancel(true);
 	        lblStatus.setText("Encryption aborted.");
