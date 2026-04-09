@@ -403,18 +403,8 @@ public class ETKMain {
 	 * @param row the certificate table row containing the certificate to delete
 	 */
 	private void deleteCertificate(CertificateTableRow row) {
-	    if (row.location() == KeysLocations.PKCS11) {
-	        DialogUtils.showMessageBox(
-	            null, 
-	            "Operation not supported!", 
-	            "Deleting certificates from PKCS11 devices is not supported!", 
-	            "Deleting certificates from PKCS11 devices is not supported!", 
-	            JOptionPane.WARNING_MESSAGE
-	        );
-	        return;
-	    } else if (row.location() == KeysLocations.PKCS12) {
-	    	
-	        boolean ok = DialogUtils.showConfirmBox(
+        try {
+        	kms.setConfirmationProvider(() ->DialogUtils.showConfirmBox(
 		            null, 
 		            "DELETING PRIVATE KEY!", 
 		            "DELETING: " + row.keystoreAlias(), 
@@ -422,39 +412,27 @@ public class ETKMain {
 		            + "\r\n"
 		            + "The deletion is irreversible; the key cannot be recovered.", 
 		            JOptionPane.WARNING_MESSAGE
+		        ));
+        	kms.deleteAlias(row);
+        	updateTable();
+        }catch(UnsupportedOperationException e) {
+	        DialogUtils.showMessageBox(
+		            null,
+		            "Operation not supported!",
+		            e.getMessage(),
+		            "",
+		            JOptionPane.WARNING_MESSAGE
 		        );
-	    	if(ok) {
-		        try {
-		            ctx.getKeystore().deleteKeyOrCertificate(row.keystoreAlias());
-		            ctx.getKeystore().save();
-		        }catch (Exception e) {
-		            e.printStackTrace();
-		            DialogUtils.showMessageBox(
-			                null, 
-			                "Error while deleting certificate", 
-			                "Error while deleting certificate", 
-			                e.getMessage(), 
-			                JOptionPane.ERROR_MESSAGE
-			            );
-		        }
-	    	}
-
-	    } else if (row.location() == KeysLocations.KNWOWN_CERTIFICATES) {
-	        try {
-	            ctx.getKnownCerts().deleteKeyOrCertificate(row.keystoreAlias());
-	            ctx.getKnownCerts().save();
-	        }catch (Exception e) {
-	            e.printStackTrace();
-	            DialogUtils.showMessageBox(
-		                null, 
-		                "Error while deleting certificate", 
-		                "Error while deleting certificate", 
-		                e.getMessage(), 
-		                JOptionPane.ERROR_MESSAGE
-		            );
-	        }
-	    }
-	    updateTable();
+		} catch (Exception e) {
+            e.printStackTrace();
+            DialogUtils.showMessageBox(
+	                null, 
+	                "Error while deleting certificate", 
+	                "Error while deleting certificate", 
+	                e.getMessage(), 
+	                JOptionPane.ERROR_MESSAGE
+	            );
+        }
 	}
 
 	/**
@@ -1096,9 +1074,6 @@ public class ETKMain {
 			        );
 		        // TODO: remove entry from password cache
 	        }
-
-
-
 	    } catch(UnsupportedOperationException e) {
 	        DialogUtils.showMessageBox(
 	            null,

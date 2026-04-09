@@ -182,6 +182,30 @@ public class KeysManagementService {
 	}
 	
 	/**
+	 * Deletes a certificate from the appropriate keystore based on its location.
+	 * PKCS11 certificates cannot be deleted and will show a warning message.
+	 * 
+	 * @param row the certificate table row containing the certificate to delete
+	 */
+	public boolean deleteAlias(CertificateTableRow row) throws Exception {
+	    KeysLocations location = row.location();
+	    if(location == KeysLocations.PKCS12) {
+	    	boolean ok = invokeConfirmationProvider();
+	    	if(ok) {
+	            ctx.getKeystore().deleteKeyOrCertificate(row.keystoreAlias());
+	            ctx.getKeystore().save();
+	    		return true;
+	    	}
+	    } else if(location == KeysLocations.KNWOWN_CERTIFICATES) {
+            ctx.getKnownCerts().deleteKeyOrCertificate(row.keystoreAlias());
+            ctx.getKnownCerts().save();
+	    } else if(location == KeysLocations.PKCS11) {
+	        throw new UnsupportedOperationException("Deleting certificates from PKCS11 devices is not supported!");
+	    }
+	    return false;
+	}
+	
+	/**
 	 * Prompts the user to enter a new password and confirm it.
 	 *
 	 * @return the confirmed password, or null if input was cancelled or empty
