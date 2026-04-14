@@ -249,4 +249,28 @@ public class KeysManagementService {
 	    return dtos;
 	}
 	
+	
+	/*
+	 * ====
+	 * KNOWN CERTIFICATES
+	 * ====
+	 */
+	
+	/**
+	 * Saves a known X.509 certificate to the application's certificate store after prompting
+	 * 
+	 * @param cert the X.509 certificate to save
+	 */
+	public boolean saveKnownCertificate(X509Certificate cert) throws Exception {
+		boolean ok = invokeConfirmationProvider();
+		if(ok) {
+			String alias = invokeAliasProvider();
+			if(alias == null || alias.isEmpty()) return false;
+            ctx.getKnownCerts().addCertificate(alias, cert);
+            ctx.getKnownCerts().save();
+            return true;
+		}
+		return false;
+	}
+	
 }

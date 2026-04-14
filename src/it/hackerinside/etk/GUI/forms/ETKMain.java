@@ -765,15 +765,13 @@ public class ETKMain {
 	 * @param cert the X.509 certificate to save
 	 */
 	private void saveKnownCertificate(X509Certificate cert) {
-		String alias = DialogUtils.showInputBox(null, "Certificate Alias", "Enter Certificate Alias", "");
-        if(alias == null || alias.isEmpty()) return;
+		kms.setAliasProvider(() -> DialogUtils.showInputBox(null, "Certificate Alias", "Enter Certificate Alias", ""));
+		kms.setConfirmationProvider(() -> Utils.acceptX509Certificate(cert));
         try {
-            if(Utils.acceptX509Certificate(cert) && certImportWarning(cert)) {
-                ctx.getKnownCerts().addCertificate(alias, cert);
-                ctx.getKnownCerts().save();
-        	    updateTable();
-        	    showCertificateInformation(cert);
-            }
+        	if(!certImportWarning(cert)) return;
+        	kms.saveKnownCertificate(cert);
+    	    updateTable();
+    	    showCertificateInformation(cert);
         }catch (Exception e) {
             e.printStackTrace();
             DialogUtils.showMessageBox(
@@ -798,44 +796,10 @@ public class ETKMain {
 	        "Import Certificate",
 	        "You are about to import a new certificate that will be marked as trusted.",
 	        "It is crucial to verify that the certificate's fingerprint matches the expected value.\n\n" +
-	        "SHA-256 Fingerprint:\n" + formatFingerprint(getCertificateFingerprint(crt)) + "\n\n" +
+	        "SHA-256 Fingerprint:\n" + X509Utils.formatFingerprint(X509Utils.getCertificateFingerprint(crt)) + "\n\n" +
 	        "If the fingerprint does not match, cancel the import to avoid potential security risks.",
 	        JOptionPane.WARNING_MESSAGE
 	    );
-	}
-
-
-    /**
-     * Generates the SHA-256 fingerprint of a certificate.
-     *
-     * @param cert the X509Certificate
-     * @return the fingerprint as an uppercase hexadecimal string, or an error message if generation fails
-     */
-	private static String getCertificateFingerprint(X509Certificate cert) {
-	    try {
-	        MessageDigest md = MessageDigest.getInstance("SHA-256");
-	        byte[] fingerprint = md.digest(cert.getEncoded());
-	        return HexFormat.of().formatHex(fingerprint).toUpperCase();
-	    } catch (Exception e) {
-	        e.printStackTrace();
-	        return "Error generating fingerprint";
-	    }
-	}
-	
-    /**
-     * Formats a hexadecimal string by splitting it into blocks of 4 characters for readability.
-     *
-     * @param hex the hexadecimal string
-     * @return the formatted string with spaces every 4 characters
-     */
-	private static String formatFingerprint(String hex) {
-	    // Break the hex string into blocks of 4 characters separated by spaces
-	    StringBuilder sb = new StringBuilder();
-	    for (int i = 0; i < hex.length(); i++) {
-	        if (i > 0 && i % 4 == 0) sb.append(' ');
-	        sb.append(hex.charAt(i));
-	    }
-	    return sb.toString();
 	}
 	
 	/**
