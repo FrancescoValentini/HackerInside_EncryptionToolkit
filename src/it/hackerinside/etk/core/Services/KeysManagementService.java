@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
 import it.hackerinside.etk.GUI.DTOs.KeysLocations;
@@ -390,5 +391,31 @@ public class KeysManagementService {
         }
         
 	    return true;
+	}
+	
+	/**
+	 * Save the key pair in the keystore
+	 * 
+	 * @param priv the private key
+	 * @param crt the x509 certificate
+	 * @throws Exception
+	 */
+	public boolean saveToKeystore(PrivateKey priv, X509Certificate crt) throws Exception {
+		if(ctx.usePKCS11()) throw new UnsupportedOperationException("Operation not supported for PKCS11");
+
+		String alias = invokeAliasProvider();
+		if(alias == null || alias.isEmpty() || alias.isBlank()) return false;
+
+		char[] pwd = invokePwdProvider(alias);
+		if(pwd == null || pwd.length == 0) return false;
+		
+		try {
+			if(ctx.getKeystore().containsAlias(alias)) throw new Exception("Unable to save, alias is already in use!");
+	        ctx.getKeystore().addPrivateKey(alias, priv, pwd, new X509Certificate[]{crt});
+	        ctx.getKeystore().save();
+	        return true;
+		}finally {
+			if(pwd != null) Arrays.fill(pwd, (char)0x00);
+		}
 	}
 }

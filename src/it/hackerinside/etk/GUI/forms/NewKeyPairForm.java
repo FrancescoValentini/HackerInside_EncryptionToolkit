@@ -7,6 +7,7 @@ import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.Utils.X509Builder;
 import it.hackerinside.etk.Utils.X509PQCBuilder;
 import it.hackerinside.etk.core.Models.PQCAlgorithms;
+import it.hackerinside.etk.core.Services.KeysManagementService;
 
 import javax.swing.JSpinner;
 import java.awt.Font;
@@ -73,6 +74,7 @@ public class NewKeyPairForm {
 	private JCheckBox chckbX500;
 	private JList<KeyUsageItem> listKeyUsage;
 	private JLabel lblCommonName;
+	private KeysManagementService kms;
 	/**
 	 * Create the application.
 	 */
@@ -259,6 +261,7 @@ public class NewKeyPairForm {
 		
 		loadKeyUsages();
 		loadECCurves();
+		kms = new KeysManagementService(ctx);
 	}
 	
 	private void loadPqcAlgorithms() {
@@ -335,7 +338,23 @@ public class NewKeyPairForm {
         		crt = generateCustomNameCertificate(kp);
         	}
         	
-        	if(crt != null) saveToKeystore(kp.getPrivate(),crt);
+        	if(crt != null) {
+        		kms.setAliasProvider(() -> DialogUtils.showInputBox(
+        				null,
+        				"Private key alias",
+        				"Private key alias",
+        				"Alias:"
+        				));
+
+        		kms.setPwdProvider((alias) -> DialogUtils.showPasswordInputBox(
+        				null,
+        				"Private key password",
+        				alias,
+        				"Password:"
+        				));
+
+        		kms.saveToKeystore(kp.getPrivate(),crt);
+        	}
 		} catch (Exception e) {
 			e.printStackTrace();
             DialogUtils.showMessageBox(
@@ -467,37 +486,5 @@ public class NewKeyPairForm {
 	    }
 	    
 	    return null;
-	}
-
-	
-	/**
-	 * Save the key pair in the keystore
-	 * 
-	 * @param priv the private key
-	 * @param crt the x509 certificate
-	 * @throws Exception
-	 */
-	private void saveToKeystore(PrivateKey priv, X509Certificate crt) throws Exception {
-		String alias = DialogUtils.showInputBox(
-	            null,
-	            "Private key alias",
-	            "Private key alias",
-	            "Alias:"
-	        );
-		
-		char[] pwd = DialogUtils.showPasswordInputBox(
-	            null,
-	            "Private key password",
-	            alias,
-	            "Password:"
-	        );
-		
-		try {
-			if(ctx.getKeystore().containsAlias(alias)) throw new Exception("Unable to save, alias is already in use!");
-	        ctx.getKeystore().addPrivateKey(alias, priv, pwd, new X509Certificate[]{crt});
-	        ctx.getKeystore().save();
-		}finally {
-			if(pwd != null) Arrays.fill(pwd, (char)0x00);
-		}
 	}
 }
