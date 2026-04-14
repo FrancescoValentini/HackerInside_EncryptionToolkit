@@ -23,6 +23,8 @@ public class KeysManagementService {
 	AliasProvider aliasProvider;
 	PasswordProvider newPwdProvider;
 	PasswordProvider confirmPwdProvider;
+	CertificateValidationProvider certValProvider;
+	NamedPasswordProvider namedPasswordProvider;
 	
 	
 	public KeysManagementService(ETKContext ctx) {
@@ -30,21 +32,26 @@ public class KeysManagementService {
 	}
 
 	public void setPwdProvider(PasswordProvider pwdProvider) {this.pwdProvider = pwdProvider;}
+	public void setPwdProvider(NamedPasswordProvider namedPasswordProvider) {this.namedPasswordProvider = namedPasswordProvider;}
 	public void setConfirmationProvider(ConfirmationProvider confirmationProvider) {this.confirmationProvider = confirmationProvider;}
 	public void setAliasProvider(AliasProvider aliasProvider) {this.aliasProvider = aliasProvider;}
 	public void setConfirmPwdProvider(PasswordProvider provider) { this.confirmPwdProvider = provider; }
 	public void setNewPwdProvider(PasswordProvider provider) { this.newPwdProvider = provider; }
+	public void setCertificateValidationProvider(CertificateValidationProvider certValProvider) {this.certValProvider = certValProvider;}
 	private <T> T requireProvider(T provider, String name) {
 		Objects.requireNonNull(provider,name + " is not set");
 	    return provider;
 	}
 	
 	public char[] invokePwdProvider() {return requireProvider(pwdProvider, "PasswordProvider").getPassword();}
+	public char[] invokePwdProvider(String alias) {return requireProvider(namedPasswordProvider, "NamedPasswordProvider").getPassword(alias);}
+
 	public boolean invokeConfirmationProvider() {return requireProvider(confirmationProvider, "ConfirmationProvider").confirm();}
 	public String invokeAliasProvider() {return requireProvider(aliasProvider, "AliasProvider").getAlias();}
 	private char[] invokeNewPwdProvider() {return requireProvider(confirmPwdProvider, "NewPasswordProvider").getPassword();}
 	private char[] invokeConfirmPwdProvider() { return requireProvider(confirmPwdProvider, "ConfirmPasswordProvider").getPassword();}
-	
+	public boolean invokeCertificateValidationProvider(X509Certificate crt) {return requireProvider(certValProvider, "CertificateValidationProvider").acceptX509Certificate(crt);}
+
 	/*
 	 * ====
 	 * COMMON FUNCTIONS
@@ -319,6 +326,42 @@ public class KeysManagementService {
 			throw new UnsupportedOperationException("Operation not supported for PKCS11");
 		}
 		
+		return false;
+	}
+	
+	/**
+	 * Imports key pairs from an external keystore file into the application's current keystore.
+	 * @throws Exception 
+	 */
+	public boolean importKeyPair(File inputFile) throws Exception {
+		if(ctx.usePKCS11()) throw new UnsupportedOperationException("Operation not supported for PKCS11");
+		if(inputFile == null) return false;
+		
+		
+		char[] srcPwd, keyPwd; srcPwd = keyPwd = null;
+		AbstractKeystore src = null;
+		try {
+			srcPwd = invokePwdProvider(); // Source keystore password
+			if(srcPwd == null || srcPwd.length == 0) return false;
+	    	src = new PKCS12Keystore(inputFile, srcPwd);
+	    	
+	    	src.load(); // Loads the source keystore
+	    	
+	    	List<String> srcAliases = Collections.list(src.listAliases());
+	    	
+	    	for(String alias : srcAliases) { // Import aliases
+	    		keyPwd = invokePwdProvider(alias); // used for aliases password
+	    		if(keyPwd == null || keyPwd.length == 0) return false;
+			    X509Certificate crt = src.getCertificate(alias);
+			    if(!invokeCertificateValidationProvider(crt)) return false;
+			    PrivateKey key = src.getPrivateKey(alias, keyPwd);
+			    ctx.getKeystore().addPrivateKey(alias, key, keyPwd, new X509Certificate[] {crt});
+			    ctx.getKeystore().save();
+	    	}
+		}finally {
+			if(srcPwd != null) Arrays.fill(srcPwd, (char)0x00);
+			if(keyPwd != null) Arrays.fill(keyPwd, (char)0x00);
+		}
 		return false;
 	}
 }

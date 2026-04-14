@@ -39,9 +39,6 @@ import it.hackerinside.etk.Utils.X509CertificateLoader;
 import it.hackerinside.etk.Utils.X509Utils;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Services.KeysManagementService;
-import it.hackerinside.etk.core.keystore.AbstractKeystore;
-import it.hackerinside.etk.core.keystore.PKCS12Keystore;
-
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -49,14 +46,10 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.security.KeyStoreException;
-import java.security.MessageDigest;
-import java.security.PrivateKey;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.awt.event.ActionEvent;
@@ -864,11 +857,8 @@ public class ETKMain {
 	 * Imports key pairs from an external keystore file into the application's current keystore.
 	 */
 	private void importKeypair() {
-		if(ctx.usePKCS11()) {
-            DialogUtils.showMessageBox(null, "Error importing Keys!", "Importing keys into PKCS11 devices is not supported","", 
-	                JOptionPane.ERROR_MESSAGE);
-            return;
-		}
+		if(ctx.usePKCS11()) throw new UnsupportedOperationException("Operation not supported for PKCS11");
+		
 		if(!loggedIn) {
 			notLoggedInError();
 			return;
@@ -883,43 +873,34 @@ public class ETKMain {
 		        DefaultExtensions.CRYPTO_PFX
 		    );
 	    
-	    if(sourceKeystore != null) {
-		    char[] password = DialogUtils.showPasswordInputBox(
-			        null,
-			        "Unlock Keystore",
-			        sourceKeystore.getName(),
-			        "Password:"
-			    );
-		    char[] keyPwd = null;
-	    	AbstractKeystore src = new PKCS12Keystore(sourceKeystore, password);
-	    	try {
-	    		src.load();
-				List<String> aliases = Collections.list(src.listAliases());
-				for(String alias : aliases) {
-				    keyPwd = DialogUtils.showPasswordInputBox(
-					        null,
-					        "Unlock Private key",
-					        alias,
-					        "Password:"
-					    );
-				    
-				    X509Certificate crt = src.getCertificate(alias);
-				    if(!Utils.acceptX509Certificate(crt)) return;
-				    PrivateKey key = src.getPrivateKey(alias, keyPwd);
-				    ctx.getKeystore().addPrivateKey(alias, key, keyPwd, new X509Certificate[] {crt});
-				    ctx.getKeystore().save();
-				}
-				
-			} catch (Exception e) {
-				e.printStackTrace();
-	            DialogUtils.showMessageBox(null, "Error importing Keys!", "Error importing Keys!", 
-		                e.getMessage(), 
-		                JOptionPane.ERROR_MESSAGE);
-			}finally {
-				if(keyPwd != null) Arrays.fill(keyPwd, (char)0x00);
-				if(password != null) Arrays.fill(password, (char)0x00);
-			}
+	    if(sourceKeystore == null) return; 
+	    kms.setCertificateValidationProvider((crt) -> Utils.acceptX509Certificate(crt));
+	    kms.setPwdProvider(() -> DialogUtils.showPasswordInputBox(
+	    		null,
+	    		"Unlock Source Keystore",
+	    		sourceKeystore.getName(),
+	    		"Password:"
+	    		));
+
+	    kms.setPwdProvider((alias) -> askUnlockPrivateKey(alias));
+	    try {
+	    	kms.importKeyPair(sourceKeystore);
+
+	    } catch (UnsupportedOperationException e) {
+	    	DialogUtils.showMessageBox(
+	    			null,
+	    			"Operation not supported!",
+	    			e.getMessage(),
+	    			"",
+	    			JOptionPane.WARNING_MESSAGE
+	    			);
+	    }catch (Exception e) {
+	    	e.printStackTrace();
+	    	DialogUtils.showMessageBox(null, "Error importing Keys!", "Error importing Keys!", 
+	    			e.getMessage(), 
+	    			JOptionPane.ERROR_MESSAGE);
 	    }
+	    
 	    updateTable();
 	}
 	
