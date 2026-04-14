@@ -10,6 +10,8 @@ import java.security.Provider;
 import java.security.UnrecoverableEntryException;
 import java.util.Objects;
 
+import org.bouncycastle.util.Arrays;
+
 import it.hackerinside.etk.core.Models.SupportedKeystores;
 
 /**
@@ -46,7 +48,7 @@ public class PKCS12Keystore extends AbstractKeystore {
     }
     
     public void setPassword(char[] password) {
-    	this.password = password;
+    	this.password = Arrays.copyOf(password, password.length);
     }
     
     /**

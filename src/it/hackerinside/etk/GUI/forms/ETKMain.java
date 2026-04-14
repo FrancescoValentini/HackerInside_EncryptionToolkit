@@ -1027,13 +1027,8 @@ public class ETKMain {
 	 * Changes the master password of the keystore.
 	 */
 	private void changeKeystoreMasterKey() {
-		if(ctx.usePKCS11()) {
-            DialogUtils.showMessageBox(null, 
-					"Unable to update password!", 
-					"Password change not supported on PKCS11","", 
-	                JOptionPane.ERROR_MESSAGE);
-            return;
-		}
+		if(ctx.usePKCS11()) throw new UnsupportedOperationException("Operation not supported for PKCS11");
+
 		
 		if(!loggedIn) {
 			notLoggedInError();
@@ -1042,59 +1037,29 @@ public class ETKMain {
 		
 		if(ctx.getKeystore() == null) return;
 		
-		
-		
-		char[] currPwd = null, newPwd = null, newPwd1 = null;
+		kms.setPwdProvider(() -> DialogUtils.showPasswordInputBox(null, ctx.getKeyStorePath(),
+				"Current Keystore password", "Password:"));
+
+		kms.setNewPwdProvider(() -> DialogUtils.showPasswordInputBox(null, ctx.getKeyStorePath(),
+				"New Keystore password", "Password:"));
+
+		kms.setConfirmPwdProvider(() -> DialogUtils.showPasswordInputBox(null, ctx.getKeyStorePath(),
+				"Confirm the new keystore password", "Password:"));
+
 		try {
-		    currPwd = DialogUtils.showPasswordInputBox(
-			        null,
-			        ctx.getKeyStorePath(),
-			        "Current Keystore password",
-			        "Password:"
-			    );
-		    
-		    if(currPwd == null) return;
-		    
-		    newPwd = DialogUtils.showPasswordInputBox(
-			        null,
-			        ctx.getKeyStorePath(),
-			        "New Keystore password",
-			        "Password:"
-			    );
-		    if(newPwd == null) return;
-		    newPwd1 = DialogUtils.showPasswordInputBox(
-			        null,
-			        ctx.getKeyStorePath(),
-			        "Confirm the new keystore password",
-			        "Password:"
-			    );
-		    if(newPwd1 == null) return;
-		    
-		    if(!Arrays.areEqual(newPwd, newPwd1)) {
-		    	throw new Exception("The two passwords do not match");
-		    }
-		    
-		    ctx.changeKeystoreMasterPassword(currPwd, newPwd1);
-		    
-            DialogUtils.showMessageBox(
-            		null, 
-            		"Keystore Password Updated!", 
-            		ctx.getKeyStorePath(), 
-	                "Keystore password updated successfully!",
-	                JOptionPane.INFORMATION_MESSAGE
-	        );
-		}catch(Exception e) {
+			if (kms.changeKeystoreMasterPassword()) {
+				DialogUtils.showMessageBox(null, "Keystore Password Updated!", ctx.getKeyStorePath(),
+						"Keystore password updated successfully!", JOptionPane.INFORMATION_MESSAGE);
+			}
+		} catch (UnsupportedOperationException e) {
+			DialogUtils.showMessageBox(null, "Operation not supported!", e.getMessage(), "",
+					JOptionPane.WARNING_MESSAGE);
+		}
+
+		catch (Exception e) {
 			e.printStackTrace();
-            DialogUtils.showMessageBox(
-            		null, 
-            		"Error while changing password", 
-            		"Error while changing password", 
-	                e.getMessage(), 
-	                JOptionPane.ERROR_MESSAGE);
-		}finally {
-			if(currPwd != null) Arrays.fill(currPwd, (char)0x00);
-			if(newPwd != null) Arrays.fill(newPwd, (char)0x00);
-			if(newPwd1 != null) Arrays.fill(newPwd1, (char)0x00);
+			DialogUtils.showMessageBox(null, "Error while changing password", "Error while changing password",
+					e.getMessage(), JOptionPane.ERROR_MESSAGE);
 		}
 	}
 	

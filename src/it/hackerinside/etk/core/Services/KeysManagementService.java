@@ -48,7 +48,7 @@ public class KeysManagementService {
 
 	public boolean invokeConfirmationProvider() {return requireProvider(confirmationProvider, "ConfirmationProvider").confirm();}
 	public String invokeAliasProvider() {return requireProvider(aliasProvider, "AliasProvider").getAlias();}
-	private char[] invokeNewPwdProvider() {return requireProvider(confirmPwdProvider, "NewPasswordProvider").getPassword();}
+	private char[] invokeNewPwdProvider() {return requireProvider(newPwdProvider, "NewPasswordProvider").getPassword();}
 	private char[] invokeConfirmPwdProvider() { return requireProvider(confirmPwdProvider, "ConfirmPasswordProvider").getPassword();}
 	public boolean invokeCertificateValidationProvider(X509Certificate crt) {return requireProvider(certValProvider, "CertificateValidationProvider").acceptX509Certificate(crt);}
 
@@ -363,5 +363,32 @@ public class KeysManagementService {
 			if(keyPwd != null) Arrays.fill(keyPwd, (char)0x00);
 		}
 		return false;
+	}
+	
+	/**
+	 * Changes the master password of the keystore.
+	 */
+	public boolean changeKeystoreMasterPassword() throws Exception {
+		if(ctx.usePKCS11()) throw new UnsupportedOperationException("Operation not supported for PKCS11");
+
+        char[] currPwd = null;
+        char[] newPwd  = null;
+
+        try {
+            currPwd = invokePwdProvider();
+
+            if(currPwd == null || currPwd.length == 0) return false;
+            
+            newPwd = passwordConfirm();
+            if(newPwd == null || newPwd.length == 0) return false;
+            
+            
+            ctx.changeKeystoreMasterPassword(currPwd, newPwd);
+        } finally {
+            if(currPwd != null) Arrays.fill(currPwd, (char)0x00);
+            if(newPwd != null) Arrays.fill(newPwd, (char)0x00);
+        }
+        
+	    return true;
 	}
 }
