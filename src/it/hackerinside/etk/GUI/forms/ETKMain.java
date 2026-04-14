@@ -807,62 +807,29 @@ public class ETKMain {
 	 * 
 	 * @param row The key pair to export
 	 */
-	private void exportKeypair(CertificateTableRow row) {
-		if(ctx.usePKCS11()) {
-            DialogUtils.showMessageBox(null, "Error exporting Keys!", "Exporting keys stored inside PKCS11 devices is not supported","", 
-	                JOptionPane.ERROR_MESSAGE);
-            return;
-		}
-		
-		if(row.location() == KeysLocations.KNWOWN_CERTIFICATES) {
-            DialogUtils.showMessageBox(null, 
-            		"Error exporting Keys!", 
-            		"Missing private key!",
-            		"The key pair export operation cannot be performed on known certificates as they do not have a private key." + 
-            		"\n\nAlias: " + row.keystoreAlias() + "\nLocation: " + row.location(), 
-	                JOptionPane.ERROR_MESSAGE
-	        );
-            return;
-		}
-		
-		if(!loggedIn) {
-			notLoggedInError();
-			return;
-		}
-		
-		if(ctx.getKeystore() == null) return;
-
-		
-	    File outputFile = FileDialogUtils.saveFileDialog(
-		        null,
-		        "Export KeyPairs",
-		        ".",
-		        DefaultExtensions.CRYPTO_P12,
-		        DefaultExtensions.CRYPTO_PFX
-		    );
-	    
-	    if(outputFile != null) {
-		    char[] keyPassword = DialogUtils.showPasswordInputBox(
+	private void exportKeypair(CertificateTableRow row) {		
+		try {
+			if(row.location() == KeysLocations.KNWOWN_CERTIFICATES) {
+				throw new UnsupportedOperationException("The key pair export operation cannot be performed on known certificates as they do not have a private key.");
+			}else if(row.location() == KeysLocations.PKCS11) {
+				throw new UnsupportedOperationException("Operation not supported for PKCS11");
+			}
+			
+			if(ctx.getKeystore() == null) return;
+			
+		    File outputFile = FileDialogUtils.saveFileDialog(
 			        null,
-			        "Unlock Private Key",
-			        row.keystoreAlias(),
-			        "Password:"
+			        "Export KeyPairs",
+			        ".",
+			        DefaultExtensions.CRYPTO_P12,
+			        DefaultExtensions.CRYPTO_PFX
 			    );
 		    
-		    try {
-				PrivateKey privk = ctx.getKeystore().getPrivateKey(row.keystoreAlias(), keyPassword);
-				X509Certificate cert = ctx.getKeystore().getCertificate(row.keystoreAlias());
-				
-				AbstractKeystore newKeystore = new PKCS12Keystore(outputFile, keyPassword);
-				newKeystore.load();
-				newKeystore.addPrivateKey(
-						row.keystoreAlias(), 
-						privk, 
-						keyPassword, 
-						new X509Certificate[]{cert}
-				);
-				newKeystore.save();
-				
+		    if(outputFile == null) return;
+		    
+		    kms.setPwdProvider(() -> askUnlockPrivateKey(row.keystoreAlias()));
+		    
+		    if(kms.exportKeypair(row, outputFile)) {
 	            DialogUtils.showMessageBox(
 	            		null, 
 	            		"Keypair exported!", 
@@ -871,19 +838,26 @@ public class ETKMain {
 		                "The password used is the same as the previous one.", 
 		                JOptionPane.INFORMATION_MESSAGE
 		        );
-			} catch (Exception e) {
-				e.printStackTrace();
-	            DialogUtils.showMessageBox(
-	            		null, 
-	            		"Error exporting Keys!", 
-	            		"Error exporting Keys!", 
-		                e.getMessage(), 
-		                JOptionPane.ERROR_MESSAGE
+		    }
+			
+		} catch (UnsupportedOperationException e) {
+	        DialogUtils.showMessageBox(
+		            null,
+		            "Operation not supported!",
+		            e.getMessage(),
+		            "",
+		            JOptionPane.WARNING_MESSAGE
 		        );
-			} finally {
-				if(keyPassword != null) Arrays.fill(keyPassword, (char)0x00);
-			}
-	    }
+		} catch (Exception e) {
+			e.printStackTrace();
+            DialogUtils.showMessageBox(
+            		null, 
+            		"Error exporting Keys!", 
+            		"Error exporting Keys!", 
+	                e.getMessage(), 
+	                JOptionPane.ERROR_MESSAGE
+	        );
+		}
 	}
 	
 	/**

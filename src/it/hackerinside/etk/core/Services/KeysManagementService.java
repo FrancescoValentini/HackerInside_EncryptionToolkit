@@ -1,6 +1,8 @@
 package it.hackerinside.etk.core.Services;
 
+import java.io.File;
 import java.security.KeyStoreException;
+import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,6 +14,7 @@ import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
 import it.hackerinside.etk.GUI.DTOs.KeysLocations;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
+import it.hackerinside.etk.core.keystore.PKCS12Keystore;
 
 public class KeysManagementService {
 	private final ETKContext ctx;
@@ -273,4 +276,49 @@ public class KeysManagementService {
 		return false;
 	}
 	
+	/*
+	 * ====
+	 * KEYPAIR
+	 * ====
+	 */
+	
+	/**
+	 * Method to export a key pair to a PKCS12 keystore
+	 * 
+	 * @param row The key pair to export
+	 */
+	public boolean exportKeypair(CertificateTableRow row, File outputFile) throws Exception {
+		if(outputFile == null) return false;
+		if(row.location() == KeysLocations.PKCS12) {
+			char[] keyPassword = null;
+			try {
+				keyPassword = invokePwdProvider();
+	            if(keyPassword == null || keyPassword.length == 0) return false;
+	            
+				PrivateKey privk = ctx.getKeystore().getPrivateKey(row.keystoreAlias(), keyPassword);
+				X509Certificate cert = ctx.getKeystore().getCertificate(row.keystoreAlias());
+				
+				AbstractKeystore newKeystore = new PKCS12Keystore(outputFile, keyPassword);
+				newKeystore.load();
+				newKeystore.addPrivateKey(
+						row.keystoreAlias(), 
+						privk, 
+						keyPassword, 
+						new X509Certificate[]{cert}
+				);
+				newKeystore.save();
+				return true;
+	            
+			} finally {
+				if(keyPassword != null) Arrays.fill(keyPassword, (char)0x00);
+			}
+			
+		} else if(row.location() == KeysLocations.KNWOWN_CERTIFICATES) {
+			throw new UnsupportedOperationException("The key pair export operation cannot be performed on known certificates as they do not have a private key.");
+		} else if(row.location() == KeysLocations.PKCS11) {
+			throw new UnsupportedOperationException("Operation not supported for PKCS11");
+		}
+		
+		return false;
+	}
 }
