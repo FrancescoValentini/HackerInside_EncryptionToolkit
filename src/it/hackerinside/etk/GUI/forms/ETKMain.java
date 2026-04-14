@@ -991,7 +991,7 @@ public class ETKMain {
 			            "Entry password updated successfully!",
 			            JOptionPane.INFORMATION_MESSAGE
 			        );
-		        ctx.getCache().remove(row.keystoreAlias());
+		        if(ctx.getUseCacheEntryPasswords()) ctx.getCache().remove(row.keystoreAlias());
 	        }
 	    } catch(UnsupportedOperationException e) {
 	        DialogUtils.showMessageBox(
