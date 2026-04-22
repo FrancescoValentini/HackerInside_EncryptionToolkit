@@ -17,6 +17,8 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPublicKey;
+import java.security.spec.ECGenParameterSpec;
+import java.security.spec.ECParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.MGF1ParameterSpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -26,9 +28,12 @@ import java.util.Arrays;
 import javax.crypto.spec.OAEPParameterSpec;
 import javax.crypto.spec.PSource;
 
+import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.asn1.x9.ECNamedCurveTable;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cms.CMSAlgorithm;
 import org.bouncycastle.cms.CMSEnvelopedDataStreamGenerator;
@@ -266,8 +271,9 @@ public class CMSEncryptor implements Encryptor {
      * Creates an ECC RecipientInfoGenerator
      * @param recipientCert the recipient's X.509 certificate
      * @return a RecipientInfoGenerator configured for the recipient's public key 
+     * @throws Exception 
      */
-    private RecipientInfoGenerator buildECRecipientInfo(X509Certificate recipientCert) throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, CertificateEncodingException, NoSuchProviderException {
+    private RecipientInfoGenerator buildECRecipientInfo(X509Certificate recipientCert) throws Exception {
         // Elliptic Curve Diffie-Hellman (ECDH)
         KeyPair eph = getEphemeralECCKeys(recipientCert);
         
@@ -341,9 +347,57 @@ public class CMSEncryptor implements Encryptor {
      * @throws NoSuchProviderException if the BC provider is not available
      * @throws InvalidAlgorithmParameterException if the key parameters are invalid
      */
-    private KeyPair getEphemeralECCKeys(X509Certificate recipient) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {
-        KeyPairGenerator kpg = KeyPairGenerator.getInstance("EC", "BC");
-        kpg.initialize(((ECPublicKey)recipient.getPublicKey()).getParams());
-        return kpg.generateKeyPair();
+    private KeyPair getEphemeralECCKeys(X509Certificate recipient) throws Exception {
+        PublicKey publicKey = recipient.getPublicKey();
+
+        if (!(publicKey instanceof ECPublicKey ecPublicKey)) {
+            throw new IllegalArgumentException("Recipient key is not EC");
+        }
+
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC", "BC");
+        SecureRandom random = new SecureRandom();
+
+        ECGenParameterSpec curveSpec = resolveCurveSpec(publicKey, ecPublicKey);
+
+        if (curveSpec != null) {
+            keyPairGenerator.initialize(curveSpec, random);
+        } else {
+            keyPairGenerator.initialize(ecPublicKey.getParams(), random);
+        }
+
+        return keyPairGenerator.generateKeyPair();
+    }
+
+    /**
+     * Resolves the elliptic curve specification ({@link ECGenParameterSpec}) from a given
+     * {@link PublicKey} instance.
+     *
+     *
+     * <p>If the key uses explicit curve parameters instead of a named curve, this method
+     * returns {@code null}.</p>
+     *
+     * @param publicKey   the public key to analyze (must be EC-based)
+     * @param ecPublicKey the EC public key instance (currently unused but may be helpful
+     *                    for future extensions or validation)
+     * @return an {@code ECGenParameterSpec} representing the named curve, or {@code null}
+     *         if the key uses explicit parameters
+     * @throws Exception if the key encoding cannot be parsed or processed
+     */
+    private ECGenParameterSpec resolveCurveSpec(PublicKey publicKey, ECPublicKey ecPublicKey) throws Exception {
+        SubjectPublicKeyInfo spki =
+                SubjectPublicKeyInfo.getInstance(publicKey.getEncoded());
+
+        ASN1Encodable params = spki.getAlgorithm().getParameters();
+
+        if (!(params instanceof ASN1ObjectIdentifier oid)) {
+            return null; // explicit parameters case
+        }
+
+        String curveName = ECNamedCurveTable.getName(oid);
+
+        // Prefer named curve, fallback to OID string
+        return (curveName != null)
+                ? new ECGenParameterSpec(curveName)
+                : new ECGenParameterSpec(oid.getId());
     }
 }
