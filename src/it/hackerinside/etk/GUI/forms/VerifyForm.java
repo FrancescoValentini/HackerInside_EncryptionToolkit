@@ -35,7 +35,6 @@ import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.Utils.X509TrustChainValidator;
-import it.hackerinside.etk.core.CAdES.CAdESVerifier;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.VerificationResult;
@@ -74,7 +73,6 @@ public class VerifyForm {
 	private String caCheckOutput = null;
     private boolean running = false;
     private SwingWorker<Void, Void> currentWorker;
-	private CAdESVerifier verifier;
 	private SignatureVerificationService signatureVerifier;
 
 	/**
@@ -114,7 +112,7 @@ public class VerifyForm {
 	    	@Override
 	    	public void windowClosing(WindowEvent e) {
 	    		try {
-	    			if(verifier != null) abortVerification();
+	    			if(signatureVerifier != null) abortVerification();
 	    		}catch (Exception ex) {
 	    			
 	    		}
@@ -278,12 +276,14 @@ public class VerifyForm {
 	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
 	        @Override
 	        protected Void doInBackground() throws Exception {
-	            new CAdESVerifier(encoding, false,ctx.getBufferSize()).extractContent(fileToVerify, outputFile);
+	        	running = true;
+	        	signatureVerifier.extractContent(fileToVerify, outputFile);
 	            return null;
 	        }
 
 	        @Override
 	        protected void done() {
+	        	running = false;
 	            progressBar.setVisible(false);
 	            progressBar.setEnabled(false);
 	            try {
@@ -430,6 +430,7 @@ public class VerifyForm {
 	 * @param worker the SwingWorker that performed the verification, or null if verification failed
 	 */
 	private void finishVerificationUI(SwingWorker<?, ?> worker) {
+		running = false;
 	    progressBar.setVisible(false);
 	    try {
 	        if (worker == null) return;
@@ -565,7 +566,7 @@ public class VerifyForm {
 	
 	private void abortVerification() {
 		signatureVerifier.abort();
-	    if (currentWorker != null && !currentWorker.isDone()) {
+	    if (currentWorker != null && !currentWorker.isDone() && running) {
 	        currentWorker.cancel(true);
 	    }
 	    running = false;

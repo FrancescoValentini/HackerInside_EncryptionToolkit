@@ -101,6 +101,11 @@ public class SignatureVerificationService {
     	}
     }
     
+    public void extractContent(File input, File output) throws IOException {
+    	EncodingOption encoding = findEncoding(input);
+    	new CAdESVerifier(encoding, false,ctx.getBufferSize()).extractContent(input, output);
+    }
+    
     /**
      * Aborts an ongoing verification operation, if one is in progress.
      */
