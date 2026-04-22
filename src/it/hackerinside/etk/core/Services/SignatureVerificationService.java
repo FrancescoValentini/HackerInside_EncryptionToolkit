@@ -86,7 +86,7 @@ public class SignatureVerificationService {
      *         was aborted due to missing data file
      * @throws IOException if reading the file fails
      */
-    private VerificationResult verify(File file) throws IOException {
+    public VerificationResult verify(File file) throws IOException {
     	EncodingOption encoding = findEncoding(file);
     	boolean detached = isDetached(file, encoding);
     	
@@ -99,5 +99,14 @@ public class SignatureVerificationService {
             if(dataFile == null) return null; // file selection aborted
     		return verifier.verifyDetached(file, dataFile);
     	}
+    }
+    
+    /**
+     * Aborts an ongoing verification operation, if one is in progress.
+     */
+    public void abort() {
+        if (verifier != null) {
+        	verifier.abort();
+        }
     }
 }

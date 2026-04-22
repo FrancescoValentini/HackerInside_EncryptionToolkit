@@ -35,12 +35,12 @@ import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.Utils.X509TrustChainValidator;
-import it.hackerinside.etk.core.CAdES.CAdESUtils;
 import it.hackerinside.etk.core.CAdES.CAdESVerifier;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.VerificationResult;
-import it.hackerinside.etk.core.PEM.PEMUtils;
+import it.hackerinside.etk.core.Services.SignatureVerificationService;
+
 import javax.swing.JSplitPane;
 import javax.swing.JPanel;
 import javax.swing.JList;
@@ -75,6 +75,7 @@ public class VerifyForm {
     private boolean running = false;
     private SwingWorker<Void, Void> currentWorker;
 	private CAdESVerifier verifier;
+	private SignatureVerificationService signatureVerifier;
 
 	/**
 	 * Launch the application.
@@ -200,7 +201,8 @@ public class VerifyForm {
 	    		extractContent();
 	    	}
 	    });
-	    
+	    signatureVerifier = new SignatureVerificationService(ctx);
+	    signatureVerifier.setFileProvider(() -> detachedFileSelector());
 	    if(this.fileToVerify == null) selectInputFile();
 	   
 	}
@@ -252,42 +254,7 @@ public class VerifyForm {
 	private void verifySignature() {
 	    startVerificationUI();
 	    running = true;
-	    currentWorker = new SwingWorker<>() {
-	        private boolean detached;
-
-	        @Override
-	        protected Void doInBackground() throws Exception {
-	            encoding = PEMUtils.findFileEncoding(fileToVerify);
-	            detached = CAdESUtils.isDetached(fileToVerify, encoding);
-	            return null;
-	        }
-
-	        @Override
-	        protected void done() {
-	            try {
-	                get(); // rethrow exceptions
-	                if (detached) {
-	                    verifyDetached(encoding);
-	                } else {
-	                    verifyEnveloping(encoding);
-	                }
-	            } catch (Exception e) {
-	                e.printStackTrace();
-	                setStatusText("Verification failed during setup.", Color.RED);
-		            progressBar.setVisible(false);
-		            progressBar.setEnabled(false);
-	                DialogUtils.showMessageBox(
-	                        null,
-	                        "Verification failed",
-	                        "Verification failed during setup.",
-	                        e.getMessage(),
-	                        JOptionPane.ERROR_MESSAGE
-	                );
-	            }
-	        }
-	    };
-
-	    currentWorker.execute();
+	    runVerificationWorker(() -> signatureVerifier.verify(fileToVerify));
 	}
 
 	/**
@@ -344,36 +311,12 @@ public class VerifyForm {
 	    worker.execute();
 	}
 
-	/**
-	 * Verifies an enveloping signature using the specified encoding.
-	 * Enables the export content button and initiates the verification process.
-	 * 
-	 * @param encoding the encoding option to use for verification
-	 */
-	private void verifyEnveloping(EncodingOption encoding) {
-	    btnExportContent.setEnabled(true);
-	    verifier = new CAdESVerifier(encoding, false,ctx.getBufferSize());
-
-	    runVerificationWorker(() -> verifier.verify(fileToVerify));
-	}
-
-	/**
-	 * Verifies a detached signature using the specified encoding.
-	 * Prompts the user to select the original data file that was signed.
-	 * 
-	 * @param encoding the encoding option to use for verification
-	 */
-	private void verifyDetached(EncodingOption encoding) {
-	    File dataFile = FileDialogUtils.openFileDialog(
+	private File detachedFileSelector() {
+		return FileDialogUtils.openFileDialog(
 	            null,
 	            "Select the data file",
 	            "."
 	    );
-
-	    if (dataFile == null) return; // user canceled
-
-	    verifier = new CAdESVerifier(encoding, true,ctx.getBufferSize());
-	    runVerificationWorker(() -> verifier.verifyDetached(fileToVerify, dataFile));
 	}
 
 	/**
@@ -493,8 +436,10 @@ public class VerifyForm {
 	        Object result = worker.get();
 	        if (result instanceof VerificationResult vr) {
 	            showResult(vr);
+	            btnExportContent.setEnabled(!vr.detached());
 	        }
 	    } catch (InterruptedException | ExecutionException e) {
+	    	btnExportContent.setEnabled(false);
 	        DialogUtils.showMessageBox(
 	                null,
 	                "Error during Verification",
@@ -619,7 +564,7 @@ public class VerifyForm {
 	}
 	
 	private void abortVerification() {
-		verifier.abort();
+		signatureVerifier.abort();
 	    if (currentWorker != null && !currentWorker.isDone()) {
 	        currentWorker.cancel(true);
 	    }

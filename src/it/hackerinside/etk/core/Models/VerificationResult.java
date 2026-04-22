@@ -21,6 +21,7 @@ import org.bouncycastle.cms.SignerInformation;
  * @param signerInfo               CMS SignerInfo block
  * @param digestAlgorithm          The digital signature digest algorithm (OID)
  * @param contentDigest            The content digest
+ * @param detached				   True if the signature is detached
  * @author Francesco Valentini
  */
 public record VerificationResult(
@@ -30,7 +31,8 @@ public record VerificationResult(
     X509Certificate signer,
     SignerInformation signerInfo,
     String digestAlgorithm,
-    byte[] contentDigest
+    byte[] contentDigest,
+    boolean detached
 ) {
 	
 	/**

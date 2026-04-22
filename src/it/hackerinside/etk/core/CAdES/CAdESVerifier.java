@@ -254,7 +254,8 @@ public class CAdESVerifier {
                 cert,
                 signerInfo,
                 signerInfo.getDigestAlgOID(),
-                getMessageDigest(signerInfo)
+                getMessageDigest(signerInfo),
+                detachedSignature
         );
     }
     
