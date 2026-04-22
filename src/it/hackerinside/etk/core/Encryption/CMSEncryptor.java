@@ -44,6 +44,8 @@ import org.bouncycastle.cms.jcajce.JceKeyAgreeRecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JceKeyTransRecipientInfoGenerator;
 import org.bouncycastle.operator.OutputEncryptor;
 import org.bouncycastle.operator.jcajce.JcaAlgorithmParametersConverter;
+
+import it.hackerinside.etk.core.Models.AsymmetricAlgorithm;
 import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.PQCAlgorithms;
 import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
@@ -212,35 +214,24 @@ public class CMSEncryptor implements Encryptor {
      * @throws Exception if the public key algorithm is not supported or if key generation fails
      */
     private RecipientInfoGenerator createRecipientInfoGenerator(X509Certificate recipientCert) throws Exception {
-        String algorithm = recipientCert.getPublicKey().getAlgorithm().toUpperCase();
-
-        if (isRSA(algorithm)) return buildRSARecipientInfo(recipientCert);
-        if (isEC(algorithm)) return buildECRecipientInfo(recipientCert);
-        if (isSupportedPQC(algorithm)) return buildPQCRecipientInfo(recipientCert);
-
-        throw new IllegalArgumentException(
-                "Unsupported public key algorithm: " + algorithm
-        );
+        if (isSupportedPQC(recipientCert)) return buildPQCRecipientInfo(recipientCert);
+        
+        AsymmetricAlgorithm alg = AsymmetricAlgorithm.fromCertificate(recipientCert);
+    	return switch (alg) {
+    	    case RSA -> buildRSARecipientInfo(recipientCert);
+    	    case EC  -> buildECRecipientInfo(recipientCert);
+    	    default  -> throw new IllegalArgumentException(
+                    "Unsupported public key algorithm: " + alg
+    	            ); 
+    	};
     }
 
-    
-    
-    private boolean isRSA(String algorithm) {
-        return "RSA".equals(algorithm);
-    }
-
-    private boolean isEC(String algorithm) {
-        return "EC".equals(algorithm) || "ECDH".equals(algorithm);
-    }
-
-    private boolean isSupportedPQC(String algorithm) {
-        if (!PQCAlgorithms.isPQC(algorithm)) {
-            return false;
-        }
-
-        if (!algorithm.contains("ML-KEM")) {
+    private boolean isSupportedPQC(X509Certificate cert) {
+        PQCAlgorithms alg = PQCAlgorithms.fromCertificate(cert);
+        if (alg == null) return false;
+        if (alg.canSign) {
             throw new IllegalArgumentException(
-                    "PQC algorithm not supported for encryption: " + algorithm
+                "Only KEM algorithms are supported for encryption: " + alg
             );
         }
 

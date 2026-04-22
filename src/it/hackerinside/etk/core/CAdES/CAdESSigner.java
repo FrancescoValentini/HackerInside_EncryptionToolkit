@@ -300,15 +300,12 @@ public class CAdESSigner {
      */
     private String getSignatureAlgorithm() throws Exception {
         // 1. Try PQC algorithms first
-        try {
-            PQCAlgorithms pqcAlgorithm = PQCAlgorithms.fromString(privateKey.getAlgorithm());
-            if (!pqcAlgorithm.canSign) {
-                throw new Exception(pqcAlgorithm + " cannot be used for digital signature.");
-            }
-            return pqcAlgorithm.toString();
-        } catch (IllegalArgumentException ignored) {
-            // Fallback to standard algorithms
+        PQCAlgorithms pqcAlgorithm = PQCAlgorithms.fromCertificate(signer);
+        if (pqcAlgorithm != null && !pqcAlgorithm.canSign) {
+            throw new Exception(pqcAlgorithm + " cannot be used for digital signature.");
         }
+        
+        if(pqcAlgorithm != null) return pqcAlgorithm.toString();
 
         // 2. EdDSA (Ed25519 / Ed448)
         if (privateKey instanceof EdECPrivateKey edKey) {
@@ -316,7 +313,7 @@ public class CAdESSigner {
         }
 
         // 3. Classic algorithms (RSA, ECDSA, etc.)
-        AsymmetricAlgorithm asymmetricAlgorithm = AsymmetricAlgorithm.fromPrivateKey(privateKey);
+        AsymmetricAlgorithm asymmetricAlgorithm = AsymmetricAlgorithm.fromCertificate(signer);
 
         String hashPart = hashAlgorithm
                 .toString()
