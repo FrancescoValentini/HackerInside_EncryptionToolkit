@@ -9,14 +9,6 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.io.File;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.KeyStoreException;
-import java.security.cert.CertPathValidatorException;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateExpiredException;
-import java.security.cert.CertificateNotYetValidException;
-import java.security.cert.X509Certificate;
-import java.util.Date;
 import java.util.HexFormat;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -34,13 +26,12 @@ import it.hackerinside.etk.GUI.CertificateDetailsPanel;
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
-import it.hackerinside.etk.Utils.X509TrustChainValidator;
-import it.hackerinside.etk.core.CAdES.CAdESUtils;
-import it.hackerinside.etk.core.CAdES.CAdESVerifier;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.VerificationResult;
-import it.hackerinside.etk.core.PEM.PEMUtils;
+import it.hackerinside.etk.core.Services.CertificateValidationService;
+import it.hackerinside.etk.core.Services.SignatureVerificationService;
+
 import javax.swing.JSplitPane;
 import javax.swing.JPanel;
 import javax.swing.JList;
@@ -74,7 +65,8 @@ public class VerifyForm {
 	private String caCheckOutput = null;
     private boolean running = false;
     private SwingWorker<Void, Void> currentWorker;
-	private CAdESVerifier verifier;
+	private SignatureVerificationService signatureVerifier;
+	private CertificateValidationService certValService;
 
 	/**
 	 * Launch the application.
@@ -113,7 +105,7 @@ public class VerifyForm {
 	    	@Override
 	    	public void windowClosing(WindowEvent e) {
 	    		try {
-	    			if(verifier != null) abortVerification();
+	    			if(signatureVerifier != null) abortVerification();
 	    		}catch (Exception ex) {
 	    			
 	    		}
@@ -200,7 +192,9 @@ public class VerifyForm {
 	    		extractContent();
 	    	}
 	    });
-	    
+	    signatureVerifier = new SignatureVerificationService(ctx);
+	    certValService = new CertificateValidationService(ctx);
+	    signatureVerifier.setFileProvider(() -> detachedFileSelector());
 	    if(this.fileToVerify == null) selectInputFile();
 	   
 	}
@@ -252,42 +246,7 @@ public class VerifyForm {
 	private void verifySignature() {
 	    startVerificationUI();
 	    running = true;
-	    currentWorker = new SwingWorker<>() {
-	        private boolean detached;
-
-	        @Override
-	        protected Void doInBackground() throws Exception {
-	            encoding = PEMUtils.findFileEncoding(fileToVerify);
-	            detached = CAdESUtils.isDetached(fileToVerify, encoding);
-	            return null;
-	        }
-
-	        @Override
-	        protected void done() {
-	            try {
-	                get(); // rethrow exceptions
-	                if (detached) {
-	                    verifyDetached(encoding);
-	                } else {
-	                    verifyEnveloping(encoding);
-	                }
-	            } catch (Exception e) {
-	                e.printStackTrace();
-	                setStatusText("Verification failed during setup.", Color.RED);
-		            progressBar.setVisible(false);
-		            progressBar.setEnabled(false);
-	                DialogUtils.showMessageBox(
-	                        null,
-	                        "Verification failed",
-	                        "Verification failed during setup.",
-	                        e.getMessage(),
-	                        JOptionPane.ERROR_MESSAGE
-	                );
-	            }
-	        }
-	    };
-
-	    currentWorker.execute();
+	    runVerificationWorker(() -> signatureVerifier.verify(fileToVerify));
 	}
 
 	/**
@@ -311,12 +270,14 @@ public class VerifyForm {
 	    SwingWorker<Void, Void> worker = new SwingWorker<>() {
 	        @Override
 	        protected Void doInBackground() throws Exception {
-	            new CAdESVerifier(encoding, false,ctx.getBufferSize()).extractContent(fileToVerify, outputFile);
+	        	running = true;
+	        	signatureVerifier.extractContent(fileToVerify, outputFile);
 	            return null;
 	        }
 
 	        @Override
 	        protected void done() {
+	        	running = false;
 	            progressBar.setVisible(false);
 	            progressBar.setEnabled(false);
 	            try {
@@ -344,36 +305,12 @@ public class VerifyForm {
 	    worker.execute();
 	}
 
-	/**
-	 * Verifies an enveloping signature using the specified encoding.
-	 * Enables the export content button and initiates the verification process.
-	 * 
-	 * @param encoding the encoding option to use for verification
-	 */
-	private void verifyEnveloping(EncodingOption encoding) {
-	    btnExportContent.setEnabled(true);
-	    verifier = new CAdESVerifier(encoding, false,ctx.getBufferSize());
-
-	    runVerificationWorker(() -> verifier.verify(fileToVerify));
-	}
-
-	/**
-	 * Verifies a detached signature using the specified encoding.
-	 * Prompts the user to select the original data file that was signed.
-	 * 
-	 * @param encoding the encoding option to use for verification
-	 */
-	private void verifyDetached(EncodingOption encoding) {
-	    File dataFile = FileDialogUtils.openFileDialog(
+	private File detachedFileSelector() {
+		return FileDialogUtils.openFileDialog(
 	            null,
 	            "Select the data file",
 	            "."
 	    );
-
-	    if (dataFile == null) return; // user canceled
-
-	    verifier = new CAdESVerifier(encoding, true,ctx.getBufferSize());
-	    runVerificationWorker(() -> verifier.verifyDetached(fileToVerify, dataFile));
 	}
 
 	/**
@@ -425,51 +362,6 @@ public class VerifyForm {
 	}
 
 	/**
-	 * Checks if the specified certificate is trusted by comparing it against
-	 * the application's keystore, known certificates and CA truststore
-	 * 
-	 * @param cert the X509Certificate to check for trust
-	 * @return true if the certificate is trusted
-	 */
-	private boolean isTrusted(X509Certificate cert) {
-	    try {
-	        if (ctx.getKeystore() != null && ctx.getKeystore().contains(cert) != null) return true;
-	        if (ctx.getKnownCerts() != null && ctx.getKnownCerts().contains(cert) != null) return true;
-	        if (ctx.useTrustStore() && ctx.getTrustStore() != null) return checkCA(cert);
-	    } catch (KeyStoreException e) {
-	        e.printStackTrace();
-	    }
-	    return false;
-	}
-	
-	/**
-	 * Check if the certificate is issued by a valid CA
-	 * @param cert the X509Certificate to check for trust
-	 * @return true if the certificate is issued by a valid CA
-	 */
-	private boolean checkCA(X509Certificate cert) {
-		boolean valid = false;
-		try {
-			new X509TrustChainValidator(ctx.getTrustStore())
-			.checkCertificate(cert);
-			valid = true;
-			caCheckOutput = "Certificate validated by certification authority!";
-			
-		} catch (CertificateException e) {
-			e.printStackTrace();
-			caCheckOutput = e.getMessage();
-		} catch (CertPathValidatorException e) {
-			e.printStackTrace();
-			caCheckOutput = e.getMessage();
-		} catch (InvalidAlgorithmParameterException e) {
-			e.printStackTrace();
-			caCheckOutput = e.getMessage();
-		}
-		return valid;
-	}
-
-
-	/**
 	 * Updates the UI to indicate that verification is in progress.
 	 * Shows the progress bar and sets the status text.
 	 */
@@ -487,14 +379,17 @@ public class VerifyForm {
 	 * @param worker the SwingWorker that performed the verification, or null if verification failed
 	 */
 	private void finishVerificationUI(SwingWorker<?, ?> worker) {
+		running = false;
 	    progressBar.setVisible(false);
 	    try {
 	        if (worker == null) return;
 	        Object result = worker.get();
 	        if (result instanceof VerificationResult vr) {
 	            showResult(vr);
+	            btnExportContent.setEnabled(!vr.detached());
 	        }
 	    } catch (InterruptedException | ExecutionException e) {
+	    	btnExportContent.setEnabled(false);
 	        DialogUtils.showMessageBox(
 	                null,
 	                "Error during Verification",
@@ -506,43 +401,6 @@ public class VerifyForm {
 	        e.printStackTrace();
 	    }
 	}
-	
-	/**
-	 * Check whether a certificate is valid at the date and time of signing.
-	 * 
-	 * 
-	 * @param cert the X509Certificate to check
-	 * @param signingTime Signature date and time, if null the current date and time is assumed
-	 * @return Message with verification result or empty string
-	 */
-	private String checkCertTimeValidity(X509Certificate cert, Date signingTime) {
-	    Date now = new Date();
-
-	    if (signingTime == null) {
-	        signingTime = now;
-	    }
-
-	    // Check at signing time
-	    try {
-	        cert.checkValidity(signingTime);
-	    } catch (CertificateExpiredException e) {
-	        return "Expired at signing";
-	    } catch (CertificateNotYetValidException e) {
-	        return "Not valid at signing";
-	    }
-
-	    // Check at current time
-	    try {
-	        cert.checkValidity(now);
-	        return ""; // valid
-	    } catch (CertificateExpiredException e) {
-	        return "Expired now (valid at signing)";
-	    } catch (CertificateNotYetValidException e) {
-	        return "Not valid now (valid at signing)";
-	    }
-	}
-
-
 
 	/**
 	 * Displays the verification result in the UI.
@@ -579,9 +437,9 @@ public class VerifyForm {
 	    // --- Signing time ---
 	    if (result.hasSigningTime()) {
 	        listModel.addElement("Declared signing time: " + result.getSigningTime());
-	        timeValidity = checkCertTimeValidity(result.signer(),result.getSigningTime());
+	        timeValidity = certValService.checkCertTimeValidity(result.signer(),result.getSigningTime());
 	    }else {
-	    	timeValidity = checkCertTimeValidity(result.signer(),null);
+	    	timeValidity = certValService.checkCertTimeValidity(result.signer(),null);
 	    }
 	    
 	    listModel.addElement(" ");
@@ -597,7 +455,7 @@ public class VerifyForm {
 	    listModel.addElement(" ");
 
 	    // --- Trust check ---
-	    if (isTrusted(result.signer())) {
+	    if (certValService.isTrusted(result.signer())) {
 	        listModel.addElement("Signer certificate is trusted!");
 	    } else {
 	        listModel.addElement("CAUTION - UNKNOWN SIGNER CERTIFICATE!");
@@ -619,8 +477,8 @@ public class VerifyForm {
 	}
 	
 	private void abortVerification() {
-		verifier.abort();
-	    if (currentWorker != null && !currentWorker.isDone()) {
+		signatureVerifier.abort();
+	    if (currentWorker != null && !currentWorker.isDone() && running) {
 	        currentWorker.cancel(true);
 	    }
 	    running = false;

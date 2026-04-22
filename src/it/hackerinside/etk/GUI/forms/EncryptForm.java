@@ -17,8 +17,9 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -33,10 +34,11 @@ import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
 import it.hackerinside.etk.Utils.X509Utils;
-import it.hackerinside.etk.core.Encryption.CMSEncryptor;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
+import it.hackerinside.etk.core.Services.EncryptionService;
+import it.hackerinside.etk.core.keystore.AbstractKeystore;
 
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
@@ -83,8 +85,8 @@ public class EncryptForm {
 	private JLabel lblStatus;
 	private JButton btnEncrypt;
 	private JCheckBox chckbxUseSki;
-	private CMSEncryptor encryptor;
 	private static ETKContext ctx;
+	private EncryptionService encryptionService;
 
 	/**
 	 * Launch the application.
@@ -125,7 +127,7 @@ public class EncryptForm {
 			@Override
 			public void windowClosing(WindowEvent e) {
 	    		try {
-	    			if(running && encryptor != null) abortEncryption();
+	    			if(running && encryptionService != null) abortEncryption();
 	    		}catch (Exception ex) {
 	    			
 	    		}
@@ -358,6 +360,7 @@ public class EncryptForm {
 			}
 		});
 		
+		encryptionService = new EncryptionService(ctx);
 		populateSymmetricAlgorithms(cmbEncAlgorithm);
 		populateKnowCerts(cmbRecipientCert);
 		this.chckbPemOutput.setSelected(ctx.usePEM());
@@ -387,47 +390,21 @@ public class EncryptForm {
 	 * @param combo the combo box to populate with certificate wrappers
 	 */
 	private void populateKnowCerts(JComboBox<CertificateWrapper> combo) {
-	    combo.removeAllItems();
-	    combo.addItem(null);
-
-	    try {
-	        Predicate<X509Certificate> personalCertPredicate = cert -> {
-	            String alg = cert.getPublicKey().getAlgorithm();
-	            boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
-
-	            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
-	            boolean hideECC = ctx.usePKCS11() && !ctx.isPkcs11SignOnly()
-	                              && alg != null && alg.toUpperCase().contains("EC");
-
-	            return alg != null && validCert && !isDSA && !hideECC;
-	        };
-
-	        
-	        Predicate<X509Certificate> knownCertPredicate = cert -> {
-	            String alg = cert.getPublicKey().getAlgorithm();
-	            boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
-	            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
-
-	            return alg != null && validCert && !isDSA;
-	        };
-
-	        // PERSONAL CERTS
-	        if (ctx.getKeystore() != null) {
-	            ctx.getKeystore()
-	               .listAliases(personalCertPredicate)
-	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKeystore())));
-	        }
-
-	        // KNOWN CERTS
-	        if (ctx.getKnownCerts() != null) {
-	            ctx.getKnownCerts()
-	               .listAliases(knownCertPredicate)
-	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKnownCerts())));
-	        }
-
-	    } catch (KeyStoreException e) {
-	        e.printStackTrace();
-	    }
+		combo.addItem(null);
+		List<AbstractKeystore> keystores = Stream.of(
+		        ctx.getKeystore(),
+		        ctx.getKnownCerts()
+		    )
+		    .filter(Objects::nonNull)
+		    .toList();
+		Utils.populateCerts(combo,
+				keystores,
+			    cert -> {
+			        String alg = cert.getPublicKey().getAlgorithm();
+			        boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
+			        return alg != null && validCert && !alg.toUpperCase().contains("DSA");
+			    }
+			);
 	}
 
 
@@ -560,24 +537,30 @@ public class EncryptForm {
 	    EncodingOption encoding = chckbPemOutput.isSelected()
 	            ? EncodingOption.ENCODING_PEM
 	            : EncodingOption.ENCODING_DER;
+
 	    File cipherFile = new File(txtbOutputFile.getText());
-	    if(!FileDialogUtils.overwriteIfExists(cipherFile)) return;
-	    
+	    if (!FileDialogUtils.overwriteIfExists(cipherFile)) return;
+
 	    startEncryptionUI();
-	    encryptor = new CMSEncryptor(cipher, encoding,ctx.getBufferSize());
-	    
-	    recipients.forEach(encryptor::addRecipients); // Add recipients
-	    encryptor.setUseOnlySKI(chckbxUseSki.isSelected());
-	    encryptor.setUseOAEP(ctx.useRsaOaep());
-	    
+
 	    running = true;
-	    btnEncrypt.setText("ABORT"); 
-	    
+	    btnEncrypt.setText("ABORT");
+
 	    currentWorker = new SwingWorker<>() {
 	        @Override
 	        protected Void doInBackground() throws Exception {
-	        	startTime = System.currentTimeMillis();
-	            encryptor.encrypt(plaintextFile, cipherFile);
+	            startTime = System.currentTimeMillis();
+
+	            encryptionService.encrypt(
+	                    cipher,
+	                    encoding,
+	                    recipients,
+	                    plaintextFile,
+	                    cipherFile,
+	                    chckbxUseSki.isSelected(),
+	                    ctx.useRsaOaep()
+	            );
+
 	            return null;
 	        }
 
@@ -601,7 +584,7 @@ public class EncryptForm {
 	}
 	
 	private void abortEncryption() {
-		encryptor.abort();
+		encryptionService.abort();
 	    if (currentWorker != null && !currentWorker.isDone()) {
 	        currentWorker.cancel(true);
 	        lblStatus.setText("Encryption aborted.");

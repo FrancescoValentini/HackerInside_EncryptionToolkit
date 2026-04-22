@@ -1,14 +1,21 @@
 package it.hackerinside.etk.GUI;
 
+import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
+import java.util.List;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
 
 import org.bouncycastle.util.Arrays;
+
+import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
+import it.hackerinside.etk.core.keystore.AbstractKeystore;
 
 public class Utils {
 
@@ -104,6 +111,8 @@ public class Utils {
 					"Password:"
 					);
 		});
+		
+		if(pwd == null) return null;
 
 		PrivateKey priv = null;
 		try {
@@ -125,5 +134,35 @@ public class Utils {
 
 		return priv;
 	}
+	/**
+	 * Populates a {@link JComboBox} with certificates from a list of keystores.
+	 *
+	 *
+	 * @param combo      the {@link JComboBox} to populate with {@link CertificateWrapper} items
+	 * @param keystores  a {@link List} of {@link AbstractKeystore} objects to retrieve certificates from
+	 * @param predicate  a {@link Predicate} to filter {@link X509Certificate} instances; only certificates
+	 *                   for which {@code predicate.test(certificate)} returns {@code true} are added;
+	 *                   may be {@code null}, in which case all certificates are included
+	 *
+	 */
+	public static void populateCerts(
+	        JComboBox<CertificateWrapper> combo,
+	        List<AbstractKeystore> keystores,
+	        Predicate<X509Certificate> predicate) {
+
+	    combo.removeAllItems();
+	    combo.addItem(null);
+
+	    for (AbstractKeystore ks : keystores) {
+	        if (ks == null) continue;
+
+	        try {
+	            ks.listAliases(predicate)
+	              .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ks)));
+	        } catch (KeyStoreException e) {
+	            e.printStackTrace();
+	        }
+	    }
+	} 
 
 }

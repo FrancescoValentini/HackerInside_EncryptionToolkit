@@ -24,10 +24,11 @@ import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Scanner;
-import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import javax.swing.GroupLayout;
 import javax.swing.JButton;
@@ -50,13 +51,13 @@ import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
 import it.hackerinside.etk.Utils.X509Utils;
-import it.hackerinside.etk.core.Encryption.CMSCryptoUtils;
-import it.hackerinside.etk.core.Encryption.CMSDecryptor;
 import it.hackerinside.etk.core.Encryption.CMSEncryptor;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
-import it.hackerinside.etk.core.Models.RecipientIdentifier;
 import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
+import it.hackerinside.etk.core.Services.DecryptionService;
+import it.hackerinside.etk.core.Services.EncryptionService;
+import it.hackerinside.etk.core.keystore.AbstractKeystore;
 
 import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.JTabbedPane;
@@ -74,7 +75,8 @@ public class TextPadForm {
 	private JTextArea txtbData;
 	private JButton btnDecrypt;
 	private JCheckBox chckbUseSKI;
-
+	private DecryptionService dc;
+	private EncryptionService ec;
 	/**
 	 * Launch the application.
 	 */
@@ -349,11 +351,14 @@ public class TextPadForm {
 		loadAlgorithms();
 		this.cmbEncAlgorithm.setSelectedItem(ctx.getCipher());
 		this.chckbUseSKI.setSelected(ctx.useSKI());
+		this.ec = new EncryptionService(ctx);
 		
 		populateKnowCerts(cmbRecipientCert);
 		
 		if(ctx.getKeystore() == null) {
 			 btnDecrypt.setEnabled(false);
+		}else {
+			dc = new DecryptionService(ctx);
 		}
 	}
 	
@@ -384,47 +389,25 @@ public class TextPadForm {
 	 * @param combo the combo box to populate with certificate wrappers
 	 */
 	private void populateKnowCerts(JComboBox<CertificateWrapper> combo) {
-	    combo.removeAllItems();
 	    combo.addItem(null);
 
-	    try {
-	        Predicate<X509Certificate> personalCertPredicate = cert -> {
-	            String alg = cert.getPublicKey().getAlgorithm();
-	            boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
 
-	            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
-	            boolean hideECC = ctx.usePKCS11() && !ctx.isPkcs11SignOnly()
-	                              && alg != null && alg.toUpperCase().contains("EC");
-
-	            return alg != null && validCert && !isDSA && !hideECC;
-	        };
-
-	        
-	        Predicate<X509Certificate> knownCertPredicate = cert -> {
-	            String alg = cert.getPublicKey().getAlgorithm();
-	            boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
-	            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
-
-	            return alg != null && validCert && !isDSA;
-	        };
-
-	        // PERSONAL CERTS
-	        if (ctx.getKeystore() != null) {
-	            ctx.getKeystore()
-	               .listAliases(personalCertPredicate)
-	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKeystore())));
-	        }
-
-	        // KNOWN CERTS
-	        if (ctx.getKnownCerts() != null) {
-	            ctx.getKnownCerts()
-	               .listAliases(knownCertPredicate)
-	               .forEach(alias -> combo.addItem(new CertificateWrapper(alias, ctx.getKnownCerts())));
-	        }
-
-	    } catch (KeyStoreException e) {
-	        e.printStackTrace();
-	    }
+		List<AbstractKeystore> keystores = Stream.of(
+		        ctx.getKeystore(),
+		        ctx.getKnownCerts()
+		    )
+		    .filter(Objects::nonNull)
+		    .toList();
+		Utils.populateCerts(combo,
+				keystores,
+			    cert -> {
+			        String alg = cert.getPublicKey().getAlgorithm();
+			        boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
+				    boolean hideECC = ctx.usePKCS11() && !ctx.isPkcs11SignOnly()
+				    		&& alg != null && alg.toUpperCase().contains("EC");
+			        return alg != null && validCert && !alg.toUpperCase().contains("DSA") && !hideECC;
+			    }
+			);
 	}
 	
 	/**
@@ -433,27 +416,41 @@ public class TextPadForm {
 	 * If encryption fails, an error dialog is displayed and the original data remains unchanged.
 	 */
 	private void encrypt() {
-		if(!Utils.acceptX509Certificate(recipient)) return;
-		SymmetricAlgorithms cipher = (SymmetricAlgorithms) cmbEncAlgorithm.getSelectedItem();
-		CMSEncryptor encryptor = new CMSEncryptor(cipher, EncodingOption.ENCODING_PEM, ctx.getBufferSize());
-		encryptor.addRecipients(recipient);
-		encryptor.setUseOnlySKI(chckbUseSKI.isSelected());
-		encryptor.setUseOAEP(ctx.useRsaOaep());
-		String text = txtbData.getText();
+	    if (!Utils.acceptX509Certificate(recipient)) return;
+
+	    SymmetricAlgorithms cipher = (SymmetricAlgorithms) cmbEncAlgorithm.getSelectedItem();
+	    String text = txtbData.getText();
+
 	    ByteArrayInputStream input = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
 	    ByteArrayOutputStream output = new ByteArrayOutputStream();
+
 	    boolean ok = true;
+
 	    try {
-			encryptor.encrypt(input, output);
-		} catch (Exception e) {
-			DialogUtils.showMessageBox(null, "Error during encryption", "Error during encryption!", 
-			        e.getMessage(), 
-			        JOptionPane.ERROR_MESSAGE);
-			e.printStackTrace();
-			ok = false;
-		}
-	    
-	    if(ok) txtbData.setText(new String(output.toByteArray()));
+	        ec.encrypt(
+	                cipher,
+	                EncodingOption.ENCODING_PEM,
+	                List.of(recipient),
+	                input,
+	                output,
+	                chckbUseSKI.isSelected(),
+	                ctx.useRsaOaep()
+	        );
+	    } catch (Exception e) {
+	        DialogUtils.showMessageBox(
+	                null,
+	                "Error during encryption",
+	                "Error during encryption!",
+	                e.getMessage(),
+	                JOptionPane.ERROR_MESSAGE
+	        );
+	        e.printStackTrace();
+	        ok = false;
+	    }
+
+	    if (ok) {
+	        txtbData.setText(new String(output.toByteArray(), StandardCharsets.UTF_8));
+	    }
 	}
 	
 
@@ -465,11 +462,9 @@ public class TextPadForm {
 	 * @return An Optional containing the recipient alias if found, empty Optional otherwise
 	 */
 	private Optional<String> findRecipientAlias(ByteArrayInputStream data) {
-        Collection<RecipientIdentifier> recipients;
         Optional<String> recipient = java.util.Optional.empty();
         try {
-        	recipients = CMSCryptoUtils.extractRecipientIdentifiers(data, EncodingOption.ENCODING_PEM);
-        	recipient = ctx.getKeystore().findAliasForRecipients(recipients);
+        	recipient = dc.identifyRecipient(data, EncodingOption.ENCODING_PEM);
 		} catch (Exception e) {
             DialogUtils.showMessageBox(
                     null,
@@ -525,11 +520,7 @@ public class TextPadForm {
         
         boolean ok = true;
 		try {
-			CMSDecryptor decryptor = new CMSDecryptor(priv, EncodingOption.ENCODING_PEM, ctx.getBufferSize());
-			
-			if(ctx.usePKCS11()) decryptor.setProvider(ctx.getKeystore().getProvider());
-			
-			decryptor.decrypt(input, output);
+			dc.decrypt(priv, EncodingOption.ENCODING_PEM, input, output);
 		} catch (Exception e) {
 	        DialogUtils.showMessageBox(
 	                null,

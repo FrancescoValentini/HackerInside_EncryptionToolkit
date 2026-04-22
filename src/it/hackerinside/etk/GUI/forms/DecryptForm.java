@@ -11,11 +11,9 @@ import java.awt.Font;
 import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
-import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Predicate;
-
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -31,12 +29,9 @@ import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.TimeUtils;
 import it.hackerinside.etk.GUI.Utils;
-import it.hackerinside.etk.core.Encryption.CMSCryptoUtils;
-import it.hackerinside.etk.core.Encryption.CMSDecryptor;
+import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
-import it.hackerinside.etk.core.Models.EncodingOption;
-import it.hackerinside.etk.core.Models.RecipientIdentifier;
-import it.hackerinside.etk.core.PEM.PEMUtils;
+import it.hackerinside.etk.core.Services.DecryptionService;
 
 import javax.swing.JProgressBar;
 import java.awt.event.ActionListener;
@@ -50,7 +45,7 @@ public class DecryptForm {
 
 	private JFrame frmHackerinsideEncryptionToolkit;
 	private JTextField txtbOutputFile;
-	private JComboBox cmbPrivateKey;
+	private JComboBox<CertificateWrapper> cmbPrivateKey;
 	private JProgressBar progressBar;
 	private static ETKContext ctx;
 	private File fileToDecrypt;
@@ -60,7 +55,7 @@ public class DecryptForm {
 	private JButton btnDecrypt;
     private boolean running = false;
     private SwingWorker<Void, Void> currentWorker;
-    private CMSDecryptor decryptor;
+    private DecryptionService decryptionService;
     
 
 	/**
@@ -104,7 +99,7 @@ public class DecryptForm {
 	    	@Override
 	    	public void windowClosing(WindowEvent e) {
 	    		try {
-	    			if(running && decryptor != null) abortDecryption();
+	    			if(running && decryptionService != null) abortDecryption();
 	    		}catch (Exception ex) {
 	    			
 	    		}
@@ -193,7 +188,7 @@ public class DecryptForm {
 				}
 			}
 		});
-		
+		this.decryptionService = new DecryptionService(ctx);
 		populaterCerts(cmbPrivateKey);
 		panel.setLayout(null);
 		panel.add(lblNewLabel);
@@ -228,14 +223,10 @@ public class DecryptForm {
 	
 	private void identifyRecipientKeyAsync() {
 	    SwingWorker<Optional<String>, Void> worker = new SwingWorker<>() {
-	        private EncodingOption encoding;
-	        private Collection<RecipientIdentifier> recipients;
 
 	        @Override
 	        protected Optional<String> doInBackground() throws Exception {
-	            encoding = PEMUtils.findFileEncoding(fileToDecrypt);
-	            recipients = CMSCryptoUtils.extractRecipientIdentifiers(fileToDecrypt, encoding);
-	            return ctx.getKeystore().findAliasForRecipients(recipients);
+	        	return decryptionService.identifyRecipient(fileToDecrypt);
 	        }
 
 	        @Override
@@ -272,9 +263,10 @@ public class DecryptForm {
 	}
 
 	private void selectAliasInCombo(String alias) {
-	    ComboBoxModel<String> model = cmbPrivateKey.getModel();
+	    ComboBoxModel<CertificateWrapper> model = cmbPrivateKey.getModel();
 	    for (int i = 0; i < model.getSize(); i++) {
-	        if (alias.equals(model.getElementAt(i))) {
+	        CertificateWrapper certWrapper = model.getElementAt(i);
+	        if (certWrapper != null && alias.equals(certWrapper.getAlias())) {
 	            cmbPrivateKey.setSelectedIndex(i);
 	            return;
 	        }
@@ -324,30 +316,25 @@ public class DecryptForm {
 	    txtbOutputFile.setText(file.getAbsolutePath());
 	}
 	
-	private void populaterCerts(JComboBox<String> combo) {
-	    combo.removeAllItems();
-        Predicate<X509Certificate> personalCertPredicate = cert -> {
-            String alg = cert.getPublicKey().getAlgorithm();
+	private void populaterCerts(JComboBox<CertificateWrapper> combo) {
+	    Utils.populateCerts(
+	        combo,
+	        List.of(ctx.getKeystore()),
+	        cert -> {
+	            String alg = cert.getPublicKey().getAlgorithm();
 
-            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
-            boolean hideECC = ctx.usePKCS11() && !ctx.isPkcs11SignOnly()
-                              && alg != null && alg.toUpperCase().contains("EC");
+	            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
+	            boolean hideECC = ctx.usePKCS11() && !ctx.isPkcs11SignOnly()
+	                              && alg != null && alg.toUpperCase().contains("EC");
 
-            return alg != null && !isDSA && !hideECC;
-        };
-	    try {
-	        ctx.getKeystore()
-	           .listAliases(personalCertPredicate)
-	           .forEach(combo::addItem);
-
-	    } catch (KeyStoreException e) {
-	        e.printStackTrace();
-	    }
+	            return alg != null && !isDSA && !hideECC;
+	        }
+	    );
 	}
 	
 	private X509Certificate getCertificate() {
 		try {
-			return ctx.getKeystore().getCertificate((String) cmbPrivateKey.getSelectedItem());
+			return ctx.getKeystore().getCertificate(((CertificateWrapper) cmbPrivateKey.getSelectedItem()).getAlias());
 		} catch (KeyStoreException e) {
 			e.printStackTrace();
 		}
@@ -364,34 +351,31 @@ public class DecryptForm {
 	private void decrypt() {
 	    File output = new File(txtbOutputFile.getText());
 	    if(!FileDialogUtils.overwriteIfExists(output)) return;
-	    String alias = (String) cmbPrivateKey.getSelectedItem();
+	    String alias = ((CertificateWrapper) cmbPrivateKey.getSelectedItem()).getAlias();
 	    if (alias == null) {
 	        throw new IllegalStateException("No certificates selected.");
 	    }
+	    
+	    
 	    PrivateKey priv = Utils.getPrivateKeyDialog(alias);
 	    if(priv == null) return;
-
+	    
 	    startDecryptionUI();
 	    running = true;
 	    btnDecrypt.setText("ABORT");
 	    
 	    currentWorker = new SwingWorker<>() {
-
-			
-
-
 			@Override
 			protected Void doInBackground() throws Exception {
 		        startTime = System.currentTimeMillis();
-		        EncodingOption encoding = PEMUtils.findFileEncoding(fileToDecrypt);
+		        decryptionService.decrypt(
+		        		priv,
+		                fileToDecrypt,
+		                output
+		            );
 
-		        decryptor = new CMSDecryptor(priv, encoding, ctx.getBufferSize());
-		        if(ctx.usePKCS11()) decryptor.setProvider(ctx.getKeystore().getProvider());
-		        decryptor.decrypt(fileToDecrypt, output);
 			    return null;
 			}
-
-
 	        @Override
 	        protected void done() {
 	            finishDecryptionUI(this);
@@ -413,6 +397,7 @@ public class DecryptForm {
 	
 
 	private void finishDecryptionUI(SwingWorker<?, ?> worker) {
+		running = false;
 	    progressBar.setVisible(false);
 	    endTime = System.currentTimeMillis();
 
@@ -440,7 +425,7 @@ public class DecryptForm {
 	}
 	
 	private void abortDecryption() {
-		decryptor.abort();
+		decryptionService.abort();
 	    if (currentWorker != null && !currentWorker.isDone()) {
 	        currentWorker.cancel(true);
 	        lblStatus.setText("Decryption aborted.");

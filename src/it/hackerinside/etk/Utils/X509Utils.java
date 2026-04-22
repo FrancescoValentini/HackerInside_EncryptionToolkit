@@ -1,8 +1,10 @@
 package it.hackerinside.etk.Utils;
 
+import java.security.MessageDigest;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
+import java.util.HexFormat;
 
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -68,5 +70,38 @@ public class X509Utils {
         }
         return "";
     }
+    
+    /**
+     * Generates the SHA-256 fingerprint of a certificate.
+     *
+     * @param cert the X509Certificate
+     * @return the fingerprint as an uppercase hexadecimal string, or an error message if generation fails
+     */
+    public static String getCertificateFingerprint(X509Certificate cert) {
+	    try {
+	        MessageDigest md = MessageDigest.getInstance("SHA-256");
+	        byte[] fingerprint = md.digest(cert.getEncoded());
+	        return HexFormat.of().formatHex(fingerprint).toUpperCase();
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return "Error generating fingerprint";
+	    }
+	}
+	
+    /**
+     * Formats a hexadecimal string by splitting it into blocks of 4 characters for readability.
+     *
+     * @param hex the hexadecimal string
+     * @return the formatted string with spaces every 4 characters
+     */
+	public static String formatFingerprint(String hex) {
+	    // Break the hex string into blocks of 4 characters separated by spaces
+	    StringBuilder sb = new StringBuilder();
+	    for (int i = 0; i < hex.length(); i++) {
+	        if (i > 0 && i % 4 == 0) sb.append(' ');
+	        sb.append(hex.charAt(i));
+	    }
+	    return sb.toString();
+	}
 
 }

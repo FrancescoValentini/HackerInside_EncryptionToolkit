@@ -570,7 +570,7 @@ public class ETKContext {
      * Returns the password cache
      * @return
      */
-    protected PasswordCache getCache() {
+    public PasswordCache getCache() {
     	return this.passwordCache;
     }
     

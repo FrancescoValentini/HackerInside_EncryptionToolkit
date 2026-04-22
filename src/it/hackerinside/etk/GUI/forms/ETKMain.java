@@ -38,9 +38,7 @@ import it.hackerinside.etk.Utils.X509CertificateExporter;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
 import it.hackerinside.etk.Utils.X509Utils;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
-import it.hackerinside.etk.core.keystore.AbstractKeystore;
-import it.hackerinside.etk.core.keystore.PKCS12Keystore;
-
+import it.hackerinside.etk.core.Services.KeysManagementService;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -48,14 +46,10 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.security.KeyStoreException;
-import java.security.MessageDigest;
-import java.security.PrivateKey;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.awt.event.ActionEvent;
@@ -73,6 +67,7 @@ public class ETKMain {
 	private JMenuItem mntmChangeKeystorePwd;
 	private JCheckBoxMenuItem chckbxmntmHideInvalidCertificate;
 	private static boolean loggedIn = false;
+	private KeysManagementService kms;
 	/**
 	 * Launch the application.
 	 */
@@ -401,18 +396,8 @@ public class ETKMain {
 	 * @param row the certificate table row containing the certificate to delete
 	 */
 	private void deleteCertificate(CertificateTableRow row) {
-	    if (row.location() == KeysLocations.PKCS11) {
-	        DialogUtils.showMessageBox(
-	            null, 
-	            "Operation not supported!", 
-	            "Deleting certificates from PKCS11 devices is not supported!", 
-	            "Deleting certificates from PKCS11 devices is not supported!", 
-	            JOptionPane.WARNING_MESSAGE
-	        );
-	        return;
-	    } else if (row.location() == KeysLocations.PKCS12) {
-	    	
-	        boolean ok = DialogUtils.showConfirmBox(
+        try {
+        	kms.setConfirmationProvider(() ->DialogUtils.showConfirmBox(
 		            null, 
 		            "DELETING PRIVATE KEY!", 
 		            "DELETING: " + row.keystoreAlias(), 
@@ -420,39 +405,27 @@ public class ETKMain {
 		            + "\r\n"
 		            + "The deletion is irreversible; the key cannot be recovered.", 
 		            JOptionPane.WARNING_MESSAGE
+		        ));
+        	kms.deleteAlias(row);
+        	updateTable();
+        }catch(UnsupportedOperationException e) {
+	        DialogUtils.showMessageBox(
+		            null,
+		            "Operation not supported!",
+		            e.getMessage(),
+		            "",
+		            JOptionPane.WARNING_MESSAGE
 		        );
-	    	if(ok) {
-		        try {
-		            ctx.getKeystore().deleteKeyOrCertificate(row.keystoreAlias());
-		            ctx.getKeystore().save();
-		        }catch (Exception e) {
-		            e.printStackTrace();
-		            DialogUtils.showMessageBox(
-			                null, 
-			                "Error while deleting certificate", 
-			                "Error while deleting certificate", 
-			                e.getMessage(), 
-			                JOptionPane.ERROR_MESSAGE
-			            );
-		        }
-	    	}
-
-	    } else if (row.location() == KeysLocations.KNWOWN_CERTIFICATES) {
-	        try {
-	            ctx.getKnownCerts().deleteKeyOrCertificate(row.keystoreAlias());
-	            ctx.getKnownCerts().save();
-	        }catch (Exception e) {
-	            e.printStackTrace();
-	            DialogUtils.showMessageBox(
-		                null, 
-		                "Error while deleting certificate", 
-		                "Error while deleting certificate", 
-		                e.getMessage(), 
-		                JOptionPane.ERROR_MESSAGE
-		            );
-	        }
-	    }
-	    updateTable();
+		} catch (Exception e) {
+            e.printStackTrace();
+            DialogUtils.showMessageBox(
+	                null, 
+	                "Error while deleting certificate", 
+	                "Error while deleting certificate", 
+	                e.getMessage(), 
+	                JOptionPane.ERROR_MESSAGE
+	            );
+        }
 	}
 
 	/**
@@ -567,6 +540,7 @@ public class ETKMain {
 	 * the keystore and then updating the certificate table.
 	 */
 	private void startProcedure() {
+		kms = new KeysManagementService(ctx);
 		chckbxmntmHideInvalidCertificate.setSelected(ctx.hideInvalidCerts());
 		disablePrivateKeyOperations();
 		if(!new File(ctx.getKnownCertsPath()).exists()  || !ctx.usePKCS11() && !new File(ctx.getKeyStorePath()).exists()) {
@@ -575,6 +549,7 @@ public class ETKMain {
 		}else {
 		    unlockKeystore();
 		    updateTable();
+		    
 		}
 		
 		/*
@@ -624,7 +599,13 @@ public class ETKMain {
 	 * from both private keystores and known certificates keystore.
 	 */
 	private void updateTable() {
-	    List<CertificateTableRow> rows = getTableRows();
+	    List<CertificateTableRow> rows = new ArrayList<>();
+	    
+	    try {
+	        rows = kms.getAllCertificates(loggedIn);
+	    } catch (KeyStoreException e) {
+	        System.err.println(e.getMessage());
+	    }
 	    
 	    if (chckbxmntmHideInvalidCertificate.isSelected()) {
 	        rows = rows.stream()
@@ -633,57 +614,6 @@ public class ETKMain {
 	    }
 	    
 	    tableModel.setRows(rows);
-	}
-
-	/**
-	 * Retrieves certificate table rows from all available keystores.
-	 * This method collects certificates from both the private keystore
-	 * and the known certificates keystore, creating table rows for each certificate found.
-	 * 
-	 * @return a list of CertificateTableRow objects representing all available certificates
-	 */
-	private List<CertificateTableRow> getTableRows() {
-	    List<CertificateTableRow> dtos = new ArrayList<>();
-
-	    // --- Private keystore ---
-	    try {
-	        if (ctx.getKeystore() != null && loggedIn) {
-	            List<String> privateAliases = Collections.list(ctx.getKeystore().listAliases());
-	            for (String alias : privateAliases) {
-	                X509Certificate crt = (X509Certificate) ctx.getKeystore().getCertificate(alias);
-	                if (crt != null) {
-	                    dtos.add(new CertificateTableRow(
-	                        alias,
-	                        ctx.usePKCS11() ? KeysLocations.PKCS11 : KeysLocations.PKCS12,
-	                        crt
-	                    ));
-	                }
-	            }
-	        }
-	    } catch (KeyStoreException e) {
-	        System.err.println("Unable to access private keystore: " + e.getMessage());
-	    }
-
-	    // --- Known certificates keystore ---
-	    try {
-	        if (ctx.getKnownCerts() != null) {
-	            List<String> knownAliases = Collections.list(ctx.getKnownCerts().listAliases());
-	            for (String alias : knownAliases) {
-	                X509Certificate crt = (X509Certificate) ctx.getKnownCerts().getCertificate(alias);
-	                if (crt != null) {
-	                    dtos.add(new CertificateTableRow(
-	                        alias,
-	                        KeysLocations.KNWOWN_CERTIFICATES,
-	                        crt
-	                    ));
-	                }
-	            }
-	        }
-	    } catch (KeyStoreException e) {
-	        System.err.println("Unable to access known certificates keystore: " + e.getMessage());
-	    }
-
-	    return dtos;
 	}
 
 	/**
@@ -828,15 +758,13 @@ public class ETKMain {
 	 * @param cert the X.509 certificate to save
 	 */
 	private void saveKnownCertificate(X509Certificate cert) {
-		String alias = DialogUtils.showInputBox(null, "Certificate Alias", "Enter Certificate Alias", "");
-        if(alias == null || alias.isEmpty()) return;
+		kms.setAliasProvider(() -> DialogUtils.showInputBox(null, "Certificate Alias", "Enter Certificate Alias", ""));
+		kms.setConfirmationProvider(() -> Utils.acceptX509Certificate(cert));
         try {
-            if(Utils.acceptX509Certificate(cert) && certImportWarning(cert)) {
-                ctx.getKnownCerts().addCertificate(alias, cert);
-                ctx.getKnownCerts().save();
-        	    updateTable();
-        	    showCertificateInformation(cert);
-            }
+        	if(!certImportWarning(cert)) return;
+        	kms.saveKnownCertificate(cert);
+    	    updateTable();
+    	    showCertificateInformation(cert);
         }catch (Exception e) {
             e.printStackTrace();
             DialogUtils.showMessageBox(
@@ -861,44 +789,10 @@ public class ETKMain {
 	        "Import Certificate",
 	        "You are about to import a new certificate that will be marked as trusted.",
 	        "It is crucial to verify that the certificate's fingerprint matches the expected value.\n\n" +
-	        "SHA-256 Fingerprint:\n" + formatFingerprint(getCertificateFingerprint(crt)) + "\n\n" +
+	        "SHA-256 Fingerprint:\n" + X509Utils.formatFingerprint(X509Utils.getCertificateFingerprint(crt)) + "\n\n" +
 	        "If the fingerprint does not match, cancel the import to avoid potential security risks.",
 	        JOptionPane.WARNING_MESSAGE
 	    );
-	}
-
-
-    /**
-     * Generates the SHA-256 fingerprint of a certificate.
-     *
-     * @param cert the X509Certificate
-     * @return the fingerprint as an uppercase hexadecimal string, or an error message if generation fails
-     */
-	private static String getCertificateFingerprint(X509Certificate cert) {
-	    try {
-	        MessageDigest md = MessageDigest.getInstance("SHA-256");
-	        byte[] fingerprint = md.digest(cert.getEncoded());
-	        return HexFormat.of().formatHex(fingerprint).toUpperCase();
-	    } catch (Exception e) {
-	        e.printStackTrace();
-	        return "Error generating fingerprint";
-	    }
-	}
-	
-    /**
-     * Formats a hexadecimal string by splitting it into blocks of 4 characters for readability.
-     *
-     * @param hex the hexadecimal string
-     * @return the formatted string with spaces every 4 characters
-     */
-	private static String formatFingerprint(String hex) {
-	    // Break the hex string into blocks of 4 characters separated by spaces
-	    StringBuilder sb = new StringBuilder();
-	    for (int i = 0; i < hex.length(); i++) {
-	        if (i > 0 && i % 4 == 0) sb.append(' ');
-	        sb.append(hex.charAt(i));
-	    }
-	    return sb.toString();
 	}
 	
 	/**
@@ -906,62 +800,29 @@ public class ETKMain {
 	 * 
 	 * @param row The key pair to export
 	 */
-	private void exportKeypair(CertificateTableRow row) {
-		if(ctx.usePKCS11()) {
-            DialogUtils.showMessageBox(null, "Error exporting Keys!", "Exporting keys stored inside PKCS11 devices is not supported","", 
-	                JOptionPane.ERROR_MESSAGE);
-            return;
-		}
-		
-		if(row.location() == KeysLocations.KNWOWN_CERTIFICATES) {
-            DialogUtils.showMessageBox(null, 
-            		"Error exporting Keys!", 
-            		"Missing private key!",
-            		"The key pair export operation cannot be performed on known certificates as they do not have a private key." + 
-            		"\n\nAlias: " + row.keystoreAlias() + "\nLocation: " + row.location(), 
-	                JOptionPane.ERROR_MESSAGE
-	        );
-            return;
-		}
-		
-		if(!loggedIn) {
-			notLoggedInError();
-			return;
-		}
-		
-		if(ctx.getKeystore() == null) return;
-
-		
-	    File outputFile = FileDialogUtils.saveFileDialog(
-		        null,
-		        "Export KeyPairs",
-		        ".",
-		        DefaultExtensions.CRYPTO_P12,
-		        DefaultExtensions.CRYPTO_PFX
-		    );
-	    
-	    if(outputFile != null) {
-		    char[] keyPassword = DialogUtils.showPasswordInputBox(
+	private void exportKeypair(CertificateTableRow row) {		
+		try {
+			if(row.location() == KeysLocations.KNWOWN_CERTIFICATES) {
+				throw new UnsupportedOperationException("The key pair export operation cannot be performed on known certificates as they do not have a private key.");
+			}else if(row.location() == KeysLocations.PKCS11) {
+				throw new UnsupportedOperationException("Operation not supported for PKCS11");
+			}
+			
+			if(ctx.getKeystore() == null) return;
+			
+		    File outputFile = FileDialogUtils.saveFileDialog(
 			        null,
-			        "Unlock Private Key",
-			        row.keystoreAlias(),
-			        "Password:"
+			        "Export KeyPairs",
+			        ".",
+			        DefaultExtensions.CRYPTO_P12,
+			        DefaultExtensions.CRYPTO_PFX
 			    );
 		    
-		    try {
-				PrivateKey privk = ctx.getKeystore().getPrivateKey(row.keystoreAlias(), keyPassword);
-				X509Certificate cert = ctx.getKeystore().getCertificate(row.keystoreAlias());
-				
-				AbstractKeystore newKeystore = new PKCS12Keystore(outputFile, keyPassword);
-				newKeystore.load();
-				newKeystore.addPrivateKey(
-						row.keystoreAlias(), 
-						privk, 
-						keyPassword, 
-						new X509Certificate[]{cert}
-				);
-				newKeystore.save();
-				
+		    if(outputFile == null) return;
+		    
+		    kms.setPwdProvider(() -> askUnlockPrivateKey(row.keystoreAlias()));
+		    
+		    if(kms.exportKeypair(row, outputFile)) {
 	            DialogUtils.showMessageBox(
 	            		null, 
 	            		"Keypair exported!", 
@@ -970,30 +831,34 @@ public class ETKMain {
 		                "The password used is the same as the previous one.", 
 		                JOptionPane.INFORMATION_MESSAGE
 		        );
-			} catch (Exception e) {
-				e.printStackTrace();
-	            DialogUtils.showMessageBox(
-	            		null, 
-	            		"Error exporting Keys!", 
-	            		"Error exporting Keys!", 
-		                e.getMessage(), 
-		                JOptionPane.ERROR_MESSAGE
+		    }
+			
+		} catch (UnsupportedOperationException e) {
+	        DialogUtils.showMessageBox(
+		            null,
+		            "Operation not supported!",
+		            e.getMessage(),
+		            "",
+		            JOptionPane.WARNING_MESSAGE
 		        );
-			} finally {
-				if(keyPassword != null) Arrays.fill(keyPassword, (char)0x00);
-			}
-	    }
+		} catch (Exception e) {
+			e.printStackTrace();
+            DialogUtils.showMessageBox(
+            		null, 
+            		"Error exporting Keys!", 
+            		"Error exporting Keys!", 
+	                e.getMessage(), 
+	                JOptionPane.ERROR_MESSAGE
+	        );
+		}
 	}
 	
 	/**
 	 * Imports key pairs from an external keystore file into the application's current keystore.
 	 */
 	private void importKeypair() {
-		if(ctx.usePKCS11()) {
-            DialogUtils.showMessageBox(null, "Error importing Keys!", "Importing keys into PKCS11 devices is not supported","", 
-	                JOptionPane.ERROR_MESSAGE);
-            return;
-		}
+		if(ctx.usePKCS11()) throw new UnsupportedOperationException("Operation not supported for PKCS11");
+		
 		if(!loggedIn) {
 			notLoggedInError();
 			return;
@@ -1008,43 +873,34 @@ public class ETKMain {
 		        DefaultExtensions.CRYPTO_PFX
 		    );
 	    
-	    if(sourceKeystore != null) {
-		    char[] password = DialogUtils.showPasswordInputBox(
-			        null,
-			        "Unlock Keystore",
-			        sourceKeystore.getName(),
-			        "Password:"
-			    );
-		    char[] keyPwd = null;
-	    	AbstractKeystore src = new PKCS12Keystore(sourceKeystore, password);
-	    	try {
-	    		src.load();
-				List<String> aliases = Collections.list(src.listAliases());
-				for(String alias : aliases) {
-				    keyPwd = DialogUtils.showPasswordInputBox(
-					        null,
-					        "Unlock Private key",
-					        alias,
-					        "Password:"
-					    );
-				    
-				    X509Certificate crt = src.getCertificate(alias);
-				    if(!Utils.acceptX509Certificate(crt)) return;
-				    PrivateKey key = src.getPrivateKey(alias, keyPwd);
-				    ctx.getKeystore().addPrivateKey(alias, key, keyPwd, new X509Certificate[] {crt});
-				    ctx.getKeystore().save();
-				}
-				
-			} catch (Exception e) {
-				e.printStackTrace();
-	            DialogUtils.showMessageBox(null, "Error importing Keys!", "Error importing Keys!", 
-		                e.getMessage(), 
-		                JOptionPane.ERROR_MESSAGE);
-			}finally {
-				if(keyPwd != null) Arrays.fill(keyPwd, (char)0x00);
-				if(password != null) Arrays.fill(password, (char)0x00);
-			}
+	    if(sourceKeystore == null) return; 
+	    kms.setCertificateValidationProvider((crt) -> Utils.acceptX509Certificate(crt));
+	    kms.setPwdProvider(() -> DialogUtils.showPasswordInputBox(
+	    		null,
+	    		"Unlock Source Keystore",
+	    		sourceKeystore.getName(),
+	    		"Password:"
+	    		));
+
+	    kms.setPwdProvider((alias) -> askUnlockPrivateKey(alias));
+	    try {
+	    	kms.importKeyPair(sourceKeystore);
+
+	    } catch (UnsupportedOperationException e) {
+	    	DialogUtils.showMessageBox(
+	    			null,
+	    			"Operation not supported!",
+	    			e.getMessage(),
+	    			"",
+	    			JOptionPane.WARNING_MESSAGE
+	    			);
+	    }catch (Exception e) {
+	    	e.printStackTrace();
+	    	DialogUtils.showMessageBox(null, "Error importing Keys!", "Error importing Keys!", 
+	    			e.getMessage(), 
+	    			JOptionPane.ERROR_MESSAGE);
 	    }
+	    
 	    updateTable();
 	}
 	
@@ -1053,47 +909,22 @@ public class ETKMain {
 	 * @param row the entry to rename
 	 */
 	private void renameAlias(CertificateTableRow row) {
-		String currAlias = row.keystoreAlias();
-		KeysLocations location = row.location();
-	    if (location == KeysLocations.PKCS11) {
-	        DialogUtils.showMessageBox(
-	            null, 
-	            "Operation not supported!", 
-	            "Renaming certificates from PKCS11 devices is not supported!", 
-	            "", 
-	            JOptionPane.WARNING_MESSAGE
-	        );
-	        return;
-	    }
+	    String currAlias = row.keystoreAlias();
+
+	    // Alias input
+	    kms.setAliasProvider(() -> DialogUtils.showInputBox(
+	        null,
+	        "RENAME CERTIFICATE",
+	        "Old name: " + currAlias,
+	        "New Name:"
+	    ));
 	    
-	    char pwd[] = null;
-	    String newName = DialogUtils.showInputBox(null, 
-	    		"RENAME CERTIFICATE", 
-	    		"Old name: " + currAlias, 
-	    		"New Name:"
-	    		);
-	    
-	    if(newName.isBlank()) return;
-	    
-	    
+	    kms.setPwdProvider(() -> Utils.passwordCacheHitOrMiss(currAlias, () -> askUnlockPrivateKey(currAlias)));
+
 	    try {
-		    if(location == KeysLocations.PKCS12) {
-		        pwd = Utils.passwordCacheHitOrMiss(currAlias, () -> {
-		        	return DialogUtils.showPasswordInputBox(
-		                    null,
-		                    "Unlock Private key",
-		                    "Password for " + currAlias,
-		                    "Password:"
-		                );
-		        });
-		        
-		        if(pwd.length == 0) return;
-		    	ctx.getKeystore().renameEntry(currAlias, newName, pwd);
-		    	ctx.getKeystore().save();
-		    }else if(location == KeysLocations.KNWOWN_CERTIFICATES) {
-		    	ctx.getKnownCerts().renameEntry(currAlias, newName, null);
-		    	ctx.getKnownCerts().save();
-		    }
+	        String newName = kms.renameAlias(row);
+	        if(newName == null) return;
+	        
 	        DialogUtils.showMessageBox(
 		            null, 
 		            "Alias Renamed!", 
@@ -1102,16 +933,23 @@ public class ETKMain {
 		            JOptionPane.INFORMATION_MESSAGE
 		        );
 	        updateTable();
-	    }catch(Exception e) {
+
+	    } catch (UnsupportedOperationException e) {
 	        DialogUtils.showMessageBox(
-		            null, 
-		            "ERROR!", 
-		            "An error occurred while renaming the certificate!" , 
-		            e.getMessage(), 
-		            JOptionPane.ERROR_MESSAGE
-		        );
-	    }finally {
-	    	if(pwd != null) Arrays.fill(pwd, (char)0x00);
+	            null,
+	            "Operation not supported!",
+	            e.getMessage(),
+	            "",
+	            JOptionPane.WARNING_MESSAGE
+	        );
+	    } catch (Exception e) {
+	        DialogUtils.showMessageBox(
+	            null,
+	            "ERROR!",
+	            "An error occurred while renaming the certificate!",
+	            e.getMessage(),
+	            JOptionPane.ERROR_MESSAGE
+	        );
 	    }
 	}
 	
@@ -1120,102 +958,77 @@ public class ETKMain {
 	 * Changes the selected alias password.
 	 */
 	private void changeAliasPassword(CertificateTableRow row) {
-		if(row.location() == KeysLocations.KNWOWN_CERTIFICATES) {
-            DialogUtils.showMessageBox(null, 
-            		"Error changing password!", 
-            		"Certificates for which you don't have the private key don't have a password!",
-            		"",
-	                JOptionPane.WARNING_MESSAGE
-	        );
-            return;
-		}
-		
-	    if (row.location() == KeysLocations.PKCS11) {
-	        DialogUtils.showMessageBox(
-	            null, 
-	            "Operation not supported!", 
-	            "Renaming certificates from PKCS11 devices is not supported!", 
-	            "", 
-	            JOptionPane.WARNING_MESSAGE
-	        );
+	    if(!loggedIn) {
+	        notLoggedInError();
 	        return;
 	    }
-		
-		if(!loggedIn) {
-			notLoggedInError();
-			return;
-		}
-	    
-		if(ctx.getKeystore() == null) return;
-		
-		char[] currPwd = null, newPwd = null, newPwd1 = null;
-		try {
-			currPwd = DialogUtils.showPasswordInputBox(
-                    null,
-                    "Unlock Private key",
-                    "Password for " + row.keystoreAlias(),
-                    "Password:"
-                );
 
-			if (currPwd == null) return;
+	    if(ctx.getKeystore() == null) return;
 
-			newPwd = DialogUtils.showPasswordInputBox(
-			        null,
-			        row.keystoreAlias(),
-			        "New entry password",
-			        "New password:"
-			);
-			if (newPwd == null) return;
+	    try {
+	        kms.setPwdProvider(() -> askUnlockPrivateKey(row.keystoreAlias()));
 
-			newPwd1 = DialogUtils.showPasswordInputBox(
-			        null,
-			        row.keystoreAlias(),
-			        "Confirm new entry password",
-			        "Confirm password:"
-			);
-			if (newPwd1 == null) return;
+	        kms.setNewPwdProvider(() ->
+	            DialogUtils.showPasswordInputBox(
+	                null,
+	                row.keystoreAlias(),
+	                "New password",
+	                "Enter new password:"
+	            ));
 
-			if (!Arrays.areEqual(newPwd, newPwd1)) {
-			    throw new Exception("The two entry passwords do not match");
-			}
+	        kms.setConfirmPwdProvider(() ->
+	            DialogUtils.showPasswordInputBox(
+	                null,
+	                row.keystoreAlias(),
+	                "Confirm new password",
+	                "Re-enter new password:"
+	            ));
+	        if(kms.changeEntryPassword(row)) {
+		        DialogUtils.showMessageBox(
+			            null,
+			            "Entry Password Updated!",
+			            row.keystoreAlias(),
+			            "Entry password updated successfully!",
+			            JOptionPane.INFORMATION_MESSAGE
+			        );
+		        if(ctx.getUseCacheEntryPasswords()) ctx.getCache().remove(row.keystoreAlias());
+	        }
+	    } catch(UnsupportedOperationException e) {
+	        DialogUtils.showMessageBox(
+	            null,
+	            "Operation not supported!",
+	            e.getMessage(),
+	            "",
+	            JOptionPane.WARNING_MESSAGE
+	        );
 
-			ctx.getKeystore().updateEntryPassword(row.keystoreAlias(), currPwd, newPwd1);
-			ctx.getKeystore().save();
-
-			DialogUtils.showMessageBox(
-			        null,
-			        "Entry Password Updated!",
-			        row.keystoreAlias(),
-			        "Entry password updated successfully!",
-			        JOptionPane.INFORMATION_MESSAGE
-			);
-
-		}catch(Exception e) {
-			e.printStackTrace();
-            DialogUtils.showMessageBox(
-            		null, 
-            		"Error while changing password", 
-            		"Error while changing password", 
-	                e.getMessage(), 
-	                JOptionPane.ERROR_MESSAGE);
-		}finally {
-			if(currPwd != null) Arrays.fill(currPwd, (char)0x00);
-			if(newPwd != null) Arrays.fill(newPwd, (char)0x00);
-			if(newPwd1 != null) Arrays.fill(newPwd1, (char)0x00);
-		}
+	    } catch(Exception e) {
+	        e.printStackTrace();
+	        DialogUtils.showMessageBox(
+	            null, 
+	            "Error while changing password", 
+	            e.getMessage(), 
+	            e.getMessage(), 
+	            JOptionPane.ERROR_MESSAGE
+	        );
+	    }
 	}
+	
+    public char[] askUnlockPrivateKey(String alias) {
+        return DialogUtils.showPasswordInputBox(
+            null,
+            "Unlock Private key",
+            "Private Key: " + alias,
+            "Password:"
+        );
+    }
 	
 	/**
 	 * Changes the master password of the keystore.
 	 */
 	private void changeKeystoreMasterKey() {
-		if(ctx.usePKCS11()) {
-            DialogUtils.showMessageBox(null, 
-					"Unable to update password!", 
-					"Password change not supported on PKCS11","", 
-	                JOptionPane.ERROR_MESSAGE);
-            return;
-		}
+		if(ctx.usePKCS11()) throw new UnsupportedOperationException("Operation not supported for PKCS11");
+
 		
 		if(!loggedIn) {
 			notLoggedInError();
@@ -1224,59 +1037,29 @@ public class ETKMain {
 		
 		if(ctx.getKeystore() == null) return;
 		
-		
-		
-		char[] currPwd = null, newPwd = null, newPwd1 = null;
+		kms.setPwdProvider(() -> DialogUtils.showPasswordInputBox(null, ctx.getKeyStorePath(),
+				"Current Keystore password", "Password:"));
+
+		kms.setNewPwdProvider(() -> DialogUtils.showPasswordInputBox(null, ctx.getKeyStorePath(),
+				"New Keystore password", "Password:"));
+
+		kms.setConfirmPwdProvider(() -> DialogUtils.showPasswordInputBox(null, ctx.getKeyStorePath(),
+				"Confirm the new keystore password", "Password:"));
+
 		try {
-		    currPwd = DialogUtils.showPasswordInputBox(
-			        null,
-			        ctx.getKeyStorePath(),
-			        "Current Keystore password",
-			        "Password:"
-			    );
-		    
-		    if(currPwd == null) return;
-		    
-		    newPwd = DialogUtils.showPasswordInputBox(
-			        null,
-			        ctx.getKeyStorePath(),
-			        "New Keystore password",
-			        "Password:"
-			    );
-		    if(newPwd == null) return;
-		    newPwd1 = DialogUtils.showPasswordInputBox(
-			        null,
-			        ctx.getKeyStorePath(),
-			        "Confirm the new keystore password",
-			        "Password:"
-			    );
-		    if(newPwd1 == null) return;
-		    
-		    if(!Arrays.areEqual(newPwd, newPwd1)) {
-		    	throw new Exception("The two passwords do not match");
-		    }
-		    
-		    ctx.changeKeystoreMasterPassword(currPwd, newPwd1);
-		    
-            DialogUtils.showMessageBox(
-            		null, 
-            		"Keystore Password Updated!", 
-            		ctx.getKeyStorePath(), 
-	                "Keystore password updated successfully!",
-	                JOptionPane.INFORMATION_MESSAGE
-	        );
-		}catch(Exception e) {
+			if (kms.changeKeystoreMasterPassword()) {
+				DialogUtils.showMessageBox(null, "Keystore Password Updated!", ctx.getKeyStorePath(),
+						"Keystore password updated successfully!", JOptionPane.INFORMATION_MESSAGE);
+			}
+		} catch (UnsupportedOperationException e) {
+			DialogUtils.showMessageBox(null, "Operation not supported!", e.getMessage(), "",
+					JOptionPane.WARNING_MESSAGE);
+		}
+
+		catch (Exception e) {
 			e.printStackTrace();
-            DialogUtils.showMessageBox(
-            		null, 
-            		"Error while changing password", 
-            		"Error while changing password", 
-	                e.getMessage(), 
-	                JOptionPane.ERROR_MESSAGE);
-		}finally {
-			if(currPwd != null) Arrays.fill(currPwd, (char)0x00);
-			if(newPwd != null) Arrays.fill(newPwd, (char)0x00);
-			if(newPwd1 != null) Arrays.fill(newPwd1, (char)0x00);
+			DialogUtils.showMessageBox(null, "Error while changing password", "Error while changing password",
+					e.getMessage(), JOptionPane.ERROR_MESSAGE);
 		}
 	}
 	
