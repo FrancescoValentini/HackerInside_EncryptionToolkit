@@ -18,7 +18,6 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
-import java.security.spec.ECParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.MGF1ParameterSpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -199,8 +198,8 @@ public class CMSEncryptor implements Encryptor {
     private CMSEnvelopedDataStreamGenerator getGenerator() throws Exception {
         CMSEnvelopedDataStreamGenerator generator = new CMSEnvelopedDataStreamGenerator();
         // Add recipients
-        for(X509Certificate recipient : recipients) {
-        	generator.addRecipientInfoGenerator(createRecipientInfoGenerator(recipient));
+        for (X509Certificate recipient : new ArrayList<>(recipients)) {
+            generator.addRecipientInfoGenerator(createRecipientInfoGenerator(recipient));
         }
         return generator;
     }
