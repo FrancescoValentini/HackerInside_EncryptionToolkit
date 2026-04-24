@@ -20,8 +20,6 @@ import javax.swing.SwingUtilities;
 
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.KeyUsage;
-import org.bouncycastle.util.Arrays;
-
 import java.awt.BorderLayout;
 import javax.swing.JPanel;
 import javax.swing.JComboBox;
@@ -36,7 +34,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.security.InvalidParameterException;
 import java.security.KeyPair;
-import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.awt.event.ActionEvent;
 import javax.swing.JCheckBox;
@@ -300,7 +297,7 @@ public class NewKeyPairForm {
 	    int defaultUsage =
 	            KeyUsage.digitalSignature |
 	            KeyUsage.nonRepudiation |
-	            KeyUsage.dataEncipherment;
+	            KeyUsage.keyAgreement;
 
 	    for (int i = 0; i < model.size(); i++) {
 	        if ((defaultUsage & model.get(i).getBit()) != 0) {
