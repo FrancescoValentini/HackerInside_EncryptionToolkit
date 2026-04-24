@@ -100,7 +100,9 @@ public enum ApplicationPreferences {
 	 * If true, the encrypt and decrypt options 
 	 * will be disabled with PKCS11 tokens.
 	 */
-	PKCS11_SIGN_ONLY("PKCS11_SIGN_ONLY","true");
+	PKCS11_SIGN_ONLY("PKCS11_SIGN_ONLY","true"),
+	
+	VALIDATE_KEY_USAGES("VALIDATE_KEY_USAGES","true");
     
     private final String key;
     private final String value;
