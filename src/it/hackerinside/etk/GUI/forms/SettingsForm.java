@@ -736,7 +736,7 @@ public class SettingsForm {
 	}
 	
 	private boolean checkSettings() {
-		if(!chckbPKCS11SignOnly.isSelected()) {
+		if(!chckbPKCS11SignOnly.isSelected() && (chckbRSAOAEP.isSelected() || ctx.useRsaOaep())) {
 			return DialogUtils.showConfirmBox(
 						null, 
 						"BE CAREFUL", 
