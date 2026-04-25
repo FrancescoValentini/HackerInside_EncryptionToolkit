@@ -774,6 +774,7 @@ public class ETKContext {
 	            - getTrustStore()=%s
 	            - isPkcs11SignOnly()=%s
 	            - useRsaOaep()=%s
+	            - validateKeyUsages()=%s
 	        """.formatted(
 	            keystore,
 	            knownCerts,
@@ -795,7 +796,8 @@ public class ETKContext {
 	            getTrustStorePath(),
 	            getTrustStore(),
 	            isPkcs11SignOnly(),
-	            useRsaOaep()
+	            useRsaOaep(),
+	            validateKeyUsages()
 	        );
 	}
 
