@@ -205,6 +205,7 @@ public class CMSDecryptor {
                     		new JceKEMEnvelopedRecipient(privateKey)
                     		.setProvider(provider)
                     		.setContentProvider("BC")
+                    		.setMustProduceEncodableUnwrappedKey(false)
                     		)
                     .getContentStream();
 		}
