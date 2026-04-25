@@ -33,9 +33,11 @@ import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
+import it.hackerinside.etk.Utils.X509KeyUsageValidator;
 import it.hackerinside.etk.Utils.X509Utils;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
+import it.hackerinside.etk.core.Models.KeyUsageProfile;
 import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
 import it.hackerinside.etk.core.Services.EncryptionService;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
@@ -330,7 +332,7 @@ public class EncryptForm {
 
 		btnAddRecipient.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				if(recipient != null && Utils.acceptX509Certificate(recipient)) {
+				if(recipient != null && Utils.acceptX509Certificate(recipient) && (ctx.validateKeyUsages() ? Utils.validateCertFlags(recipient, KeyUsageProfile.ENCRYPTION) : true)) {
 					recipients.add(recipient);
 					Object selectedCert = cmbRecipientCert.getSelectedItem();
 					if(selectedCert != null) {
@@ -402,7 +404,8 @@ public class EncryptForm {
 			    cert -> {
 			        String alg = cert.getPublicKey().getAlgorithm();
 			        boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
-			        return alg != null && validCert && !alg.toUpperCase().contains("DSA");
+				    boolean validKeyUsages = ctx.validateKeyUsages() ? X509KeyUsageValidator.hasKeyUsage(cert, X509KeyUsageValidator.Mode.ANY, KeyUsageProfile.ENCRYPTION) : true;
+			        return alg != null && validCert && !alg.toUpperCase().contains("DSA") && validKeyUsages;
 			    }
 			);
 	}

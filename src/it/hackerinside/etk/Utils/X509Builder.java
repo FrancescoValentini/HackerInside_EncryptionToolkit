@@ -54,7 +54,7 @@ public class X509Builder {
             PrivateKey privk) throws Exception {
     	
     	X500Name subject = new X500Name("CN=" + commonName + ", C=" + countryCode + ", ST=" + state);
-    	KeyUsage usage = new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation | KeyUsage.dataEncipherment);
+    	KeyUsage usage = new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation | KeyUsage.keyAgreement);
     	return buildCertificate(subject, expDays, usage, pubk, privk);
     }
     

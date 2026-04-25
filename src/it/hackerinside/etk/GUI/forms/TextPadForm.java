@@ -50,10 +50,11 @@ import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
+import it.hackerinside.etk.Utils.X509KeyUsageValidator;
 import it.hackerinside.etk.Utils.X509Utils;
-import it.hackerinside.etk.core.Encryption.CMSEncryptor;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
+import it.hackerinside.etk.core.Models.KeyUsageProfile;
 import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
 import it.hackerinside.etk.core.Services.DecryptionService;
 import it.hackerinside.etk.core.Services.EncryptionService;
@@ -405,7 +406,8 @@ public class TextPadForm {
 			        boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
 				    boolean hideECC = ctx.usePKCS11() && !ctx.isPkcs11SignOnly()
 				    		&& alg != null && alg.toUpperCase().contains("EC");
-			        return alg != null && validCert && !alg.toUpperCase().contains("DSA") && !hideECC;
+				    boolean validKeyUsages = ctx.validateKeyUsages() ? X509KeyUsageValidator.hasKeyUsage(cert, X509KeyUsageValidator.Mode.ANY, KeyUsageProfile.ENCRYPTION) : true;
+			        return alg != null && validCert && !alg.toUpperCase().contains("DSA") && !hideECC && validKeyUsages;
 			    }
 			);
 	}
@@ -417,6 +419,7 @@ public class TextPadForm {
 	 */
 	private void encrypt() {
 	    if (!Utils.acceptX509Certificate(recipient)) return;
+	    if(ctx.validateKeyUsages() && !Utils.validateCertFlags(recipient, KeyUsageProfile.ENCRYPTION)) return;
 
 	    SymmetricAlgorithms cipher = (SymmetricAlgorithms) cmbEncAlgorithm.getSelectedItem();
 	    String text = txtbData.getText();

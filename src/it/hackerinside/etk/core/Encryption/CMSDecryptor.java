@@ -11,6 +11,8 @@ import java.security.PrivateKey;
 import java.security.Provider;
 import java.util.Collection;
 
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.cms.CMSEnvelopedDataParser;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.RecipientInformation;
@@ -161,13 +163,16 @@ public class CMSDecryptor {
      *
      */
 	private InputStream createRecipientContentStream(RecipientInformation recipient) throws CMSException, IOException {
-		if(PQCAlgorithms.isPQC(privateKey.getAlgorithm())) { // PQC
+		
+		ASN1ObjectIdentifier oid = new ASN1ObjectIdentifier(recipient.getKeyEncryptionAlgOID());
+		
+		if(PQCAlgorithms.fromOID(oid) != null && !PQCAlgorithms.fromOID(oid).canSign) { // PQC
 			return recipient
                     .getContentStream(new JceKEMEnvelopedRecipient(privateKey).setProvider("BC"))
                     .getContentStream();
 		}
 		
-        AsymmetricAlgorithm keyAlgo = AsymmetricAlgorithm.fromPrivateKey(privateKey); 
+        AsymmetricAlgorithm keyAlgo = algFromCMSOid(oid);
         return switch (keyAlgo) {
             case RSA -> recipient
                         .getContentStream(new JceKeyTransEnvelopedRecipient(privateKey).setProvider("BC"))
@@ -179,18 +184,33 @@ public class CMSDecryptor {
         };
     }
 	
+	private AsymmetricAlgorithm algFromCMSOid(ASN1ObjectIdentifier oid) {
+		String id = oid.getId();
+	    if (PKCSObjectIdentifiers.rsaEncryption.getId().equals(id) || PKCSObjectIdentifiers.id_RSAES_OAEP.getId().equals(id)) {
+	            return AsymmetricAlgorithm.RSA;
+	        }
+
+	    // EC (ECDH CMS)
+	    if (id.startsWith("1.3.132.1.11")) {
+	        return AsymmetricAlgorithm.EC;
+	    }
+	    return null;
+	}
+	
 	private InputStream createRecipientContentStreamPKCS11(RecipientInformation recipient) throws CMSException, IOException {
-		if(PQCAlgorithms.isPQC(privateKey.getAlgorithm())) { // PQC
+		ASN1ObjectIdentifier oid = new ASN1ObjectIdentifier(recipient.getKeyEncryptionAlgOID());
+		if(PQCAlgorithms.fromOID(oid) != null && !PQCAlgorithms.fromOID(oid).canSign) { // PQC
 			return recipient
                     .getContentStream(
                     		new JceKEMEnvelopedRecipient(privateKey)
                     		.setProvider(provider)
                     		.setContentProvider("BC")
+                    		.setMustProduceEncodableUnwrappedKey(false)
                     		)
                     .getContentStream();
 		}
 		
-        AsymmetricAlgorithm keyAlgo = AsymmetricAlgorithm.fromPrivateKey(privateKey); 
+        AsymmetricAlgorithm keyAlgo = algFromCMSOid(oid); 
         return switch (keyAlgo) {
             case RSA -> recipient
                         .getContentStream(

@@ -865,43 +865,10 @@ public class ETKMain {
 		}
 		
 		if(ctx.getKeystore() == null) return;
-	    File sourceKeystore = FileDialogUtils.openFileDialog(
-		        null,
-		        "Import KeyPairs",
-		        ".",
-		        DefaultExtensions.CRYPTO_P12,
-		        DefaultExtensions.CRYPTO_PFX
-		    );
 	    
-	    if(sourceKeystore == null) return; 
-	    kms.setCertificateValidationProvider((crt) -> Utils.acceptX509Certificate(crt));
-	    kms.setPwdProvider(() -> DialogUtils.showPasswordInputBox(
-	    		null,
-	    		"Unlock Source Keystore",
-	    		sourceKeystore.getName(),
-	    		"Password:"
-	    		));
-
-	    kms.setPwdProvider((alias) -> askUnlockPrivateKey(alias));
-	    try {
-	    	kms.importKeyPair(sourceKeystore);
-
-	    } catch (UnsupportedOperationException e) {
-	    	DialogUtils.showMessageBox(
-	    			null,
-	    			"Operation not supported!",
-	    			e.getMessage(),
-	    			"",
-	    			JOptionPane.WARNING_MESSAGE
-	    			);
-	    }catch (Exception e) {
-	    	e.printStackTrace();
-	    	DialogUtils.showMessageBox(null, "Error importing Keys!", "Error importing Keys!", 
-	    			e.getMessage(), 
-	    			JOptionPane.ERROR_MESSAGE);
-	    }
-	    
-	    updateTable();
+		KeyPairImportForm kpImport = new KeyPairImportForm(null);
+		kpImport.setVisible();
+		kpImport.setCallback(() -> {updateTable();});
 	}
 	
 	/**
@@ -1142,7 +1109,7 @@ public class ETKMain {
 	private void filesChecksum() {
 		FileHashForm fh = new FileHashForm();
 		fh.setVisible();
-		
+
 	}
 	
 	private void notLoggedInError() {

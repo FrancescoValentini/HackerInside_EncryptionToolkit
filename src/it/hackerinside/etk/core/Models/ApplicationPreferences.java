@@ -40,9 +40,9 @@ public enum ApplicationPreferences {
     
     /**
      * Default symmetric cipher algorithm used for encryption/decryption.
-     * Default value: "AES_256_CBC" (from SymmetricAlgorithms.AES_256_CBC)
+     * Default value: "AES_256_GCM" (from SymmetricAlgorithms.AES_256_GCM)
      */
-    CIPHER("DEFAULT_CIPHER", SymmetricAlgorithms.AES_256_CBC.getAlgorithmName()),
+    CIPHER("DEFAULT_CIPHER", SymmetricAlgorithms.AES_256_GCM.getAlgorithmName()),
     
     /**
      * File system path to the PKCS#11 driver library (if using hardware security module).
@@ -100,7 +100,9 @@ public enum ApplicationPreferences {
 	 * If true, the encrypt and decrypt options 
 	 * will be disabled with PKCS11 tokens.
 	 */
-	PKCS11_SIGN_ONLY("PKCS11_SIGN_ONLY","true");
+	PKCS11_SIGN_ONLY("PKCS11_SIGN_ONLY","true"),
+	
+	VALIDATE_KEY_USAGES("VALIDATE_KEY_USAGES","true");
     
     private final String key;
     private final String value;

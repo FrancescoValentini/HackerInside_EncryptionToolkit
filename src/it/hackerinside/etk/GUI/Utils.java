@@ -15,6 +15,8 @@ import javax.swing.JOptionPane;
 import org.bouncycastle.util.Arrays;
 
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
+import it.hackerinside.etk.Utils.X509KeyUsageValidator;
+import it.hackerinside.etk.core.Models.KeyUsageProfile;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
 
 public class Utils {
@@ -40,7 +42,20 @@ public class Utils {
 					);
 		}
 	}
-
+	
+	public static boolean validateCertFlags(X509Certificate cert, KeyUsageProfile keyProfile) {
+		if(!X509KeyUsageValidator.hasKeyUsage(cert, X509KeyUsageValidator.Mode.ANY, keyProfile)) {
+			return DialogUtils.showConfirmBox(
+					null,
+					"Invalid certificate!", 
+					"The certificate has INVALID key usages, accept the risk?", 
+					"Press OK to accept the certificate, cancel otherwise.",
+					JOptionPane.WARNING_MESSAGE
+					);
+		}
+		return true;
+	}
+	
 	/**
 	 * Retrieves the password for the given alias.
 	 * This method checks if the password is already cached for the given alias. 

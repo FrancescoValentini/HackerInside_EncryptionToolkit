@@ -85,6 +85,7 @@ public class SettingsForm {
 	private JPanel panel_3_1;
 	private JCheckBox chckbRSAOAEP;
 	private JCheckBox chckbPKCS11SignOnly;
+	private JCheckBox chckbValKeyUsages;
 
 	/**
 	 * Launch the application.
@@ -184,6 +185,9 @@ public class SettingsForm {
 		chckbPKCS11SignOnly = new JCheckBox("PKCS#11 sign-only mode");
 		chckbPKCS11SignOnly.setToolTipText("Prevents decryption issues with PKCS#11 tokens that do not support decryption.");
 		chckbPKCS11SignOnly.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		
+		chckbValKeyUsages = new JCheckBox("Validate Key Usages");
+		chckbValKeyUsages.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		GroupLayout gl_panel = new GroupLayout(panel);
 		gl_panel.setHorizontalGroup(
 			gl_panel.createParallelGroup(Alignment.LEADING)
@@ -191,41 +195,43 @@ public class SettingsForm {
 					.addContainerGap()
 					.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
 						.addGroup(gl_panel.createSequentialGroup()
-							.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-								.addGroup(gl_panel.createSequentialGroup()
-									.addGap(187)
-									.addGroup(gl_panel.createSequentialGroup()
-										.addGap(104)
-										.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-											.addComponent(chckbPKCS11SignOnly, GroupLayout.DEFAULT_SIZE, 335, Short.MAX_VALUE)
-											.addComponent(chckbHideInvalidCerts, GroupLayout.DEFAULT_SIZE, 265, Short.MAX_VALUE))))
-								.addComponent(chckbUsePem)
-								.addComponent(chckbxSKI, GroupLayout.PREFERRED_SIZE, 255, GroupLayout.PREFERRED_SIZE))
+							.addComponent(chckbValKeyUsages, GroupLayout.PREFERRED_SIZE, 215, GroupLayout.PREFERRED_SIZE)
 							.addContainerGap())
-						.addGroup(gl_panel.createSequentialGroup()
-							.addGroup(gl_panel.createParallelGroup(Alignment.LEADING, false)
-								.addGroup(gl_panel.createSequentialGroup()
-									.addGap(58)
-									.addComponent(lblNewLabel, GroupLayout.PREFERRED_SIZE, 119, GroupLayout.PREFERRED_SIZE))
-								.addComponent(lblKnownCertificatesPath, GroupLayout.DEFAULT_SIZE, 183, Short.MAX_VALUE)
-								.addComponent(lblNewLabel_3, GroupLayout.PREFERRED_SIZE, 149, GroupLayout.PREFERRED_SIZE)
-								.addComponent(lblNewLabel_3_1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-							.addPreferredGap(ComponentPlacement.RELATED)
-							.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-								.addGroup(gl_panel.createSequentialGroup()
-									.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-										.addComponent(txtbKeyStorePath, GroupLayout.PREFERRED_SIZE, 381, GroupLayout.PREFERRED_SIZE)
-										.addComponent(txtbKnownCertsPath, GroupLayout.PREFERRED_SIZE, 381, GroupLayout.PREFERRED_SIZE))
-									.addGap(10)
-									.addGroup(gl_panel.createParallelGroup(Alignment.LEADING, false)
-										.addComponent(btnOpenKeystore, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-										.addComponent(btnOpenKnownCerts, GroupLayout.DEFAULT_SIZE, 48, Short.MAX_VALUE)))
-								.addComponent(spnBufferSize, GroupLayout.PREFERRED_SIZE, 86, GroupLayout.PREFERRED_SIZE)
-								.addGroup(gl_panel.createSequentialGroup()
-									.addComponent(spnCacheTimeout, GroupLayout.PREFERRED_SIZE, 86, GroupLayout.PREFERRED_SIZE)
-									.addGap(18)
-									.addComponent(chckbPasswordCache)))
-							.addGap(161))))
+						.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
+							.addGroup(gl_panel.createSequentialGroup()
+								.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
+									.addGroup(gl_panel.createSequentialGroup()
+										.addGap(291)
+										.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
+											.addComponent(chckbPKCS11SignOnly, GroupLayout.DEFAULT_SIZE, 490, Short.MAX_VALUE)
+											.addComponent(chckbHideInvalidCerts, GroupLayout.DEFAULT_SIZE, 490, Short.MAX_VALUE)))
+									.addComponent(chckbUsePem)
+									.addComponent(chckbxSKI, GroupLayout.PREFERRED_SIZE, 255, GroupLayout.PREFERRED_SIZE))
+								.addContainerGap())
+							.addGroup(gl_panel.createSequentialGroup()
+								.addGroup(gl_panel.createParallelGroup(Alignment.LEADING, false)
+									.addGroup(gl_panel.createSequentialGroup()
+										.addGap(58)
+										.addComponent(lblNewLabel, GroupLayout.PREFERRED_SIZE, 119, GroupLayout.PREFERRED_SIZE))
+									.addComponent(lblKnownCertificatesPath, GroupLayout.DEFAULT_SIZE, 183, Short.MAX_VALUE)
+									.addComponent(lblNewLabel_3, GroupLayout.PREFERRED_SIZE, 149, GroupLayout.PREFERRED_SIZE)
+									.addComponent(lblNewLabel_3_1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+								.addPreferredGap(ComponentPlacement.RELATED)
+								.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
+									.addGroup(gl_panel.createSequentialGroup()
+										.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
+											.addComponent(txtbKeyStorePath, GroupLayout.PREFERRED_SIZE, 381, GroupLayout.PREFERRED_SIZE)
+											.addComponent(txtbKnownCertsPath, GroupLayout.PREFERRED_SIZE, 381, GroupLayout.PREFERRED_SIZE))
+										.addGap(10)
+										.addGroup(gl_panel.createParallelGroup(Alignment.LEADING, false)
+											.addComponent(btnOpenKeystore, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+											.addComponent(btnOpenKnownCerts, GroupLayout.DEFAULT_SIZE, 48, Short.MAX_VALUE)))
+									.addComponent(spnBufferSize, GroupLayout.PREFERRED_SIZE, 86, GroupLayout.PREFERRED_SIZE)
+									.addGroup(gl_panel.createSequentialGroup()
+										.addComponent(spnCacheTimeout, GroupLayout.PREFERRED_SIZE, 86, GroupLayout.PREFERRED_SIZE)
+										.addGap(18)
+										.addComponent(chckbPasswordCache)))
+								.addGap(161)))))
 		);
 		gl_panel.setVerticalGroup(
 			gl_panel.createParallelGroup(Alignment.LEADING)
@@ -261,7 +267,9 @@ public class SettingsForm {
 					.addGroup(gl_panel.createParallelGroup(Alignment.BASELINE)
 						.addComponent(chckbxSKI)
 						.addComponent(chckbPKCS11SignOnly))
-					.addContainerGap(408, Short.MAX_VALUE))
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addComponent(chckbValKeyUsages)
+					.addContainerGap(382, Short.MAX_VALUE))
 		);
 		panel.setLayout(gl_panel);
 		
@@ -690,6 +698,7 @@ public class SettingsForm {
 		chckbxUseTruststore.setSelected(ctx.useTrustStore());
 		chckbPKCS11SignOnly.setSelected(ctx.isPkcs11SignOnly());
 		chckbRSAOAEP.setSelected(ctx.useRsaOaep());
+		chckbValKeyUsages.setSelected(ctx.validateKeyUsages());
 		
 		
 		cmbEncAlgPath.setSelectedItem(ctx.getCipher());
@@ -723,10 +732,11 @@ public class SettingsForm {
 		ctx.setUseTrustStore(chckbxUseTruststore.isSelected());
 		ctx.setUseRsaOaep(chckbRSAOAEP.isSelected());
 		ctx.setPkcs11SignOnly(chckbPKCS11SignOnly.isSelected());
+		ctx.setValidateKeyUsages(chckbValKeyUsages.isSelected());
 	}
 	
 	private boolean checkSettings() {
-		if(!chckbPKCS11SignOnly.isSelected()) {
+		if(!chckbPKCS11SignOnly.isSelected() && (chckbRSAOAEP.isSelected() || ctx.useRsaOaep())) {
 			return DialogUtils.showConfirmBox(
 						null, 
 						"BE CAREFUL", 

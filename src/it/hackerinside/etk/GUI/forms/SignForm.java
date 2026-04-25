@@ -28,10 +28,12 @@ import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.TimeUtils;
 import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
+import it.hackerinside.etk.Utils.X509KeyUsageValidator;
 import it.hackerinside.etk.Utils.X509Utils;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.HashAlgorithm;
+import it.hackerinside.etk.core.Models.KeyUsageProfile;
 import it.hackerinside.etk.core.Services.SignService;
 
 import javax.swing.JCheckBox;
@@ -311,7 +313,8 @@ public class SignForm {
 			    cert -> {
 			        String alg = cert.getPublicKey().getAlgorithm();
 			        boolean validCert = ctx.hideInvalidCerts() ? X509Utils.checkTimeValidity(cert) : true;
-			        return alg != null && validCert && !alg.contains("ML-KEM");
+				    boolean validKeyUsages = ctx.validateKeyUsages() ? X509KeyUsageValidator.hasKeyUsage(cert, X509KeyUsageValidator.Mode.ANY, KeyUsageProfile.DIGITAL_SIGNATURE) : true;
+			        return alg != null && validCert && !alg.contains("ML-KEM") && validKeyUsages;
 			    }
 			);
 	}

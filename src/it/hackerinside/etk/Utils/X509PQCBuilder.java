@@ -71,7 +71,7 @@ public class X509PQCBuilder {
     	
         KeyUsage usage = algorithm.canSign
                 ? new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation)
-                : new KeyUsage(KeyUsage.keyEncipherment | KeyUsage.keyAgreement);
+                : new KeyUsage(KeyUsage.keyAgreement);
         
         return buildPQCCertificate(subject,expDays, pubk,privk,usage,algorithm);
     }
@@ -99,7 +99,7 @@ public class X509PQCBuilder {
     	
         KeyUsage usage = algorithm.canSign
                 ? new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation)
-                : new KeyUsage(KeyUsage.keyEncipherment | KeyUsage.keyAgreement);
+                : new KeyUsage(KeyUsage.keyAgreement);
         
         return buildPQCCertificate(subject,expDays, pubk,privk,usage,algorithm);
     }

@@ -10,7 +10,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
 import it.hackerinside.etk.GUI.DTOs.KeysLocations;
@@ -107,7 +106,7 @@ public class KeysManagementService {
 	            return Collections.emptyList();
 	    }
 
-	    return getDtos(keystore, location);
+	    return getKeystoreEntryDtos(keystore, location);
 	}
 	
 	/**
@@ -243,7 +242,7 @@ public class KeysManagementService {
 	 * @return a list of certificate table rows
 	 * @throws KeyStoreException if an error occurs while accessing the keystore
 	 */
-	private List<CertificateTableRow> getDtos(AbstractKeystore keystore, KeysLocations location) throws KeyStoreException {
+	public List<CertificateTableRow> getKeystoreEntryDtos(AbstractKeystore keystore, KeysLocations location) throws KeyStoreException {
 	    List<CertificateTableRow> dtos = new ArrayList<>();
 
 	    if (keystore == null) {
@@ -364,6 +363,61 @@ public class KeysManagementService {
 			if(keyPwd != null) Arrays.fill(keyPwd, (char)0x00);
 		}
 		return false;
+	}
+	
+	/**
+	 * Imports key pairs from a source keystore into the current keystore.
+	 *
+	 * @param src the source keystore
+	 * @param aliasesToImport aliases of key pairs to import
+	 * @return {@code true} if all imports succeed, {@code false} on invalid input, missing password, or failed validation
+	 * @throws Exception if an error occurs during import or save
+	 *
+	 * <p>Not supported with PKCS#11. Saves the keystore after import and clears password data.</p>
+	 */
+	public boolean importKeyPair(
+	        AbstractKeystore src,
+	        List<String> aliasesToImport
+	) throws Exception {
+
+	    if (ctx.usePKCS11())
+	        throw new UnsupportedOperationException("Operation not supported for PKCS11");
+
+	    if (src == null || aliasesToImport == null || aliasesToImport.isEmpty())
+	        return false;
+
+	    char[] keyPwd = null;
+
+	    try {
+	        for (String alias : aliasesToImport) {
+
+	            keyPwd = invokePwdProvider(alias);
+	            if (keyPwd == null || keyPwd.length == 0)
+	                return false;
+
+	            X509Certificate crt = src.getCertificate(alias);
+
+	            if (!invokeCertificateValidationProvider(crt))
+	                return false;
+
+	            PrivateKey key = src.getPrivateKey(alias, keyPwd);
+
+	            ctx.getKeystore().addPrivateKey(
+	                alias,
+	                key,
+	                keyPwd,
+	                new X509Certificate[]{crt}
+	            );
+	        }
+
+	        ctx.getKeystore().save();
+
+	    } finally {
+	        if (keyPwd != null)
+	            Arrays.fill(keyPwd, (char) 0x00);
+	    }
+
+	    return true;
 	}
 	
 	/**

@@ -1,6 +1,13 @@
 package it.hackerinside.etk.core.Models;
 
 import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
+
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.edec.EdECObjectIdentifiers;
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.asn1.x9.X9ObjectIdentifiers;
 
 /**
  * Represents supported asymmetric key algorithms for public-key cryptography.
@@ -69,5 +76,47 @@ public enum AsymmetricAlgorithm {
     @Override
     public String toString() {
         return algorithm;
+    }
+    
+    /**
+     * Determines the asymmetric algorithm used in an X.509 certificate.
+     * <p>
+     * The algorithm is identified from the public key OID.
+     *
+     * @param cert the X509 certificate
+     * @return the corresponding AsymmetricAlgorithm, or null if not recognized
+     */
+    public static AsymmetricAlgorithm fromCertificate(X509Certificate cert) {
+        SubjectPublicKeyInfo spki =
+            SubjectPublicKeyInfo.getInstance(cert.getPublicKey().getEncoded());
+
+        ASN1ObjectIdentifier oid = spki.getAlgorithm().getAlgorithm();
+
+        return fromOID(oid);
+    }
+    
+    public static AsymmetricAlgorithm fromOID(ASN1ObjectIdentifier oid) {
+        if (isRSA(oid)) return RSA;
+        if (isEC(oid)) return EC;
+        if (isEdDSA(oid)) return EdDSA;
+        if (isDSA(oid)) return DSA;
+        return null;
+    }
+    
+    private static boolean isRSA(ASN1ObjectIdentifier oid) {
+        return PKCSObjectIdentifiers.rsaEncryption.equals(oid);
+    }
+
+    private static boolean isEC(ASN1ObjectIdentifier oid) {
+        return X9ObjectIdentifiers.id_ecPublicKey.equals(oid);
+    }
+
+    private static boolean isEdDSA(ASN1ObjectIdentifier oid) {
+        return EdECObjectIdentifiers.id_Ed25519.equals(oid)
+            || EdECObjectIdentifiers.id_Ed448.equals(oid);
+    }
+
+    private static boolean isDSA(ASN1ObjectIdentifier oid) {
+        return X9ObjectIdentifiers.id_dsa.equals(oid);
     }
 }

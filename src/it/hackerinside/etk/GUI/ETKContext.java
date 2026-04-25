@@ -28,7 +28,7 @@ import it.hackerinside.etk.core.keystore.PKCS12Keystore;
  */
 public class ETKContext {
 	
-	public static final String ETK_VERSION = "1.0.12";
+	public static final String ETK_VERSION = "1.0.13";
 	
     /**
      * Singleton instance of ETKContext.
@@ -671,7 +671,29 @@ public class ETKContext {
         );
         return Boolean.parseBoolean(vUseRsaOaep);
     }
-
+    
+    /**
+     * Sets whether x.509 key usages should be validated
+     * @param vValKeyUsage
+     */
+    public void setValidateKeyUsages(boolean vValKeyUsage) {
+        preferences.put(
+            ApplicationPreferences.VALIDATE_KEY_USAGES.getKey(),
+            Boolean.toString(vValKeyUsage)
+        );
+    }
+    
+    /**
+     * Return whether x.509 key usages should be validated
+     * @return
+     */
+    public boolean validateKeyUsages() {
+        String vValKeyUsage = preferences.get(
+            ApplicationPreferences.VALIDATE_KEY_USAGES.getKey(),
+            ApplicationPreferences.VALIDATE_KEY_USAGES.getValue()
+        );
+        return Boolean.parseBoolean(vValKeyUsage);
+    }
     
     
     /**
@@ -752,6 +774,7 @@ public class ETKContext {
 	            - getTrustStore()=%s
 	            - isPkcs11SignOnly()=%s
 	            - useRsaOaep()=%s
+	            - validateKeyUsages()=%s
 	        """.formatted(
 	            keystore,
 	            knownCerts,
@@ -773,7 +796,8 @@ public class ETKContext {
 	            getTrustStorePath(),
 	            getTrustStore(),
 	            isPkcs11SignOnly(),
-	            useRsaOaep()
+	            useRsaOaep(),
+	            validateKeyUsages()
 	        );
 	}
 

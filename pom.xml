@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>HackerInside_EncryptionToolkit</groupId>
 	<artifactId>HackerInside_EncryptionToolkit</artifactId>
-	<version>1.0.12</version>
+	<version>1.0.13</version>
 	<name>HackerInside EncryptionToolkit</name>
 	<properties>
     	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -28,7 +28,8 @@
 				<plugin>
 				    <groupId>org.springframework.boot</groupId>
 				    <artifactId>spring-boot-maven-plugin</artifactId>
-				    <version>4.0.1</version> <executions>
+				    <version>4.0.1</version>
+				    <executions>
 				        <execution>
 				            <goals>
 				                <goal>repackage</goal>
@@ -36,6 +37,16 @@
 				            <configuration>
 				                <mainClass>it.hackerinside.etk.GUI.forms.ETKMain</mainClass>
 				                <layout>JAR</layout>
+				                <requiresUnpack>
+				                    <dependency>
+				                        <groupId>org.bouncycastle</groupId>
+				                        <artifactId>bcprov-jdk18on</artifactId>
+				                    </dependency>
+				                    <dependency>
+				                        <groupId>org.bouncycastle</groupId>
+				                        <artifactId>bcpkix-jdk18on</artifactId>
+				                    </dependency>
+				                </requiresUnpack>
 				            </configuration>
 				        </execution>
 				    </executions>
@@ -47,13 +58,13 @@
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-jdk18on</artifactId>
-			<version>1.83</version>
+			<version>1.84</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-jdk18on -->
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcpkix-jdk18on</artifactId>
-			<version>1.83</version>
+			<version>1.84</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.formdev/flatlaf -->
 		<dependency>
