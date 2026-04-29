@@ -12,6 +12,7 @@ import java.util.Objects;
 
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cms.CMSEnvelopedDataParser;
+import org.bouncycastle.cms.KEKRecipientId;
 import org.bouncycastle.cms.KEMRecipientId;
 import org.bouncycastle.cms.KeyAgreeRecipientId;
 import org.bouncycastle.cms.KeyTransRecipientId;
@@ -62,17 +63,23 @@ public class CMSCryptoUtils {
 			Collection<RecipientInformation> recipients = rstore.getRecipients();
 
 			for (RecipientInformation ri : recipients) {
-				RecipientId rid = ri.getRID();
-				byte[] subjKeyId = getSubjectKeyIdentifier(rid);
-				if (subjKeyId != null) {
-					result.add(new RecipientIdentifier(subjKeyId));
-				} else {
-					X500Name issuer = getIssuer(rid);
-					BigInteger serial = getSerialNumber(rid);
-					if (issuer != null && serial != null) {
-						result.add(new RecipientIdentifier(issuer.getEncoded(), serial));
-					}
-				}
+			    RecipientId rid = ri.getRID();
+
+			    byte[] keyId = getSubjectKeyIdentifier(rid);
+
+			    if (keyId != null) {
+			        if (rid instanceof KEKRecipientId) {
+			            result.add(RecipientIdentifier.fromKekKeyId(keyId));
+			        } else {
+			            result.add(RecipientIdentifier.fromSki(keyId));
+			        }
+			    } else {
+			        X500Name issuer = getIssuer(rid);
+			        BigInteger serial = getSerialNumber(rid);
+			        if (issuer != null && serial != null) {
+			            result.add(RecipientIdentifier.fromIssuerSerial(issuer.getEncoded(), serial));
+			        }
+			    }
 			}
 		} catch (IOException e) {
 			throw e;
@@ -89,14 +96,16 @@ public class CMSCryptoUtils {
 
 	//Extracts the SubjectKeyIdentifier from a RecipientId
 	private static byte[] getSubjectKeyIdentifier(RecipientId rid) {
-		if (rid instanceof KeyTransRecipientId) {
-			return ((KeyTransRecipientId) rid).getSubjectKeyIdentifier();
-		} else if (rid instanceof KeyAgreeRecipientId) {
-			return ((KeyAgreeRecipientId) rid).getSubjectKeyIdentifier();
-		} else if (rid instanceof KEMRecipientId) {
-			return ((KEMRecipientId) rid).getSubjectKeyIdentifier();
-		}
-		return null;
+	    if (rid instanceof KeyTransRecipientId) {
+	        return ((KeyTransRecipientId) rid).getSubjectKeyIdentifier();
+	    } else if (rid instanceof KeyAgreeRecipientId) {
+	        return ((KeyAgreeRecipientId) rid).getSubjectKeyIdentifier();
+	    } else if (rid instanceof KEMRecipientId) {
+	        return ((KEMRecipientId) rid).getSubjectKeyIdentifier();
+	    } else if (rid instanceof KEKRecipientId) {
+	        return ((KEKRecipientId) rid).getKeyIdentifier();
+	    }
+	    return null;
 	}
 
 	//Extracts the Issuer from a RecipientId
