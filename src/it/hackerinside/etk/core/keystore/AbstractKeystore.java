@@ -245,6 +245,27 @@ public abstract class AbstractKeystore {
 	}
 	
 	/**
+	 * Returns all keystore aliases that refer to symmetric (secret) keys.
+	 *
+	 * @return list of secret key aliases, never {@code null} but may be empty
+	 * @throws KeyStoreException 
+	 */
+	public List<String> listSymmetricKeyAliases() throws KeyStoreException {
+	    List<String> result = new ArrayList<>();
+
+	    Enumeration<String> aliases = keyStore.aliases();
+	    while (aliases.hasMoreElements()) {
+	        String alias = aliases.nextElement();
+
+	        if (keyStore.entryInstanceOf(alias, KeyStore.SecretKeyEntry.class)) {
+	            result.add(alias);
+	        }
+	    }
+
+	    return result;
+	}
+	
+	/**
 	 * Lists aliases whose associated certificate matches the given filter.
 	 * <p>
 	 * The filter is applied only to X.509 certificates and does not require
