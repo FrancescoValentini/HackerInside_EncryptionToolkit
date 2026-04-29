@@ -396,6 +396,7 @@ public class ETKMain {
 	 * @param row the certificate table row containing the certificate to delete
 	 */
 	private void deleteCertificate(CertificateTableRow row) {
+		if(checkPkcs11Operation()) return;
         try {
         	kms.setConfirmationProvider(() ->DialogUtils.showConfirmBox(
 		            null, 
@@ -857,7 +858,7 @@ public class ETKMain {
 	 * Imports key pairs from an external keystore file into the application's current keystore.
 	 */
 	private void importKeypair() {
-		if(ctx.usePKCS11()) throw new UnsupportedOperationException("Operation not supported for PKCS11");
+		if(checkPkcs11Operation()) return;
 		
 		if(!loggedIn) {
 			notLoggedInError();
@@ -876,6 +877,8 @@ public class ETKMain {
 	 * @param row the entry to rename
 	 */
 	private void renameAlias(CertificateTableRow row) {
+		if(checkPkcs11Operation()) return;
+
 	    String currAlias = row.keystoreAlias();
 
 	    // Alias input
@@ -889,6 +892,7 @@ public class ETKMain {
 	    kms.setPwdProvider(() -> Utils.passwordCacheHitOrMiss(currAlias, () -> askUnlockPrivateKey(currAlias)));
 
 	    try {
+			if(ctx.usePKCS11()) throw new UnsupportedOperationException("Operation not supported for PKCS11");
 	        String newName = kms.renameAlias(row);
 	        if(newName == null) return;
 	        
@@ -925,10 +929,12 @@ public class ETKMain {
 	 * Changes the selected alias password.
 	 */
 	private void changeAliasPassword(CertificateTableRow row) {
+		if(checkPkcs11Operation()) return;
 	    if(!loggedIn) {
 	        notLoggedInError();
 	        return;
 	    }
+
 
 	    if(ctx.getKeystore() == null) return;
 
@@ -994,8 +1000,7 @@ public class ETKMain {
 	 * Changes the master password of the keystore.
 	 */
 	private void changeKeystoreMasterKey() {
-		if(ctx.usePKCS11()) throw new UnsupportedOperationException("Operation not supported for PKCS11");
-
+		if(checkPkcs11Operation()) return;
 		
 		if(!loggedIn) {
 			notLoggedInError();
@@ -1093,6 +1098,7 @@ public class ETKMain {
 	 * Opens the key pair generation form
 	 */
 	private void newKeyPair() {
+		if(checkPkcs11Operation()) return;
 		if(!loggedIn) {
 			notLoggedInError();
 			return;
@@ -1114,5 +1120,20 @@ public class ETKMain {
 	
 	private void notLoggedInError() {
 		DialogUtils.showMessageBox(null, "You are not logged in", "You are not logged in", null, 0);
+	}
+	
+	private boolean checkPkcs11Operation() {
+		boolean res = ctx.usePKCS11();
+		if(res) { DialogUtils.showMessageBox(
+	            null,
+	            "Operation not supported!",
+	            "Operation not supported for PKCS11",
+	            "",
+	            JOptionPane.WARNING_MESSAGE
+	        ); 
+		return res;
+		}
+		
+		return false;
 	}
 }
