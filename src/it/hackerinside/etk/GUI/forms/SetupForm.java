@@ -12,6 +12,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.SwingConstants;
+import javax.swing.text.AbstractDocument;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.Arrays;
@@ -19,6 +20,7 @@ import org.bouncycastle.util.Arrays;
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
+import it.hackerinside.etk.GUI.TwoLetterFilter;
 import it.hackerinside.etk.Utils.X509Builder;
 import it.hackerinside.etk.core.Models.ApplicationPreferences;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
@@ -285,6 +287,7 @@ public class SetupForm {
         txtbCountryCode.setFont(new Font("Tahoma", Font.PLAIN, 14));
         txtbCountryCode.setColumns(10);
         txtbCountryCode.setBounds(201, 118, 85, 23);
+        ((AbstractDocument) txtbCountryCode.getDocument()).setDocumentFilter(new TwoLetterFilter());
         certPanel.add(txtbCountryCode);
         
         txtbStateName = new JTextField();

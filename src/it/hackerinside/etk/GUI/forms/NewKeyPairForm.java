@@ -4,6 +4,7 @@ import javax.swing.JFrame;
 
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
+import it.hackerinside.etk.GUI.TwoLetterFilter;
 import it.hackerinside.etk.Utils.X509Builder;
 import it.hackerinside.etk.Utils.X509PQCBuilder;
 import it.hackerinside.etk.core.Models.PQCAlgorithms;
@@ -17,6 +18,7 @@ import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.text.AbstractDocument;
 
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.KeyUsage;
@@ -124,6 +126,7 @@ public class NewKeyPairForm {
 		txtbCountryCode.setEnabled(true);
 		txtbCountryCode.setColumns(10);
 		txtbCountryCode.setBounds(166, 79, 85, 23);
+		((AbstractDocument) txtbCountryCode.getDocument()).setDocumentFilter(new TwoLetterFilter());
 		panel.add(txtbCountryCode);
 		
 		JLabel lblCountryCode = new JLabel("Country Code:");
