@@ -5,6 +5,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
+import java.util.HashMap;
+
+import javax.crypto.SecretKey;
 
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.core.Encryption.CMSEncryptor;
@@ -80,6 +83,34 @@ public class EncryptionService {
 
         recipients.forEach(encryptor::addRecipients);
 
+        encryptor.setUseOnlySKI(useSki);
+        encryptor.setUseOAEP(useOaep);
+
+        encryptor.encrypt(input, output);
+    }
+    
+    /**
+     * Encrypts data from an input stream and writes encrypted output to a stream.
+     */
+    public void encrypt(
+            SymmetricAlgorithms cipher,
+            EncodingOption encoding,
+            Collection<X509Certificate> recipients,
+            HashMap<byte[], SecretKey> symRecipients,
+            InputStream input,
+            OutputStream output,
+            boolean useSki,
+            boolean useOaep
+    ) throws Exception {
+
+        encryptor = new CMSEncryptor(cipher, encoding, ctx.getBufferSize());
+
+        recipients.forEach(encryptor::addRecipients);
+        
+        symRecipients.forEach((key, value) -> {
+            encryptor.addRecipients(key, value);
+        });
+        
         encryptor.setUseOnlySKI(useSki);
         encryptor.setUseOAEP(useOaep);
 

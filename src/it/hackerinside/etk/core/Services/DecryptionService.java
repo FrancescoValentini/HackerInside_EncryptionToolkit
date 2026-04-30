@@ -7,6 +7,8 @@ import java.security.PrivateKey;
 import java.util.Collection;
 import java.util.Optional;
 
+import javax.crypto.SecretKey;
+
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.core.Encryption.CMSCryptoUtils;
 import it.hackerinside.etk.core.Encryption.CMSDecryptor;
@@ -103,6 +105,27 @@ public class DecryptionService {
         if (privateKey == null) throw new IllegalStateException("Private key not provided");
 
         decryptor = new CMSDecryptor(privateKey, encoding, ctx.getBufferSize());
+
+        if (ctx.usePKCS11()) decryptor.setProvider(ctx.getKeystore().getProvider());
+
+        decryptor.decrypt(input, output);
+    }
+    
+    /**
+     * Decrypts encrypted data from an input stream and writes the decrypted result
+     * to an output stream.
+     *
+     * @param secretKey the symmetric key used for decryption
+     * @param encoding the encoding format of the encrypted input
+     * @param input the input stream containing encrypted data
+     * @param output the output stream where decrypted data will be written
+     * @throws IllegalStateException if the provided private key is {@code null}
+     * @throws Exception if an error occurs during decryption
+     */
+    public void decrypt(SecretKey secretKey, EncodingOption encoding, InputStream input, OutputStream output) throws Exception {
+        if (secretKey == null) throw new IllegalStateException("Secret key not provided");
+
+        decryptor = new CMSDecryptor(secretKey, encoding, ctx.getBufferSize());
 
         if (ctx.usePKCS11()) decryptor.setProvider(ctx.getKeystore().getProvider());
 
