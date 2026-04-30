@@ -5,7 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.Map;
 
 import javax.crypto.SecretKey;
 
@@ -96,7 +96,7 @@ public class EncryptionService {
             SymmetricAlgorithms cipher,
             EncodingOption encoding,
             Collection<X509Certificate> recipients,
-            HashMap<byte[], SecretKey> symRecipients,
+            Map<byte[], SecretKey> symRecipients,
             InputStream input,
             OutputStream output,
             boolean useSki,
