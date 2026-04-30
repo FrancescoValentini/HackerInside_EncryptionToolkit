@@ -25,7 +25,7 @@ public record CertificateTableRow(
     String CommonName,
     String truncatedFingerprint,
     KeysLocations location,
-    X509Certificate original) {
+    X509Certificate original) implements ETKRecipient<X509Certificate>{
 
     /**
      * Constructs a CertificateTableRow by extracting relevant information from
@@ -96,6 +96,4 @@ public record CertificateTableRow(
 	public String toString() {
 		return keystoreAlias + "/" + CommonName+"-"+truncatedFingerprint;
 	}
-    
-    
 }
