@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import javax.crypto.SecretKey;
 import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
 
@@ -150,6 +151,42 @@ public class Utils {
 
 		return priv;
 	}
+	
+	public static SecretKey getSecretKeyDialog(String alias) {
+		if(alias == null || alias.isBlank()) return null;
+		ETKContext ctx = ETKContext.getInstance();
+		char[] pwd = Utils.passwordCacheHitOrMiss(alias, () -> {
+			return DialogUtils.showPasswordInputBox(
+					null,
+					"Unlock Secret key",
+					"Password for " + alias,
+					"Password:"
+					);
+		});
+		
+		if(pwd == null) return null;
+
+		SecretKey priv = null;
+		try {
+			priv = ctx.getKeystore().getSecretKey(alias, pwd);
+		}catch (Exception e) {
+			DialogUtils.showMessageBox(
+					null,
+					"Unable to access secret key",
+					"Unable to access secret key",
+					e.getMessage(),
+					JOptionPane.ERROR_MESSAGE
+					);
+			e.printStackTrace();
+			Utils.passwordCacheRemoveEntry(alias);
+			priv = null;
+		}finally {
+			if(pwd != null) Arrays.fill(pwd, (char) 0x00);
+		}
+
+		return priv;
+	}
+	
 	/**
 	 * Populates a {@link JComboBox} with certificates from a list of keystores.
 	 *
