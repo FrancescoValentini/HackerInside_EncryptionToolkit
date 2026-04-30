@@ -157,6 +157,9 @@ public class ETKMain {
 	    JMenuItem menuItemNewKeypair = new JMenuItem("New Keypair");
 	    mnNewMenu.add(menuItemNewKeypair);
 	    
+	    JMenuItem mntmManageSymmetricKeys = new JMenuItem("Manage Symmetric Keys");
+	    mnNewMenu.add(mntmManageSymmetricKeys);
+	    
 	    JMenuItem menuItemImportKeypair = new JMenuItem("Import KeyPair");
 	    mnNewMenu.add(menuItemImportKeypair);
 	    
@@ -181,6 +184,8 @@ public class ETKMain {
 	    menuItemImportKnownCertURL.addActionListener(e -> importKnownCertFromURL());
 	    mntmFilesChecksum.addActionListener(e -> filesChecksum());
 
+	    mntmManageSymmetricKeys.addActionListener(e -> manageSymmetricKeys());
+	    
 	    btnSign.addActionListener(e -> sign());
 	    btnVerify.addActionListener(e -> verify());
 	    btnEncrypt.addActionListener(e -> encrypt());
@@ -1116,6 +1121,11 @@ public class ETKMain {
 		FileHashForm fh = new FileHashForm();
 		fh.setVisible();
 
+	}
+
+	private void manageSymmetricKeys() {
+		SecretKeyManagementForm skmf = new SecretKeyManagementForm();
+		skmf.setVisible();
 	}
 	
 	private void notLoggedInError() {
