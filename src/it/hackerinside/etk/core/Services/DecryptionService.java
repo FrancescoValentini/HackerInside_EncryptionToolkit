@@ -89,6 +89,27 @@ public class DecryptionService {
         decryptor.decrypt(input, output);
     }
     
+    /**
+     * Decrypts an encrypted input file and writes the decrypted content to the specified output file.
+     *
+     * @param privateKey the secret key used for decryption
+     * @param input the encrypted input file
+     * @param output the destination file for decrypted content
+     * @throws IllegalStateException if the provided private key is null
+     * @throws Exception if an error occurs during encoding detection or decryption
+     */
+    public void decrypt(SecretKey privateKey, File input, File output) throws Exception {
+        if (privateKey == null) throw new IllegalStateException("Private key not provided");
+
+        EncodingOption encoding = PEMUtils.findFileEncoding(input);
+
+        decryptor = new CMSDecryptor(privateKey, encoding, ctx.getBufferSize());
+
+        if (ctx.usePKCS11()) decryptor.setProvider(ctx.getKeystore().getProvider());
+
+        decryptor.decrypt(input, output);
+    }
+    
 
     /**
      * Decrypts encrypted data from an input stream and writes the decrypted result
