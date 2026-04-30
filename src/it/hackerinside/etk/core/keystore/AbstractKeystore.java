@@ -3,6 +3,7 @@ package it.hackerinside.etk.core.keystore;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
+import java.security.KeyStore.Entry;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
@@ -398,13 +399,58 @@ public abstract class AbstractKeystore {
                 return Optional.of(alias);
             }
 
-            if (keyStore.entryInstanceOf(alias, KeyStore.SecretKeyEntry.class)) {
+            if (isSecretKeyEntry(alias)) {
                 if (secretKeyMatchesAnyRecipient(alias, recipientIds)) {
                     return Optional.of(alias);
                 }
             }
 		}
 		return Optional.empty();
+	}
+	
+	/**
+	 * Checks whether the entry identified by the given alias is a {@link KeyStore.PrivateKeyEntry}.
+	 *
+	 * @param alias the alias name of the entry
+	 * @return true if the entry is a private key entry, false otherwise
+	 * @throws KeyStoreException if the keystore has not been initialized or another error occurs
+	 */
+	public boolean isPrivateKey(String alias) throws KeyStoreException {
+	    return entryInstanceOf(alias, KeyStore.PrivateKeyEntry.class);
+	}
+
+	/**
+	 * Checks whether the entry identified by the given alias is a {@link KeyStore.SecretKeyEntry}.
+	 *
+	 * @param alias the alias name of the entry
+	 * @return true if the entry is a secret key entry, false otherwise
+	 * @throws KeyStoreException if the keystore has not been initialized or another error occurs
+	 */
+	public boolean isSecretKeyEntry(String alias) throws KeyStoreException {
+	    return entryInstanceOf(alias, KeyStore.SecretKeyEntry.class);
+	}
+
+	/**
+	 * Checks whether the entry identified by the given alias is a {@link KeyStore.TrustedCertificateEntry}.
+	 *
+	 * @param alias the alias name of the entry
+	 * @return true if the entry is a trusted certificate entry, false otherwise
+	 * @throws KeyStoreException if the keystore has not been initialized or another error occurs
+	 */
+	public boolean isTrustedCertificateEntry(String alias) throws KeyStoreException {
+	    return entryInstanceOf(alias, KeyStore.TrustedCertificateEntry.class);
+	}
+
+	/**
+	 * Checks whether the entry identified by the given alias is an instance of the specified entry class.
+	 *
+	 * @param alias the alias name of the entry
+	 * @param entryClass the class of the entry to check against
+	 * @return true if the entry matches the specified class, false otherwise
+	 * @throws KeyStoreException if the keystore has not been initialized or another error occurs
+	 */
+	public boolean entryInstanceOf(String alias, Class<? extends Entry> entryClass) throws KeyStoreException {
+	    return keyStore.entryInstanceOf(alias, entryClass);
 	}
 
 	/**
@@ -413,7 +459,7 @@ public abstract class AbstractKeystore {
 	 * @param alias the alias to check
 	 * @return true if the alias represents a key entry, false otherwise or if an error occurs
 	 */
-	private boolean isKeyEntry(String alias) {
+	public boolean isKeyEntry(String alias) {
 		try {
 			return keyStore.isKeyEntry(alias);
 		} catch (KeyStoreException e) {
