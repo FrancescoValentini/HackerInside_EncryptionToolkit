@@ -32,6 +32,7 @@ import it.hackerinside.etk.GUI.TimeUtils;
 import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
+import it.hackerinside.etk.GUI.DTOs.SecretKeyWrapper;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
 import it.hackerinside.etk.Utils.X509KeyUsageValidator;
 import it.hackerinside.etk.Utils.X509Utils;
@@ -84,11 +85,15 @@ public class EncryptForm {
 	private File plaintextFile;
 	private File ciphertextFile;
 	private X509Certificate recipient;
+	private String symmetricRecipientAlias;
 	private JLabel lblStatus;
 	private JButton btnEncrypt;
 	private JCheckBox chckbxUseSki;
 	private static ETKContext ctx;
 	private EncryptionService encryptionService;
+	private JComboBox<SecretKeyWrapper> cmbSymmetricKeys;
+	private JPanel pnlSymmetric;
+	private JTabbedPane tabbedPane;
 
 	/**
 	 * Launch the application.
@@ -122,7 +127,7 @@ public class EncryptForm {
 	/**
 	 * Initialize the contents of the frame.
 	 */
-	private void initialize() {
+	private void initialize() throws KeyStoreException {
 		recipients = new ArrayList<>();
 		frmEncrypt = new JFrame();
 		frmEncrypt.addWindowListener(new WindowAdapter() {
@@ -155,7 +160,7 @@ public class EncryptForm {
 		lblNewLabel_1.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		panel.add(lblNewLabel_1);
 		
-		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		tabbedPane.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		tabbedPane.setBounds(10, 59, 557, 84);
 		panel.add(tabbedPane);
@@ -283,6 +288,16 @@ public class EncryptForm {
 		chckbxUseSki.setBounds(145, 67, 133, 23);
 		panel_1_1.add(chckbxUseSki);
 		
+		pnlSymmetric = new JPanel();
+		tabbedPane.addTab("Symmetric", null, pnlSymmetric, null);
+		pnlSymmetric.setLayout(null);
+		
+		cmbSymmetricKeys = new JComboBox();
+		cmbSymmetricKeys.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		cmbSymmetricKeys.setBounds(10, 11, 532, 28);
+		pnlSymmetric.add(cmbSymmetricKeys);
+
+		
 		// Button Actions
 		btnCertDetails.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -329,6 +344,11 @@ public class EncryptForm {
 				}
 			}
 		});
+		
+		cmbSymmetricKeys.addActionListener(e -> {
+			SecretKeyWrapper selected = (SecretKeyWrapper) cmbSymmetricKeys.getSelectedItem();
+			if (selected != null) this.symmetricRecipientAlias = selected.getAlias();
+		});
 
 		btnAddRecipient.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -365,10 +385,11 @@ public class EncryptForm {
 		encryptionService = new EncryptionService(ctx);
 		populateSymmetricAlgorithms(cmbEncAlgorithm);
 		populateKnowCerts(cmbRecipientCert);
+		populateSecretKeys(cmbSymmetricKeys);
+		
 		this.chckbPemOutput.setSelected(ctx.usePEM());
 		this.cmbEncAlgorithm.setSelectedItem(ctx.getCipher());
 		this.chckbxUseSki.setSelected(ctx.useSKI());
-		
 		if(this.plaintextFile == null) fileInitialization();
 	}
 	
@@ -410,6 +431,22 @@ public class EncryptForm {
 			);
 	}
 
+	/**
+	 * Populates a combo box with SecretKey
+	 * Includes a null option for empty selection.
+	 * 
+	 * @param combo the combo box to populate with SecretKey wrappers
+	 */
+	private void populateSecretKeys(JComboBox<SecretKeyWrapper> combo) {
+		combo.addItem(null);
+		List<AbstractKeystore> keystores = Stream.of(
+		        ctx.getKeystore()
+		    )
+		    .filter(Objects::nonNull)
+		    .toList();
+		
+		Utils.populateSecretKeys(combo, keystores);
+	}
 
 
 	/**
