@@ -1,6 +1,7 @@
 package it.hackerinside.etk.core.keystore;
 
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -393,13 +394,15 @@ public abstract class AbstractKeystore {
 			}
 
 			X509Certificate cert = getCertificate(alias);
-			if (cert == null) {
-				continue;
-			}
+            if (cert != null && certificateMatchesAnyRecipient(cert, recipientIds)) {
+                return Optional.of(alias);
+            }
 
-			if (certificateMatchesAnyRecipient(cert, recipientIds)) {
-				return Optional.of(alias);
-			}
+            if (keyStore.entryInstanceOf(alias, KeyStore.SecretKeyEntry.class)) {
+                if (secretKeyMatchesAnyRecipient(alias, recipientIds)) {
+                    return Optional.of(alias);
+                }
+            }
 		}
 		return Optional.empty();
 	}
@@ -516,6 +519,30 @@ public abstract class AbstractKeystore {
 			}
 		} catch (Exception ignored) {}
 		return null;
+	}
+	
+	/**
+	 * Checks whether the given secret key alias matches any recipient identifier
+	 * in the provided collection. A match occurs when a recipient of type KEK_KEY_ID
+	 * has a key identifier equal to the alias bytes.
+	 *
+	 * @param alias the secret key alias
+	 * @param recipients the collection of recipient identifiers
+	 * @return true if a matching recipient is found, false otherwise
+	 */
+	private boolean secretKeyMatchesAnyRecipient(String alias, Collection<RecipientIdentifier> recipients) {
+	    byte[] keyId = alias.getBytes(StandardCharsets.UTF_8);
+
+	    for (RecipientIdentifier rid : recipients) {
+	        if (rid.getType() == RecipientIdentifier.Type.KEK_KEY_ID) {
+	            byte[] ridId = rid.getKeyIdentifier();
+
+	            if (ridId != null && Arrays.equals(ridId, keyId)) {
+	                return true;
+	            }
+	        }
+	    }
+	    return false;
 	}
 
 	/**
