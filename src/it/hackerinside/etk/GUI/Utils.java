@@ -15,6 +15,7 @@ import javax.swing.JOptionPane;
 import org.bouncycastle.util.Arrays;
 
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
+import it.hackerinside.etk.GUI.DTOs.SecretKeyWrapper;
 import it.hackerinside.etk.Utils.X509KeyUsageValidator;
 import it.hackerinside.etk.core.Models.KeyUsageProfile;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
@@ -179,5 +180,28 @@ public class Utils {
 	        }
 	    }
 	} 
+	
+	/**
+	 * Populates a {@link JComboBox} with SecretKey from a list of keystores.
+	 *
+	 *
+	 * @param combo      the {@link JComboBox} to populate with {@link SecretKeyWrapper} items
+	 * @param keystores  a {@link List} of {@link AbstractKeystore} objects
+	 *
+	 */
+	public static void populateSecretKeys(
+	        JComboBox<SecretKeyWrapper> combo,
+	        List<AbstractKeystore> keystores) {
+	    for (AbstractKeystore ks : keystores) {
+	        if (ks == null) continue;
+
+	        try {
+	            ks.listSymmetricKeyAliases()
+	              .forEach(alias -> combo.addItem(new SecretKeyWrapper(alias, ks)));
+	        } catch (KeyStoreException e) {
+	            e.printStackTrace();
+	        }
+	    }
+	}
 
 }
