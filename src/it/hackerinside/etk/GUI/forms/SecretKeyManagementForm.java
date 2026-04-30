@@ -6,14 +6,15 @@ import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.GridLayout;
 
-import javax.swing.JFrame;
-
+import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
+import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.core.Services.KeysManagementService;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.security.KeyStoreException;
+import java.util.HexFormat;
 import java.util.List;
 
 public class SecretKeyManagementForm {
@@ -66,6 +67,7 @@ public class SecretKeyManagementForm {
         JPanel rightPanel = new JPanel(new BorderLayout(5, 5));
 
         keyTextArea = new JTextArea(8, 20);
+        keyTextArea.setLineWrap(true);
         keyTextArea.setFont(new Font("Monospaced", Font.PLAIN, 16));
 
         JScrollPane textScroll = new JScrollPane(keyTextArea);
@@ -148,11 +150,13 @@ public class SecretKeyManagementForm {
     }
     
     private void loadKeysAliases() {
+    	aliasList.removeAll();
+    	listModel.removeAllElements();
     	try {
 			List<String> aliases = kms.getSecretKeys();
 			aliases.forEach(alias -> listModel.addElement(alias));
 		} catch (KeyStoreException e) {
-			e.printStackTrace();
+			showError("Error loading symmetric keys","Error loading symmetric keys",e);
 		}
     }
 
@@ -171,8 +175,44 @@ public class SecretKeyManagementForm {
 
     private void generateKey(ActionEvent e) {
         String alias = aliasField.getText();
-        System.out.println("Generate 256-bit key for alias: " + alias);
+		kms.setAliasProvider(() -> DialogUtils.showInputBox(null, "Secret Key Alias", "Secret Key Alias", ""));
 
+        kms.setPwdProvider((x) -> askUnlockSecretKey(x));
+        
+        try {
+        	byte[] k = kms.generateAndStoreSecretKey();
+        	if(k != null) {
+            	keyTextArea.setText(HexFormat.of().formatHex(k).toUpperCase());
+            	
+    	        DialogUtils.showMessageBox(
+    		            null,
+    		            "Key successfully generated",
+    		            "The Secret Key has been generated and saved successfully!",
+    		            "",
+    		            JOptionPane.INFORMATION_MESSAGE
+    		        );
+        	}
+        	loadKeysAliases();
+        	
+        }catch (UnsupportedOperationException e1) {
+	        DialogUtils.showMessageBox(
+		            null,
+		            "Operation not supported!",
+		            e1.getMessage(),
+		            "",
+		            JOptionPane.WARNING_MESSAGE
+		        );
+		} catch (Exception e1) {
+			e1.printStackTrace();
+            DialogUtils.showMessageBox(
+            		null, 
+            		"Error exporting Keys!", 
+            		"Error exporting Keys!", 
+	                e1.getMessage(), 
+	                JOptionPane.ERROR_MESSAGE
+	        );
+		}
+        
         if (!alias.isEmpty()) {
             listModel.addElement(alias);
         }
@@ -191,19 +231,70 @@ public class SecretKeyManagementForm {
 
     private void exportKey(ActionEvent e) {
         String selected = aliasList.getSelectedValue();
-
-        System.out.println("Export key for alias: " + selected);
-
-        keyTextArea.setText("DEADBEEF...");
+        kms.setPwdProvider((alias) -> askUnlockSecretKey(selected));
+        
+        try {
+    	    byte[] k = kms.exportSecretKey(selected);
+    	    if(k != null) keyTextArea.setText(HexFormat.of().formatHex(k).toUpperCase());
+    	    
+        }catch (UnsupportedOperationException e1) {
+	        DialogUtils.showMessageBox(
+		            null,
+		            "Operation not supported!",
+		            e1.getMessage(),
+		            "",
+		            JOptionPane.WARNING_MESSAGE
+		        );
+		} catch (Exception e1) {
+			e1.printStackTrace();
+            DialogUtils.showMessageBox(
+            		null, 
+            		"Error exporting Keys!", 
+            		"Error exporting Keys!", 
+	                e1.getMessage(), 
+	                JOptionPane.ERROR_MESSAGE
+	        );
+		}
     }
 
     private void deleteKey(ActionEvent e) {
         String selected = aliasList.getSelectedValue();
 
-        System.out.println("Delete alias: " + selected);
+    	kms.setConfirmationProvider(() ->DialogUtils.showConfirmBox(
+	            null, 
+	            "DELETING SECRET KEY KEY!", 
+	            "DELETING: " + selected, 
+	            "You are about to delete a secret key; you will no longer be able to encrypt or decrypt with it.\r\n"
+	            + "\r\n"
+	            + "The deletion is irreversible; the key cannot be recovered.", 
+	            JOptionPane.WARNING_MESSAGE
+	        ));
+    
 
         if (selected != null) {
-            listModel.removeElement(selected);
+            try {
+            	
+            	kms.deleteSecretKey(selected);
+            	loadKeysAliases();
+            	
+            }catch(UnsupportedOperationException e1) {
+    	        DialogUtils.showMessageBox(
+    		            null,
+    		            "Operation not supported!",
+    		            e1.getMessage(),
+    		            "",
+    		            JOptionPane.WARNING_MESSAGE
+    		        );
+    		} catch (Exception e1) {
+                e1.printStackTrace();
+                DialogUtils.showMessageBox(
+    	                null, 
+    	                "Error while deleting secret key", 
+    	                "Error while deleting secret key", 
+    	                e1.getMessage(), 
+    	                JOptionPane.ERROR_MESSAGE
+    	            );
+            }
         }
     }
 
@@ -218,4 +309,27 @@ public class SecretKeyManagementForm {
             listModel.set(index, newAlias);
         }
     }
+    
+	private void showError(String title, String message, Exception e) {
+	    DialogUtils.showMessageBox(
+	            null,
+	            title,
+	            message,
+	            e.getMessage(),
+	            JOptionPane.ERROR_MESSAGE
+	    );
+	    e.printStackTrace();
+	}
+	
+    public char[] askUnlockSecretKey(String alias) {
+        return DialogUtils.showPasswordInputBox(
+            null,
+            "Unlock Secret key",
+            "Secret Key: " + alias,
+            "Password:"
+        );
+    }
+    
+    
+	
 }

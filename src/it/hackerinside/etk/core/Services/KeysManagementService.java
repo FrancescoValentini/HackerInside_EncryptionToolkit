@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -555,6 +556,42 @@ public class KeysManagementService {
 	        if (pwd != null) Arrays.fill(pwd, (char) 0x00);
 	    }
 	}
+	
+	/**
+	 * Generates a new AES SecretKey, stores it in the keystore under a provided alias,
+	 * and returns the raw encoded key bytes.
+	 *
+	 * @return the generated key as a byte array, or null if alias/password are not provided
+	 * @throws Exception if key generation or keystore operations fail
+	 */
+	public byte[] generateAndStoreSecretKey() throws Exception {
+	    if (ctx.usePKCS11()) {
+	        throw new UnsupportedOperationException("Operation not supported for PKCS11");
+	    }
+
+	    String alias = invokeAliasProvider();
+	    if (alias == null || alias.isBlank()) {
+	        return null;
+	    }
+
+	    char[] pwd = null;
+
+	    try {
+	        if (pwd == null || pwd.length == 0) return null;
+
+	        KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+	        keyGen.init(256);
+	        SecretKey secretKey = keyGen.generateKey();
+
+	        ctx.getKeystore().addSecretKey(alias, secretKey, pwd);
+	        ctx.getKeystore().save();
+
+	        return secretKey.getEncoded();
+
+	    } finally {
+	        if (pwd != null) Arrays.fill(pwd, (char) 0x00);
+	    }
+	}
 
 	/**
 	 * Deletes a secret key from the keystore.
@@ -566,6 +603,9 @@ public class KeysManagementService {
 	public boolean deleteSecretKey(String alias) throws Exception {
 	    if(!ctx.getKeystore().containsAlias(alias)) return false;
 	    
+    	boolean ok = invokeConfirmationProvider();
+    	if(!ok) return false;
+    	
 	    ctx.getKeystore().deleteSecretKey(alias);
 	    ctx.getKeystore().save();
 	    return true;
