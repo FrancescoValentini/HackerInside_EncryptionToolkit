@@ -12,11 +12,15 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyStoreException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
@@ -32,6 +36,8 @@ import it.hackerinside.etk.GUI.TimeUtils;
 import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
+import it.hackerinside.etk.GUI.DTOs.ETKRecipient;
+import it.hackerinside.etk.GUI.DTOs.SecretKeyTableRow;
 import it.hackerinside.etk.GUI.DTOs.SecretKeyWrapper;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
 import it.hackerinside.etk.Utils.X509KeyUsageValidator;
@@ -46,6 +52,7 @@ import it.hackerinside.etk.core.keystore.AbstractKeystore;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JComboBox;
+import javax.crypto.SecretKey;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JTextField;
@@ -75,9 +82,10 @@ public class EncryptForm {
 	private JProgressBar progressBarEncrypt;
     private long startTime;
     private long endTime;
-    private JList<CertificateTableRow> recipientsList;
-    private DefaultListModel<CertificateTableRow> listModel = new DefaultListModel<>();
+    private JList<ETKRecipient<?>> recipientsList;
+    private DefaultListModel<ETKRecipient<?>> listModel = new DefaultListModel<>();
     private List<X509Certificate> recipients;
+    private Map<byte[], SecretKey> symRecipient;
     private boolean running = false;
     private SwingWorker<Void, Void> currentWorker;
     
@@ -94,6 +102,7 @@ public class EncryptForm {
 	private JComboBox<SecretKeyWrapper> cmbSymmetricKeys;
 	private JPanel pnlSymmetric;
 	private JTabbedPane tabbedPane;
+	private JComboBox cmbRecipientCert;
 
 	/**
 	 * Launch the application.
@@ -127,8 +136,9 @@ public class EncryptForm {
 	/**
 	 * Initialize the contents of the frame.
 	 */
-	private void initialize() throws KeyStoreException {
+	private void initialize() {
 		recipients = new ArrayList<>();
+		symRecipient = new HashMap<byte[], SecretKey>();
 		frmEncrypt = new JFrame();
 		frmEncrypt.addWindowListener(new WindowAdapter() {
 			@Override
@@ -169,7 +179,7 @@ public class EncryptForm {
 		tabbedPane.addTab("Known Certificates", null, panel_1, null);
 		panel_1.setLayout(null);
 		
-		JComboBox cmbRecipientCert = new JComboBox();
+		cmbRecipientCert = new JComboBox();
 		cmbRecipientCert.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		cmbRecipientCert.setBounds(10, 11, 414, 28);
 		panel_1.add(cmbRecipientCert);
@@ -352,24 +362,21 @@ public class EncryptForm {
 
 		btnAddRecipient.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				if(recipient != null && Utils.acceptX509Certificate(recipient) && (ctx.validateKeyUsages() ? Utils.validateCertFlags(recipient, KeyUsageProfile.ENCRYPTION) : true)) {
-					recipients.add(recipient);
-					Object selectedCert = cmbRecipientCert.getSelectedItem();
-					if(selectedCert != null) {
-						listModel.addElement(new CertificateTableRow(((CertificateWrapper) selectedCert).getAlias(), null, recipient));
-						cmbRecipientCert.setSelectedItem(null);
-					}else {
-						listModel.addElement(new CertificateTableRow("file", null, recipient));
-					}
-				}
+				addRecipient();
 			}
 		});
 		
 		btnRemoveRecipient.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				CertificateTableRow selected = recipientsList.getSelectedValue();
+				ETKRecipient<?> selected = recipientsList.getSelectedValue();
 				if(selected != null) {
-					recipients.remove(selected.original());
+					if (selected instanceof CertificateTableRow cert) {
+						recipients.remove(cert.original());
+					} else if (selected instanceof SecretKeyTableRow key) {
+						symRecipient.remove(key.keystoreAlias().getBytes(StandardCharsets.UTF_8));
+						byte[] target = key.keystoreAlias().getBytes(StandardCharsets.UTF_8);
+						symRecipient.keySet().removeIf(k -> Arrays.equals(k, target));
+					}
 					listModel.removeElement(selected);
 				}
 			}
@@ -377,8 +384,10 @@ public class EncryptForm {
 		
 		btnRecipientInfo.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				CertificateTableRow selected = recipientsList.getSelectedValue();
-				if(selected != null) showRecipientDetails(selected.original());
+				ETKRecipient<?> selected = recipientsList.getSelectedValue();
+				if (selected instanceof CertificateTableRow cert) {
+					if(selected != null) showRecipientDetails(cert.original());
+				} 
 			}
 		});
 		
@@ -394,6 +403,38 @@ public class EncryptForm {
 	}
 	
 	
+	private void addRecipient() {
+		// Secret key recipient
+		if(symmetricRecipientAlias != null && !symmetricRecipientAlias.isEmpty() && tabbedPane.getSelectedComponent() == pnlSymmetric) {
+			SecretKeyWrapper selected = (SecretKeyWrapper) cmbSymmetricKeys.getSelectedItem();
+			if(selected != null) {
+				SecretKey sk = Utils.getSecretKeyDialog(selected.getAlias());
+				if(sk == null) return;
+				listModel.addElement(new SecretKeyTableRow(selected.getAlias(), null, sk));
+				symRecipient.put(selected.getAlias().getBytes(StandardCharsets.UTF_8), sk);
+				cmbSymmetricKeys.setSelectedItem(null);
+				symmetricRecipientAlias = "";
+				return;
+			}
+		}
+		
+		// Certificate Recipient
+		if(recipient != null && Utils.acceptX509Certificate(recipient) && (ctx.validateKeyUsages() ? Utils.validateCertFlags(recipient, KeyUsageProfile.ENCRYPTION) : true)) {
+			recipients.add(recipient);
+			Object selectedCert = cmbRecipientCert.getSelectedItem();
+			
+			if(selectedCert != null) {
+				listModel.addElement(new CertificateTableRow(((CertificateWrapper) selectedCert).getAlias(), null, recipient));
+				cmbRecipientCert.setSelectedItem(null);
+			}else {
+				listModel.addElement(new CertificateTableRow("file", null, recipient));
+			}
+			selectedCert = null;
+			recipient = null;
+			return;
+		}
+	}
+
 	/**
 	 * Populates a combo box with all available symmetric algorithms.
 	 * 
@@ -439,13 +480,15 @@ public class EncryptForm {
 	 */
 	private void populateSecretKeys(JComboBox<SecretKeyWrapper> combo) {
 		combo.addItem(null);
-		List<AbstractKeystore> keystores = Stream.of(
-		        ctx.getKeystore()
-		    )
-		    .filter(Objects::nonNull)
-		    .toList();
-		
-		Utils.populateSecretKeys(combo, keystores);
+		try {
+			List<AbstractKeystore> keystores = Stream.of(
+			        ctx.getKeystore()
+			    )
+			    .filter(Objects::nonNull)
+			    .toList();
+			
+			Utils.populateSecretKeys(combo, keystores);
+		}catch(Exception e) {} // ignore
 	}
 
 
@@ -595,6 +638,7 @@ public class EncryptForm {
 	                    cipher,
 	                    encoding,
 	                    recipients,
+	                    symRecipient,
 	                    plaintextFile,
 	                    cipherFile,
 	                    chckbxUseSki.isSelected(),
@@ -677,9 +721,19 @@ public class EncryptForm {
         okMessage.append("File Encrypted\n");
         okMessage.append("\n\nElapsed: " + TimeUtils.formatElapsedTime(startTime, endTime));
         okMessage.append("\n\n\nRecipients: \n");
-        recipients.forEach(recipient -> {
-        	okMessage.append("- " + X509Utils.getPrettySubject(recipient.getSubjectX500Principal().getEncoded()) + "\n");
-        });
+        
+        if(!recipients.isEmpty()) {
+            recipients.forEach(recipient -> {
+            	okMessage.append("- " + X509Utils.getPrettySubject(recipient.getSubjectX500Principal().getEncoded()) + "\n");
+            });
+        }
+        
+        if(!symRecipient.isEmpty()){
+        	symRecipient.forEach((key, value) -> {
+            	okMessage.append("- " + "KEK/" + new String(key) + "\n");
+            });
+        }
+        
        
         return okMessage.toString();
 	}
@@ -690,7 +744,7 @@ public class EncryptForm {
 	 * @return true if all required inputs are present and valid, false otherwise
 	 */
 	private boolean allReady() {
-	    return this.recipients.size() > 0 &&
+	    return (this.recipients.size() > 0 || !this.symRecipient.isEmpty()) &&
 	           this.plaintextFile != null &&
 	           this.plaintextFile.exists() &&
 	           !this.txtbOutputFile.getText().isEmpty();
