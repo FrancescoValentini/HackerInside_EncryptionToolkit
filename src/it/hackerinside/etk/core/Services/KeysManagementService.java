@@ -544,7 +544,7 @@ public class KeysManagementService {
 	    char[] pwd = null;
 
 	    try {
-	        pwd = invokePwdProvider();
+	        pwd = invokePwdProvider(alias);
 	        if (pwd == null || pwd.length == 0) return false;
 
 	        SecretKey originalKey = new SecretKeySpec(key, 0, key.length, "AES");
@@ -574,7 +574,7 @@ public class KeysManagementService {
 	        return null;
 	    }
 
-	    char[] pwd = null;
+	    char[] pwd = invokePwdProvider(alias);
 
 	    try {
 	        if (pwd == null || pwd.length == 0) return null;
@@ -629,7 +629,7 @@ public class KeysManagementService {
 	    char[] pwd = null;
 
 	    try {
-	        pwd = invokePwdProvider();
+	        pwd = invokePwdProvider(alias);
 	        if (pwd == null || pwd.length == 0) return null;
 
 	        ctx.getKeystore().renameEntry(alias, newAlias, pwd);
