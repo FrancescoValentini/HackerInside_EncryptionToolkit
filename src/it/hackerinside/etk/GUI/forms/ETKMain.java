@@ -144,7 +144,7 @@ public class ETKMain {
 	    JMenuItem mntmAbout = new JMenuItem("About");
 	    fileMenu.add(mntmAbout);
 	    
-	    JMenu mnNewMenu = new JMenu("Certificates");
+	    JMenu mnNewMenu = new JMenu("Keys & Certificates");
 	    menuBar.add(mnNewMenu);
 	    
 	    JMenuItem menuItemKeystoreLogin = new JMenuItem("Keystore Login");

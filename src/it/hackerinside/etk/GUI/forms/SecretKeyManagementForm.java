@@ -23,13 +23,14 @@ import java.awt.event.ActionEvent;
 import java.security.InvalidKeyException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
 
 public class SecretKeyManagementForm {
 
-    private JFrame frame;
+    private JFrame frmSymmetricKeyManagement;
     private JList<String> aliasList;
     private DefaultListModel<String> listModel;
     private JTextArea keyTextArea;
@@ -54,15 +55,16 @@ public class SecretKeyManagementForm {
     }
     
     public void setVisible() {
-    	this.frame.setVisible(true);
+    	this.frmSymmetricKeyManagement.setVisible(true);
     }
 
     private void initialize() {
-        frame = new JFrame("Secret Key Management");
-        frame.setResizable(false);
-        frame.setBounds(100, 100, 709, 408);
+        frmSymmetricKeyManagement = new JFrame("Secret Key Management");
+        frmSymmetricKeyManagement.setTitle("Symmetric Key Management");
+        frmSymmetricKeyManagement.setResizable(false);
+        frmSymmetricKeyManagement.setBounds(100, 100, 709, 408);
         //frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.getContentPane().setLayout(new BorderLayout(10, 10));
+        frmSymmetricKeyManagement.getContentPane().setLayout(new BorderLayout(10, 10));
 
         // ===== LEFT PANEL =====
         listModel = new DefaultListModel<>();
@@ -102,7 +104,7 @@ public class SecretKeyManagementForm {
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 5, 10, 15));
         buttonPanel.setPreferredSize(new Dimension(140, 0));
 
-        JButton generateBtn = new JButton("NEW");
+        JButton generateBtn = new JButton("RANDOM");
         JButton importBtn = new JButton("IMPORT");
         JButton exportBtn = new JButton("EXPORT");
         JButton deleteBtn = new JButton("DELETE");
@@ -155,9 +157,9 @@ public class SecretKeyManagementForm {
         });
 
         // ===== LAYOUT =====
-        frame.getContentPane().add(listScroll, BorderLayout.WEST);
-        frame.getContentPane().add(rightPanel, BorderLayout.CENTER);
-        frame.getContentPane().add(buttonPanel, BorderLayout.EAST);
+        frmSymmetricKeyManagement.getContentPane().add(listScroll, BorderLayout.WEST);
+        frmSymmetricKeyManagement.getContentPane().add(rightPanel, BorderLayout.CENTER);
+        frmSymmetricKeyManagement.getContentPane().add(buttonPanel, BorderLayout.EAST);
         
         start();
     }
@@ -190,28 +192,16 @@ public class SecretKeyManagementForm {
 
     // ===== ACTION METHODS =====
 
-    private void generateKey(ActionEvent e) {
-		kms.setAliasProvider(() -> DialogUtils.showInputBox(null, "Secret Key Alias", "Secret Key Alias", ""));
-
-        kms.setPwdProvider((x) -> askUnlockSecretKey(x));
-        
+    private void generateKey(ActionEvent e) {        
         try {
-        	byte[] k = kms.generateAndStoreSecretKey();
+        	byte[] k = new byte[32]; // 256 bits
+        	new SecureRandom().nextBytes(k);
+        	
         	if(k != null) {
             	keyTextArea.setText(HexFormat.of().formatHex(k).toUpperCase());
     			String kcvValue = HexFormat.of().formatHex(kcv(k)).toUpperCase().substring(0, 6);
     			kcvField.setText(kcvValue);
-    	        DialogUtils.showMessageBox(
-    		            null,
-    		            "Key successfully generated",
-    		            "The Secret Key has been generated and saved successfully!",
-    		            "KCV: " + kcvValue,
-    		            JOptionPane.INFORMATION_MESSAGE
-    		        );
-    	        
-
         	}
-        	loadKeysAliases();
         	
         }catch (UnsupportedOperationException e1) {
 	        DialogUtils.showMessageBox(
@@ -225,8 +215,8 @@ public class SecretKeyManagementForm {
 			e1.printStackTrace();
             DialogUtils.showMessageBox(
             		null, 
-            		"Error exporting Keys!", 
-            		"Error exporting Keys!", 
+            		"Error generating Keys!", 
+            		"Error generating Keys!", 
 	                e1.getMessage(), 
 	                JOptionPane.ERROR_MESSAGE
 	        );
@@ -252,6 +242,8 @@ public class SecretKeyManagementForm {
     		            "",
     		            JOptionPane.INFORMATION_MESSAGE
     		        );
+    	        
+    	        loadKeysAliases();
     		}
 	    	
     	}catch (UnsupportedOperationException e1) {
@@ -272,7 +264,6 @@ public class SecretKeyManagementForm {
 	                JOptionPane.ERROR_MESSAGE
 	        );
 		}
-        loadKeysAliases();
     }
 
     private void exportKey(ActionEvent e) {
