@@ -37,7 +37,6 @@ import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.GUI.DTOs.SecretKeyWrapper;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
-import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Services.DecryptionService;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
 
@@ -243,6 +242,7 @@ public class DecryptForm {
 	 * @param combo the combo box to populate with SecretKey wrappers
 	 */
 	private void populateSecretKeys(JComboBox<SecretKeyWrapper> combo) {
+		combo.addItem(null);
 		List<AbstractKeystore> keystores = Stream.of(
 		        ctx.getKeystore()
 		    )

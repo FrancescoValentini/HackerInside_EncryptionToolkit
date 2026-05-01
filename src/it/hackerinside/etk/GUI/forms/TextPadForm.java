@@ -447,6 +447,7 @@ public class TextPadForm {
 	 * @param combo the combo box to populate with SecretKey wrappers
 	 */
 	private void populateSecretKeys(JComboBox<SecretKeyWrapper> combo) {
+		combo.addItem(null);
 		List<AbstractKeystore> keystores = Stream.of(
 		        ctx.getKeystore()
 		    )
@@ -523,9 +524,34 @@ public class TextPadForm {
 	 *         password entry fails/cancels
 	 */
 	private Object getDecryptionKey() {
+		// user selection
+	    CertificateWrapper certWrapper = (CertificateWrapper) cmbRecipientCert.getSelectedItem();
+	    if (certWrapper != null) {
+	        try {
+	            String alias = certWrapper.getAlias();
+	            if (ctx.getKeystore().isPrivateKey(alias)) {
+	                PrivateKey priv = Utils.getPrivateKeyDialog(alias);
+	                if (priv != null) return priv;
+	            }
+	        } catch (Exception ignored) {}
+	    }
+
+	    SecretKeyWrapper skWrapper = (SecretKeyWrapper) cmbSymmetricKeys.getSelectedItem();
+	    if (skWrapper != null) {
+	        try {
+	            String alias = skWrapper.getAlias();
+	            if (ctx.getKeystore().isSecretKeyEntry(alias)) {
+	                SecretKey sk = Utils.getSecretKeyDialog(alias);
+	                if (sk != null) return sk;
+	            }
+	        } catch (Exception ignored) {}
+	    }
+
+	    // autodetect
 	    String text = txtbData.getText();
-	    ByteArrayInputStream input = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
-	    
+	    ByteArrayInputStream input =
+	            new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
+
 	    Optional<String> aliasOpt = findRecipientAlias(input);
 
 	    if (!aliasOpt.isPresent()) {
@@ -541,24 +567,19 @@ public class TextPadForm {
 
 	    String alias = aliasOpt.get();
 
-	    // 1. PrivateKey
 	    try {
-	    	if(ctx.getKeystore().isPrivateKey(alias)) {
-	    		PrivateKey priv = Utils.getPrivateKeyDialog(alias);
-	    		if (priv != null) return priv;
-	    	}
-	    }catch(Exception e) {
-	    	return null;
-	    }
-	    // 2. SecretKey
+	        if (ctx.getKeystore().isPrivateKey(alias)) {
+	            PrivateKey priv = Utils.getPrivateKeyDialog(alias);
+	            if (priv != null) return priv;
+	        }
+	    } catch (Exception ignored) {}
+
 	    try {
-	    	if(ctx.getKeystore().isSecretKeyEntry(alias)) {
-			    SecretKey sk = Utils.getSecretKeyDialog(alias);
-			    if (sk != null) return sk;
-	    	}
-	    }catch(Exception e) {
-	    	return null;
-	    }
+	        if (ctx.getKeystore().isSecretKeyEntry(alias)) {
+	            SecretKey sk = Utils.getSecretKeyDialog(alias);
+	            if (sk != null) return sk;
+	        }
+	    } catch (Exception ignored) {}
 
 	    return null;
 	}
