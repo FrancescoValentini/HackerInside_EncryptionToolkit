@@ -1,7 +1,9 @@
 package it.hackerinside.etk.core.keystore;
 
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
+import java.security.KeyStore.Entry;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
@@ -245,6 +247,27 @@ public abstract class AbstractKeystore {
 	}
 	
 	/**
+	 * Returns all keystore aliases that refer to symmetric (secret) keys.
+	 *
+	 * @return list of secret key aliases, never {@code null} but may be empty
+	 * @throws KeyStoreException 
+	 */
+	public List<String> listSymmetricKeyAliases() throws KeyStoreException {
+	    List<String> result = new ArrayList<>();
+
+	    Enumeration<String> aliases = keyStore.aliases();
+	    while (aliases.hasMoreElements()) {
+	        String alias = aliases.nextElement();
+
+	        if (keyStore.entryInstanceOf(alias, KeyStore.SecretKeyEntry.class)) {
+	            result.add(alias);
+	        }
+	    }
+
+	    return result;
+	}
+	
+	/**
 	 * Lists aliases whose associated certificate matches the given filter.
 	 * <p>
 	 * The filter is applied only to X.509 certificates and does not require
@@ -372,15 +395,62 @@ public abstract class AbstractKeystore {
 			}
 
 			X509Certificate cert = getCertificate(alias);
-			if (cert == null) {
-				continue;
-			}
+            if (cert != null && certificateMatchesAnyRecipient(cert, recipientIds)) {
+                return Optional.of(alias);
+            }
 
-			if (certificateMatchesAnyRecipient(cert, recipientIds)) {
-				return Optional.of(alias);
-			}
+            if (isSecretKeyEntry(alias)) {
+                if (secretKeyMatchesAnyRecipient(alias, recipientIds)) {
+                    return Optional.of(alias);
+                }
+            }
 		}
 		return Optional.empty();
+	}
+	
+	/**
+	 * Checks whether the entry identified by the given alias is a {@link KeyStore.PrivateKeyEntry}.
+	 *
+	 * @param alias the alias name of the entry
+	 * @return true if the entry is a private key entry, false otherwise
+	 * @throws KeyStoreException if the keystore has not been initialized or another error occurs
+	 */
+	public boolean isPrivateKey(String alias) throws KeyStoreException {
+	    return entryInstanceOf(alias, KeyStore.PrivateKeyEntry.class);
+	}
+
+	/**
+	 * Checks whether the entry identified by the given alias is a {@link KeyStore.SecretKeyEntry}.
+	 *
+	 * @param alias the alias name of the entry
+	 * @return true if the entry is a secret key entry, false otherwise
+	 * @throws KeyStoreException if the keystore has not been initialized or another error occurs
+	 */
+	public boolean isSecretKeyEntry(String alias) throws KeyStoreException {
+	    return entryInstanceOf(alias, KeyStore.SecretKeyEntry.class);
+	}
+
+	/**
+	 * Checks whether the entry identified by the given alias is a {@link KeyStore.TrustedCertificateEntry}.
+	 *
+	 * @param alias the alias name of the entry
+	 * @return true if the entry is a trusted certificate entry, false otherwise
+	 * @throws KeyStoreException if the keystore has not been initialized or another error occurs
+	 */
+	public boolean isTrustedCertificateEntry(String alias) throws KeyStoreException {
+	    return entryInstanceOf(alias, KeyStore.TrustedCertificateEntry.class);
+	}
+
+	/**
+	 * Checks whether the entry identified by the given alias is an instance of the specified entry class.
+	 *
+	 * @param alias the alias name of the entry
+	 * @param entryClass the class of the entry to check against
+	 * @return true if the entry matches the specified class, false otherwise
+	 * @throws KeyStoreException if the keystore has not been initialized or another error occurs
+	 */
+	public boolean entryInstanceOf(String alias, Class<? extends Entry> entryClass) throws KeyStoreException {
+	    return keyStore.entryInstanceOf(alias, entryClass);
 	}
 
 	/**
@@ -389,7 +459,7 @@ public abstract class AbstractKeystore {
 	 * @param alias the alias to check
 	 * @return true if the alias represents a key entry, false otherwise or if an error occurs
 	 */
-	private boolean isKeyEntry(String alias) {
+	public boolean isKeyEntry(String alias) {
 		try {
 			return keyStore.isKeyEntry(alias);
 		} catch (KeyStoreException e) {
@@ -495,6 +565,30 @@ public abstract class AbstractKeystore {
 			}
 		} catch (Exception ignored) {}
 		return null;
+	}
+	
+	/**
+	 * Checks whether the given secret key alias matches any recipient identifier
+	 * in the provided collection. A match occurs when a recipient of type KEK_KEY_ID
+	 * has a key identifier equal to the alias bytes.
+	 *
+	 * @param alias the secret key alias
+	 * @param recipients the collection of recipient identifiers
+	 * @return true if a matching recipient is found, false otherwise
+	 */
+	private boolean secretKeyMatchesAnyRecipient(String alias, Collection<RecipientIdentifier> recipients) {
+	    byte[] keyId = alias.getBytes(StandardCharsets.UTF_8);
+
+	    for (RecipientIdentifier rid : recipients) {
+	        if (rid.getType() == RecipientIdentifier.Type.KEK_KEY_ID) {
+	            byte[] ridId = rid.getKeyIdentifier();
+
+	            if (ridId != null && Arrays.equals(ridId, keyId)) {
+	                return true;
+	            }
+	        }
+	    }
+	    return false;
 	}
 
 	/**

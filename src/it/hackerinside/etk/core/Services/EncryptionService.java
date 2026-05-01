@@ -5,6 +5,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
+import java.util.Map;
+
+import javax.crypto.SecretKey;
 
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.core.Encryption.CMSEncryptor;
@@ -62,9 +65,56 @@ public class EncryptionService {
 
         encryptor.encrypt(input, output);
     }
+    
 
     /**
-     * Encrypts data from an input stream and writes encrypted output to a stream.
+     * Encrypts a file using both certificate and symmetric key recipients.
+     *
+     * @param cipher the symmetric encryption algorithm
+     * @param encoding the output format (PEM or DER)
+     * @param recipients the certificate-based recipients
+     * @param symRecipients the symmetric key recipients
+     * @param input the input file to encrypt
+     * @param output the output file for encrypted data
+     * @param useSki whether to use Subject Key Identifier
+     * @param useOaep whether to use RSA OAEP
+     * @throws Exception if encryption fails
+     */
+    public void encrypt(
+            SymmetricAlgorithms cipher,
+            EncodingOption encoding,
+            Collection<X509Certificate> recipients,
+            Map<byte[], SecretKey> symRecipients,
+            File input,
+            File output,
+            boolean useSki,
+            boolean useOaep
+    ) throws Exception {
+
+        encryptor = new CMSEncryptor(cipher, encoding, ctx.getBufferSize());
+
+        recipients.forEach(encryptor::addRecipients);
+        symRecipients.forEach((key, value) -> {
+            encryptor.addRecipients(key, value);
+        });
+        
+        encryptor.setUseOnlySKI(useSki);
+        encryptor.setUseOAEP(useOaep);
+
+        encryptor.encrypt(input, output);
+    }
+
+    /**
+     * Encrypts data from an input stream to an output stream.
+     *
+     * @param cipher the symmetric encryption algorithm
+     * @param encoding the output format (PEM or DER)
+     * @param recipients the certificate-based recipients
+     * @param input the input stream
+     * @param output the output stream
+     * @param useSki whether to use Subject Key Identifier
+     * @param useOaep whether to use RSA OAEP
+     * @throws Exception if encryption fails
      */
     public void encrypt(
             SymmetricAlgorithms cipher,
@@ -80,6 +130,44 @@ public class EncryptionService {
 
         recipients.forEach(encryptor::addRecipients);
 
+        encryptor.setUseOnlySKI(useSki);
+        encryptor.setUseOAEP(useOaep);
+
+        encryptor.encrypt(input, output);
+    }
+    
+    /**
+     * Encrypts stream data using both certificate and symmetric key recipients.
+     *
+     * @param cipher the symmetric encryption algorithm
+     * @param encoding the output format (PEM or DER)
+     * @param recipients the certificate-based recipients
+     * @param symRecipients the symmetric key recipients
+     * @param input the input stream
+     * @param output the output stream
+     * @param useSki whether to use Subject Key Identifier
+     * @param useOaep whether to use RSA OAEP
+     * @throws Exception if encryption fails
+     */
+    public void encrypt(
+            SymmetricAlgorithms cipher,
+            EncodingOption encoding,
+            Collection<X509Certificate> recipients,
+            Map<byte[], SecretKey> symRecipients,
+            InputStream input,
+            OutputStream output,
+            boolean useSki,
+            boolean useOaep
+    ) throws Exception {
+
+        encryptor = new CMSEncryptor(cipher, encoding, ctx.getBufferSize());
+
+        recipients.forEach(encryptor::addRecipients);
+        
+        symRecipients.forEach((key, value) -> {
+            encryptor.addRecipients(key, value);
+        });
+        
         encryptor.setUseOnlySKI(useSki);
         encryptor.setUseOAEP(useOaep);
 

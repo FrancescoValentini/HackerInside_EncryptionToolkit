@@ -24,12 +24,15 @@ import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.stream.Stream;
 
+import javax.crypto.SecretKey;
 import javax.swing.GroupLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -49,6 +52,7 @@ import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
+import it.hackerinside.etk.GUI.DTOs.SecretKeyWrapper;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
 import it.hackerinside.etk.Utils.X509KeyUsageValidator;
 import it.hackerinside.etk.Utils.X509Utils;
@@ -78,6 +82,9 @@ public class TextPadForm {
 	private JCheckBox chckbUseSKI;
 	private DecryptionService dc;
 	private EncryptionService ec;
+	private JComboBox<SecretKeyWrapper> cmbSymmetricKeys;
+	private JTabbedPane tabbedPane;
+	private String symmetricRecipient;
 	/**
 	 * Launch the application.
 	 */
@@ -180,7 +187,7 @@ public class TextPadForm {
 					.addContainerGap())
 		);
 		
-		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		tabbedPane.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		cmbEncAlgorithm = new JComboBox();
@@ -265,6 +272,15 @@ public class TextPadForm {
 		txtbRecipientFile.setColumns(10);
 		txtbRecipientFile.setBounds(10, 11, 448, 26);
 		panel_2.add(txtbRecipientFile);
+		
+		JPanel pnlSymmetricEncryption = new JPanel();
+		tabbedPane.addTab("Symmetric", null, pnlSymmetricEncryption, null);
+		pnlSymmetricEncryption.setLayout(null);
+		
+		cmbSymmetricKeys = new JComboBox();
+		cmbSymmetricKeys.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		cmbSymmetricKeys.setBounds(10, 11, 532, 28);
+		pnlSymmetricEncryption.add(cmbSymmetricKeys);
 		panel_1.setLayout(gl_panel_1);
 		panel.setLayout(gl_panel);
 		
@@ -318,6 +334,12 @@ public class TextPadForm {
 			}
 		});
 		
+		cmbSymmetricKeys.addActionListener(e -> {
+			SecretKeyWrapper selected = (SecretKeyWrapper) cmbSymmetricKeys.getSelectedItem();
+			if (selected != null) this.symmetricRecipient = selected.getAlias();
+		});
+		
+		
 		btnCertDetails.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				showRecipientDetails();
@@ -327,7 +349,12 @@ public class TextPadForm {
 		
 		btnEncrypt.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				encrypt();
+				
+				if(tabbedPane.getSelectedComponent() == pnlSymmetricEncryption) {
+					symetricKeyEncrypt();
+				}else {
+					encrypt();
+				}
 			}
 		});
 		
@@ -355,6 +382,7 @@ public class TextPadForm {
 		this.ec = new EncryptionService(ctx);
 		
 		populateKnowCerts(cmbRecipientCert);
+		populateSecretKeys(cmbSymmetricKeys);
 		
 		if(ctx.getKeystore() == null) {
 			 btnDecrypt.setEnabled(false);
@@ -413,21 +441,38 @@ public class TextPadForm {
 	}
 	
 	/**
+	 * Populates a combo box with SecretKey
+	 * Includes a null option for empty selection.
+	 * 
+	 * @param combo the combo box to populate with SecretKey wrappers
+	 */
+	private void populateSecretKeys(JComboBox<SecretKeyWrapper> combo) {
+		combo.addItem(null);
+		List<AbstractKeystore> keystores = Stream.of(
+		        ctx.getKeystore()
+		    )
+		    .filter(Objects::nonNull)
+		    .toList();
+		
+		Utils.populateSecretKeys(combo, keystores);
+	}
+	
+	private ByteArrayInputStream toInput(String text) {return new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));}
+	private String fromOutput(ByteArrayOutputStream output) {return output.toString(StandardCharsets.UTF_8);}
+	private SymmetricAlgorithms getSelectedCipher() {return (SymmetricAlgorithms) cmbEncAlgorithm.getSelectedItem();}
+	
+	
+	/**
 	 * Encrypts the data in the text box using the selected symmetric algorithm and CMS encryption.
 	 * The encrypted data is displayed in the same text box after successful encryption.
 	 * If encryption fails, an error dialog is displayed and the original data remains unchanged.
 	 */
 	private void encrypt() {
-	    if (!Utils.acceptX509Certificate(recipient)) return;
-	    if(ctx.validateKeyUsages() && !Utils.validateCertFlags(recipient, KeyUsageProfile.ENCRYPTION)) return;
+	    if (!isRecipientValid()) return;
 
-	    SymmetricAlgorithms cipher = (SymmetricAlgorithms) cmbEncAlgorithm.getSelectedItem();
-	    String text = txtbData.getText();
-
-	    ByteArrayInputStream input = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
+	    SymmetricAlgorithms cipher = getSelectedCipher();
+	    ByteArrayInputStream input = toInput(txtbData.getText());
 	    ByteArrayOutputStream output = new ByteArrayOutputStream();
-
-	    boolean ok = true;
 
 	    try {
 	        ec.encrypt(
@@ -439,20 +484,10 @@ public class TextPadForm {
 	                chckbUseSKI.isSelected(),
 	                ctx.useRsaOaep()
 	        );
-	    } catch (Exception e) {
-	        DialogUtils.showMessageBox(
-	                null,
-	                "Error during encryption",
-	                "Error during encryption!",
-	                e.getMessage(),
-	                JOptionPane.ERROR_MESSAGE
-	        );
-	        e.printStackTrace();
-	        ok = false;
-	    }
+	        txtbData.setText(fromOutput(output));
 
-	    if (ok) {
-	        txtbData.setText(new String(output.toByteArray(), StandardCharsets.UTF_8));
+	    } catch (Exception e) {
+	        showError("Error during encryption", "Error during encryption!", e);
 	    }
 	}
 	
@@ -488,23 +523,65 @@ public class TextPadForm {
 	 * @return The private key for decryption, or null if no matching key is found or
 	 *         password entry fails/cancels
 	 */
-	private PrivateKey getPrivateKey() {
-		String text = txtbData.getText();
-		ByteArrayInputStream input = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
-		Optional<String> privateKeyAlias = findRecipientAlias(input);
-		if(!privateKeyAlias.isPresent()) {
-            DialogUtils.showMessageBox(
-                    null,
-                    "Private key not found!",
-                    "No matching private key",
-                    "No matching private key",
-                    JOptionPane.WARNING_MESSAGE
-                );
-            return null;
-		}
-		
-		return Utils.getPrivateKeyDialog(privateKeyAlias.get());
-        
+	private Object getDecryptionKey() {
+		// user selection
+	    CertificateWrapper certWrapper = (CertificateWrapper) cmbRecipientCert.getSelectedItem();
+	    if (certWrapper != null) {
+	        try {
+	            String alias = certWrapper.getAlias();
+	            if (ctx.getKeystore().isPrivateKey(alias)) {
+	                PrivateKey priv = Utils.getPrivateKeyDialog(alias);
+	                if (priv != null) return priv;
+	            }
+	        } catch (Exception ignored) {}
+	    }
+
+	    SecretKeyWrapper skWrapper = (SecretKeyWrapper) cmbSymmetricKeys.getSelectedItem();
+	    if (skWrapper != null) {
+	        try {
+	            String alias = skWrapper.getAlias();
+	            if (ctx.getKeystore().isSecretKeyEntry(alias)) {
+	                SecretKey sk = Utils.getSecretKeyDialog(alias);
+	                if (sk != null) return sk;
+	            }
+	        } catch (Exception ignored) {}
+	    }
+
+	    // autodetect
+	    String text = txtbData.getText();
+	    ByteArrayInputStream input =
+	            new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
+
+	    Optional<String> aliasOpt = findRecipientAlias(input);
+
+	    if (!aliasOpt.isPresent()) {
+	        DialogUtils.showMessageBox(
+	                null,
+	                "Key not found!",
+	                "No matching key found for decryption",
+	                "",
+	                JOptionPane.WARNING_MESSAGE
+	        );
+	        return null;
+	    }
+
+	    String alias = aliasOpt.get();
+
+	    try {
+	        if (ctx.getKeystore().isPrivateKey(alias)) {
+	            PrivateKey priv = Utils.getPrivateKeyDialog(alias);
+	            if (priv != null) return priv;
+	        }
+	    } catch (Exception ignored) {}
+
+	    try {
+	        if (ctx.getKeystore().isSecretKeyEntry(alias)) {
+	            SecretKey sk = Utils.getSecretKeyDialog(alias);
+	            if (sk != null) return sk;
+	        }
+	    } catch (Exception ignored) {}
+
+	    return null;
 	}
 	
 	/**
@@ -513,34 +590,56 @@ public class TextPadForm {
 	 * If decryption fails, an error dialog is displayed and the encrypted data remains unchanged.
 	 */
 	private void decrypt() {
-		String text = txtbData.getText();
-	    ByteArrayInputStream input = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
+	    Object key = getDecryptionKey();
+	    if (key == null) return;
+
+	    ByteArrayInputStream input = toInput(txtbData.getText());
 	    ByteArrayOutputStream output = new ByteArrayOutputStream();
-	    
-        
-        PrivateKey priv = getPrivateKey();
-        if(priv == null) return;
-        
-        boolean ok = true;
-		try {
-			dc.decrypt(priv, EncodingOption.ENCODING_PEM, input, output);
-		} catch (Exception e) {
-	        DialogUtils.showMessageBox(
-	                null,
-	                "Error during decryption",
-	                "Error during decryption!",
-	                e.getMessage(),
-	                JOptionPane.ERROR_MESSAGE
-	        );
-			e.printStackTrace();
-			ok = false;
-		}
-	    if(ok) txtbData.setText(new String(output.toByteArray()));
 
-		
+	    try {
+	        if (key instanceof PrivateKey pk) {
+	            dc.decrypt(pk, EncodingOption.ENCODING_PEM, input, output);
+	        } else if (key instanceof SecretKey sk) {
+	            dc.decrypt(sk, EncodingOption.ENCODING_PEM, input, output);
+	        } else {
+	            throw new IllegalStateException("Unsupported key type");
+	        }
+
+	        txtbData.setText(fromOutput(output));
+
+	    } catch (Exception e) {
+	        showError("Error during decryption", "Error during decryption!", e);
+	    }
 	}
-
 	
+	private void symetricKeyEncrypt() {
+	    SecretKey sk = Utils.getSecretKeyDialog(symmetricRecipient);
+	    if (sk == null) return;
+
+	    Map<byte[], SecretKey> keys = Map.of(
+	            symmetricRecipient.getBytes(StandardCharsets.UTF_8), sk
+	    );
+
+	    ByteArrayInputStream input = toInput(txtbData.getText());
+	    ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+	    try {
+	        ec.encrypt(
+	                getSelectedCipher(),
+	                EncodingOption.ENCODING_PEM,
+	                Collections.emptyList(),
+	                keys,
+	                input,
+	                output,
+	                chckbUseSKI.isSelected(),
+	                ctx.useRsaOaep()
+	        );
+	        txtbData.setText(fromOutput(output));
+
+	    } catch (Exception e) {
+	        showError("Error during encryption", "Error during encryption!", e);
+	    }
+	}
 	/**
 	 * Adds a popup menu trigger to the specified component.
 	 *
@@ -642,5 +741,23 @@ public class TextPadForm {
 			        JOptionPane.ERROR_MESSAGE);
 	        return null;
 	    }
+	}
+		
+	private void showError(String title, String message, Exception e) {
+	    DialogUtils.showMessageBox(
+	            null,
+	            title,
+	            message,
+	            e.getMessage(),
+	            JOptionPane.ERROR_MESSAGE
+	    );
+	    e.printStackTrace();
+	}
+	
+	private boolean isRecipientValid() {
+	    if (!Utils.acceptX509Certificate(recipient)) return false;
+
+	    return !ctx.validateKeyUsages() ||
+	           Utils.validateCertFlags(recipient, KeyUsageProfile.ENCRYPTION);
 	}
 }

@@ -9,12 +9,14 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import javax.crypto.SecretKey;
 import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
 
 import org.bouncycastle.util.Arrays;
 
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
+import it.hackerinside.etk.GUI.DTOs.SecretKeyWrapper;
 import it.hackerinside.etk.Utils.X509KeyUsageValidator;
 import it.hackerinside.etk.core.Models.KeyUsageProfile;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
@@ -149,6 +151,42 @@ public class Utils {
 
 		return priv;
 	}
+	
+	public static SecretKey getSecretKeyDialog(String alias) {
+		if(alias == null || alias.isBlank()) return null;
+		ETKContext ctx = ETKContext.getInstance();
+		char[] pwd = Utils.passwordCacheHitOrMiss(alias, () -> {
+			return DialogUtils.showPasswordInputBox(
+					null,
+					"Unlock Secret key",
+					"Password for " + alias,
+					"Password:"
+					);
+		});
+		
+		if(pwd == null) return null;
+
+		SecretKey priv = null;
+		try {
+			priv = ctx.getKeystore().getSecretKey(alias, pwd);
+		}catch (Exception e) {
+			DialogUtils.showMessageBox(
+					null,
+					"Unable to access secret key",
+					"Unable to access secret key",
+					e.getMessage(),
+					JOptionPane.ERROR_MESSAGE
+					);
+			e.printStackTrace();
+			Utils.passwordCacheRemoveEntry(alias);
+			priv = null;
+		}finally {
+			if(pwd != null) Arrays.fill(pwd, (char) 0x00);
+		}
+
+		return priv;
+	}
+	
 	/**
 	 * Populates a {@link JComboBox} with certificates from a list of keystores.
 	 *
@@ -179,5 +217,28 @@ public class Utils {
 	        }
 	    }
 	} 
+	
+	/**
+	 * Populates a {@link JComboBox} with SecretKey from a list of keystores.
+	 *
+	 *
+	 * @param combo      the {@link JComboBox} to populate with {@link SecretKeyWrapper} items
+	 * @param keystores  a {@link List} of {@link AbstractKeystore} objects
+	 *
+	 */
+	public static void populateSecretKeys(
+	        JComboBox<SecretKeyWrapper> combo,
+	        List<AbstractKeystore> keystores) {
+	    for (AbstractKeystore ks : keystores) {
+	        if (ks == null) continue;
+
+	        try {
+	            ks.listSymmetricKeyAliases()
+	              .forEach(alias -> combo.addItem(new SecretKeyWrapper(alias, ks)));
+	        } catch (KeyStoreException e) {
+	            e.printStackTrace();
+	        }
+	    }
+	}
 
 }

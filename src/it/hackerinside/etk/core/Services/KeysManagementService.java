@@ -2,7 +2,9 @@ package it.hackerinside.etk.core.Services;
 
 import java.io.File;
 import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,9 +12,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
 import it.hackerinside.etk.GUI.DTOs.KeysLocations;
+import it.hackerinside.etk.GUI.DTOs.SecretKeyTableRow;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
 import it.hackerinside.etk.core.keystore.PKCS12Keystore;
 
@@ -471,5 +478,177 @@ public class KeysManagementService {
 		}finally {
 			if(pwd != null) Arrays.fill(pwd, (char)0x00);
 		}
+	}
+	
+	
+	/**
+	 * Saves a secret key into the keystore using a user-provided alias and password.
+	 *
+	 * @param key the secret key to store
+	 * @return true if the key was successfully saved, false otherwise
+	 * @throws Exception if the alias already exists or an error occurs
+	 */
+	public boolean saveToKeystore(SecretKey key) throws Exception {
+	    if(ctx.usePKCS11()) throw new UnsupportedOperationException("Operation not supported for PKCS11");
+
+	    String alias = invokeAliasProvider();
+	    if(alias == null || alias.isEmpty() || alias.isBlank()) return false;
+
+	    char[] pwd = invokePwdProvider(alias);
+	    if(pwd == null || pwd.length == 0) return false;
+	    
+	    try {
+	        if(ctx.getKeystore().containsAlias(alias)) throw new Exception("Unable to save, alias is already in use!");
+	        ctx.getKeystore().addSecretKey(alias, key, pwd);
+	        ctx.getKeystore().save();
+	        return true;
+	    } finally {
+	        if(pwd != null) Arrays.fill(pwd, (char)0x00);
+	    }
+	}
+
+	/**
+	 * Exports a secret key from the keystore as a byte array.
+	 *
+	 * @param alias the alias of the key
+	 * @return the encoded key bytes, or null
+	 */
+	public byte[] exportSecretKey(String alias) throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException {
+	    if(ctx.usePKCS11()) throw new UnsupportedOperationException("Operation not supported for PKCS11");
+	    
+	    char[] pwd = invokePwdProvider(alias);
+	    if(pwd == null || pwd.length == 0) return null;
+	    
+	    if(ctx.getKeystore().containsAlias(alias)) {
+	        return ctx.getKeystore().getSecretKey(alias, pwd).getEncoded();
+	    }
+	    
+	    return null;
+	}
+
+	/**
+	 * Imports a raw AES secret key into the keystore.
+	 *
+	 * @param key the encoded key bytes
+	 * @return true if successfully imported, false otherwise
+	 * @throws Exception if an error occurs during import
+	 */
+	public boolean importSecretKey(byte[] key) throws Exception {
+	    if(ctx.usePKCS11()) throw new UnsupportedOperationException("Operation not supported for PKCS11");
+
+	    String alias = invokeAliasProvider();
+	    if (alias == null || alias.isBlank()) {
+	        return false;
+	    }
+
+	    char[] pwd = null;
+
+	    try {
+	        pwd = invokePwdProvider(alias);
+	        if (pwd == null || pwd.length == 0) return false;
+
+	        SecretKey originalKey = new SecretKeySpec(key, 0, key.length, "AES");
+	        ctx.getKeystore().addSecretKey(alias, originalKey, pwd);
+	        ctx.getKeystore().save();
+	        return true;
+
+	    } finally {
+	        if (pwd != null) Arrays.fill(pwd, (char) 0x00);
+	    }
+	}
+	
+	/**
+	 * Generates a new AES SecretKey, stores it in the keystore under a provided alias,
+	 * and returns the raw encoded key bytes.
+	 *
+	 * @return the generated key as a byte array, or null if alias/password are not provided
+	 * @throws Exception if key generation or keystore operations fail
+	 */
+	public byte[] generateAndStoreSecretKey() throws Exception {
+	    if (ctx.usePKCS11()) {
+	        throw new UnsupportedOperationException("Operation not supported for PKCS11");
+	    }
+
+	    String alias = invokeAliasProvider();
+	    if (alias == null || alias.isBlank()) {
+	        return null;
+	    }
+
+	    char[] pwd = invokePwdProvider(alias);
+
+	    try {
+	        if (pwd == null || pwd.length == 0) return null;
+
+	        KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+	        keyGen.init(256);
+	        SecretKey secretKey = keyGen.generateKey();
+
+	        ctx.getKeystore().addSecretKey(alias, secretKey, pwd);
+	        ctx.getKeystore().save();
+
+	        return secretKey.getEncoded();
+
+	    } finally {
+	        if (pwd != null) Arrays.fill(pwd, (char) 0x00);
+	    }
+	}
+
+	/**
+	 * Deletes a secret key from the keystore.
+	 *
+	 * @param alias the alias of the key to delete
+	 * @return true if the key was deleted, false if not found
+	 * @throws Exception if keystore operation fails
+	 */
+	public boolean deleteSecretKey(String alias) throws Exception {
+	    if(!ctx.getKeystore().containsAlias(alias)) return false;
+	    
+    	boolean ok = invokeConfirmationProvider();
+    	if(!ok) return false;
+    	
+	    ctx.getKeystore().deleteSecretKey(alias);
+	    ctx.getKeystore().save();
+	    return true;
+	}
+
+	/**
+	 * Renames the alias of a secret key entry.
+	 *
+	 * @param alias the current alias
+	 * @return the new alias, or null if operation was cancelled/failed
+	 * @throws Exception if renaming fails
+	 */
+	public String renameSecretKeyAlias(String alias) throws Exception {
+	    if(ctx.usePKCS11()) throw new UnsupportedOperationException("Operation not supported for PKCS11");
+
+	    String newAlias = invokeAliasProvider();
+	    if (newAlias == null || newAlias.isBlank()) {
+	        return null;
+	    }
+
+	    char[] pwd = null;
+
+	    try {
+	        pwd = invokePwdProvider(alias);
+	        if (pwd == null || pwd.length == 0) return null;
+
+	        ctx.getKeystore().renameEntry(alias, newAlias, pwd);
+	        ctx.getKeystore().save();
+	        
+	        return newAlias;
+
+	    } finally {
+	        if (pwd != null) Arrays.fill(pwd, (char) 0x00);
+	    }
+	}
+
+	/**
+	 * Lists all secret key aliases stored in the keystore.
+	 *
+	 * @return list of symmetric key aliases
+	 * @throws KeyStoreException if keystore access fails
+	 */
+	public List<String> getSecretKeys() throws KeyStoreException {
+	    return ctx.getKeystore().listSymmetricKeyAliases();
 	}
 }
