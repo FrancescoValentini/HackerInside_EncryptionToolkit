@@ -1124,6 +1124,11 @@ public class ETKMain {
 	}
 
 	private void manageSymmetricKeys() {
+		if(checkPkcs11Operation()) return;
+		if(!loggedIn) {
+			notLoggedInError();
+			return;
+		}
 		SecretKeyManagementForm skmf = new SecretKeyManagementForm();
 		skmf.setVisible();
 	}
