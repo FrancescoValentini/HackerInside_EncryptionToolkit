@@ -59,50 +59,61 @@ public class SecretKeyManagementForm {
     }
 
     private void initialize() {
-        frmSymmetricKeyManagement = new JFrame("Secret Key Management");
-        frmSymmetricKeyManagement.setTitle("Symmetric Key Management");
+        frmSymmetricKeyManagement = new JFrame("Symmetric Key Management");
         frmSymmetricKeyManagement.setResizable(false);
-        frmSymmetricKeyManagement.setBounds(100, 100, 709, 408);
-        //frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frmSymmetricKeyManagement.getContentPane().setLayout(new BorderLayout(10, 10));
+        frmSymmetricKeyManagement.setBounds(100, 100, 720, 420);
+        frmSymmetricKeyManagement.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-        // ===== LEFT PANEL =====
+        // ===== ROOT PANEL =====
+        JPanel root = new JPanel(new BorderLayout(15, 15));
+        root.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        frmSymmetricKeyManagement.setContentPane(root);
+
+        // ===== LEFT PANEL (LIST) =====
         listModel = new DefaultListModel<>();
         aliasList = new JList<>(listModel);
         aliasList.setFont(new Font("Tahoma", Font.PLAIN, 16));
 
         JScrollPane listScroll = new JScrollPane(aliasList);
         setTitledBorderFont(listScroll, "Aliases");
-        listScroll.setPreferredSize(new Dimension(200, 0));
+        listScroll.setPreferredSize(new Dimension(220, 0));
 
         // ===== RIGHT PANEL =====
-        JPanel rightPanel = new JPanel(new BorderLayout(5, 5));
+        JPanel rightPanel = new JPanel(new BorderLayout(10, 10));
+        rightPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
+        // TEXT AREA
         keyTextArea = new JTextArea(8, 20);
         keyTextArea.setLineWrap(true);
         keyTextArea.setFont(new Font("Monospaced", Font.PLAIN, 16));
         ((AbstractDocument) keyTextArea.getDocument())
-        .setDocumentFilter(new Hex64Filter());
+                .setDocumentFilter(new Hex64Filter());
 
         JScrollPane textScroll = new JScrollPane(keyTextArea);
         setTitledBorderFont(textScroll, "Key (HEX)");
 
-        JPanel aliasPanel = new JPanel(new BorderLayout(5, 5));
+        // KCV PANEL
+        JPanel kcvPanel = new JPanel(new BorderLayout());
         kcvField = new JTextField();
         kcvField.setEditable(false);
         kcvField.setFont(new Font("Tahoma", Font.PLAIN, 16));
 
-        
-        setTitledBorderFont(aliasPanel, "KCV");
-        aliasPanel.add(kcvField, BorderLayout.CENTER);
+        setTitledBorderFont(kcvPanel, "KCV");
+        kcvPanel.add(kcvField, BorderLayout.CENTER);
+
+        JPanel southWrapper = new JPanel(new BorderLayout());
+        southWrapper.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 0));
+        southWrapper.add(kcvPanel, BorderLayout.CENTER);
+
         rightPanel.add(textScroll, BorderLayout.CENTER);
-        rightPanel.add(aliasPanel, BorderLayout.SOUTH);
-        
+        rightPanel.add(southWrapper, BorderLayout.SOUTH);
 
         // ===== BUTTON PANEL =====
-        JPanel buttonPanel = new JPanel(new GridLayout(0, 1, 5, 5));
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 5, 10, 15));
-        buttonPanel.setPreferredSize(new Dimension(140, 0));
+        JPanel buttonPanel = new JPanel(new GridLayout(0, 1, 8, 8));
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 5));
+        buttonPanel.setPreferredSize(new Dimension(150, 0));
+
+        Font btnFont = new Font("Tahoma", Font.PLAIN, 16);
 
         JButton generateBtn = new JButton("RANDOM");
         JButton importBtn = new JButton("IMPORT");
@@ -110,18 +121,10 @@ public class SecretKeyManagementForm {
         JButton deleteBtn = new JButton("DELETE");
         JButton renameBtn = new JButton("RENAME");
 
-        Font btnFont = new Font("Tahoma", Font.PLAIN, 16);
-        generateBtn.setFont(btnFont);
-        importBtn.setFont(btnFont);
-        exportBtn.setFont(btnFont);
-        deleteBtn.setFont(btnFont);
-        renameBtn.setFont(btnFont);
-
-        buttonPanel.add(generateBtn);
-        buttonPanel.add(importBtn);
-        buttonPanel.add(exportBtn);
-        buttonPanel.add(deleteBtn);
-        buttonPanel.add(renameBtn);
+        for (JButton btn : new JButton[]{generateBtn, importBtn, exportBtn, deleteBtn, renameBtn}) {
+            btn.setFont(btnFont);
+            buttonPanel.add(btn);
+        }
 
         // ===== ACTIONS =====
         generateBtn.addActionListener(this::generateKey);
@@ -129,9 +132,8 @@ public class SecretKeyManagementForm {
         exportBtn.addActionListener(this::exportKey);
         deleteBtn.addActionListener(this::deleteKey);
         renameBtn.addActionListener(this::renameAlias);
-        
-        keyTextArea.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
 
+        keyTextArea.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             @Override
             public void insertUpdate(javax.swing.event.DocumentEvent e) {
                 updateKcvIfValid();
@@ -157,10 +159,10 @@ public class SecretKeyManagementForm {
         });
 
         // ===== LAYOUT =====
-        frmSymmetricKeyManagement.getContentPane().add(listScroll, BorderLayout.WEST);
-        frmSymmetricKeyManagement.getContentPane().add(rightPanel, BorderLayout.CENTER);
-        frmSymmetricKeyManagement.getContentPane().add(buttonPanel, BorderLayout.EAST);
-        
+        root.add(listScroll, BorderLayout.WEST);
+        root.add(rightPanel, BorderLayout.CENTER);
+        root.add(buttonPanel, BorderLayout.EAST);
+
         start();
     }
     
@@ -192,8 +194,9 @@ public class SecretKeyManagementForm {
 
     // ===== ACTION METHODS =====
 
-    private void generateKey(ActionEvent e) {        
+    private void generateKey(ActionEvent e) {
         try {
+        	aliasList.clearSelection();
         	byte[] k = new byte[32]; // 256 bits
         	new SecureRandom().nextBytes(k);
         	
@@ -268,6 +271,7 @@ public class SecretKeyManagementForm {
 
     private void exportKey(ActionEvent e) {
         String selected = aliasList.getSelectedValue();
+        if(selected == null || selected.isEmpty()) return;
         kms.setPwdProvider((alias) -> askUnlockSecretKey(selected));
         
         try {
@@ -301,7 +305,7 @@ public class SecretKeyManagementForm {
 
     private void deleteKey(ActionEvent e) {
         String selected = aliasList.getSelectedValue();
-
+        if(selected == null || selected.isEmpty()) return;
     	kms.setConfirmationProvider(() ->DialogUtils.showConfirmBox(
 	            null, 
 	            "DELETING SECRET KEY KEY!", 
@@ -342,7 +346,7 @@ public class SecretKeyManagementForm {
 
     private void renameAlias(ActionEvent e) {
         String selected = aliasList.getSelectedValue();
-
+        if(selected == null || selected.isEmpty()) return;
         if (!DialogUtils.showConfirmBox(
                 null,
                 "Rename secret key alias",
