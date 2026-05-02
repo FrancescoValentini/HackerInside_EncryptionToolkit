@@ -557,15 +557,7 @@ public class ETKMain {
 		    updateTable();
 		    
 		}
-		
-		/*
-		 * At the moment the software does not properly support encryption and decryption 
-		 * with pkcs11 devices, so it is better to disable the option to prevent data loss.
-		 */
-		if(ctx.usePKCS11() && ctx.isPkcs11SignOnly()) {
-			btnDecrypt.setEnabled(false);
-			btnEncrypt.setEnabled(false);
-		}
+		pkcs11DisableOperations();
 	}
 
 	/**
@@ -597,6 +589,18 @@ public class ETKMain {
 	    } finally {
 	    	if(password != null) Arrays.fill(password, (char)0x00);
 	    }
+	    pkcs11DisableOperations();
+	}
+	
+	/*
+	 * At the moment the software does not properly support encryption and decryption 
+	 * with pkcs11 devices, so it is better to disable the option to prevent data loss.
+	 */
+	private void pkcs11DisableOperations() {
+		if(ctx.usePKCS11() && ctx.isPkcs11SignOnly()) {
+			btnDecrypt.setEnabled(false);
+			btnEncrypt.setEnabled(false);
+		}
 	}
 
 	/**
