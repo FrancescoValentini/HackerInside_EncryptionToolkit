@@ -10,6 +10,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.Provider;
@@ -347,10 +348,19 @@ public class CMSEncryptor implements Encryptor {
     
     private RecipientInfoGenerator buildSymmetricRecipientInfo(byte[] kid, SecretKey key) throws Exception {
         return new JceKEKRecipientInfoGenerator(
-                kid,
+        		sha256(kid), // Hash the key identifier to avoid exposing the raw identifier
                 key
         );
     }
+    
+	private byte[] sha256(byte[] input) {
+	    try {
+	        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+	        return digest.digest(input);
+	    } catch (NoSuchAlgorithmException e) {
+	        throw new RuntimeException("SHA-256 not available", e);
+	    }
+	}
 
     /**
      * Return a RFC 3280 type 1 key identifier

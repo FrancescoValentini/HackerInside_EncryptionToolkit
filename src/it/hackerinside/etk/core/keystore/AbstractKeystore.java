@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.security.KeyStore.Entry;
 import java.security.KeyStoreException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Provider;
@@ -569,26 +570,42 @@ public abstract class AbstractKeystore {
 	
 	/**
 	 * Checks whether the given secret key alias matches any recipient identifier
-	 * in the provided collection. A match occurs when a recipient of type KEK_KEY_ID
-	 * has a key identifier equal to the alias bytes.
+	 * in the provided collection.
+	 *
+	 * A match occurs when a recipient of type KEK_KEY_ID has a key identifier equal to:
+	 * - the alias encoded as UTF-8 bytes (legacy/plain format), or
+	 * - the SHA-256 hash of the alias (preferred format to avoid exposing the raw alias value).
+	 *
+	 * This allows backward compatibility while reducing direct metadata exposure.
 	 *
 	 * @param alias the secret key alias
 	 * @param recipients the collection of recipient identifiers
 	 * @return true if a matching recipient is found, false otherwise
 	 */
 	private boolean secretKeyMatchesAnyRecipient(String alias, Collection<RecipientIdentifier> recipients) {
-	    byte[] keyId = alias.getBytes(StandardCharsets.UTF_8);
+	    byte[] keyIdPlain = alias.getBytes(StandardCharsets.UTF_8);
+	    byte[] keyIdSha256 = sha256(keyIdPlain); // Hash the identifier to avoid directly exposing the alias
 
 	    for (RecipientIdentifier rid : recipients) {
 	        if (rid.getType() == RecipientIdentifier.Type.KEK_KEY_ID) {
 	            byte[] ridId = rid.getKeyIdentifier();
-
-	            if (ridId != null && Arrays.equals(ridId, keyId)) {
+	            
+	            if (ridId != null &&
+	                (Arrays.equals(ridId, keyIdPlain) || Arrays.equals(ridId, keyIdSha256))) {
 	                return true;
 	            }
 	        }
 	    }
 	    return false;
+	}
+	
+	private byte[] sha256(byte[] input) {
+	    try {
+	        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+	        return digest.digest(input);
+	    } catch (NoSuchAlgorithmException e) {
+	        throw new RuntimeException("SHA-256 not available", e);
+	    }
 	}
 
 	/**
