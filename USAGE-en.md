@@ -28,7 +28,7 @@ In this window, you can:
 
 1. Click **Encrypt** and select the file to encrypt.
 2. Choose the recipient: the dropdown menu lists certificates from both the **personal keystore** and the **trusted certificates keystore**.
-   You can also open the **File** tab to import an external certificate.
+   You can also open the **File** tab to import an external certificate or (if present) you can use a symmetric key.
 3. Click **+** to add the recipient to the list
 4. *(Optional)* The algorithm and encoding are automatically selected based on the default settings, but you can change them for this specific operation.
 5. Click **Encrypt** and wait for confirmation.
@@ -38,8 +38,15 @@ In this window, you can:
 ### 🔓 Decryption (Decrypt)
 
 1. Click **Decrypt** and select the file to decrypt (only files with the `.p7e` extension will be shown).
-2. If the software automatically detects the correct private key, it will be pre-selected in the dropdown menu. Otherwise, you can choose it manually.
-3. Click **Decrypt**, enter the private key password, and wait for confirmation.
+2. If the software automatically detects the correct private key (or symmetric key), it will be pre-selected in the dropdown menu. Otherwise, you can choose it manually.
+3. Click **Decrypt**, enter the private key password (or symmetric key password), and wait for confirmation.
+
+> [!WARNING]
+> When using a symmetric key, its identifier (KID) is calculated from the alias in the keystore (using SHA-256).
+>
+> If the alias does not match, the key will not be automatically detected.
+>
+> The data will still be decryptable, but you will need to manually select the correct key.
 
 ---
 
