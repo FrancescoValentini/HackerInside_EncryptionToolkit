@@ -71,8 +71,6 @@ public class CMSEncryptor implements Encryptor {
     private boolean useOnlySKI = false;
     private volatile boolean aborted = false;
     private boolean useOAEP = true;
-    private Provider provider;
-    
     /**
      * Constructs a new CMSEncryptor with the specified parameters.
      *
@@ -117,14 +115,6 @@ public class CMSEncryptor implements Encryptor {
      */
     public void abort() {
     	this.aborted = true;
-    }
-    
-    /**
-     * Set the cryptographic provider
-     * @param p
-     */
-    public void setProvider(Provider p) {
-    	this.provider = p;
     }
     
     /**
