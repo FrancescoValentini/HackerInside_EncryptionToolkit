@@ -11,12 +11,16 @@ import java.security.PrivateKey;
 import java.security.Provider;
 import java.util.Collection;
 
+import javax.crypto.SecretKey;
+
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.cms.CMSEnvelopedDataParser;
 import org.bouncycastle.cms.CMSException;
+import org.bouncycastle.cms.KEKRecipientInformation;
 import org.bouncycastle.cms.RecipientInformation;
 import org.bouncycastle.cms.RecipientInformationStore;
+import org.bouncycastle.cms.jcajce.JceKEKEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKEMEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKeyAgreeEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKeyTransEnvelopedRecipient;
@@ -39,6 +43,7 @@ public class CMSDecryptor {
 	private int bufferSize;
 	private volatile boolean aborted = false;
 	private Provider provider;
+	private SecretKey secretKey;
 	
 	/**
 	 * Constructs a new CMSDecryptor with the specified parameters.
@@ -49,6 +54,19 @@ public class CMSDecryptor {
 	 */
 	public CMSDecryptor(PrivateKey privateKey, EncodingOption encoding, int bufferSize) {
 		this.privateKey = privateKey;
+		this.encoding = encoding;
+		this.bufferSize = bufferSize;
+	}
+	
+	/**
+	 * Constructs a new CMSDecryptor with the specified parameters.
+	 * 
+	 * @param secretKey
+	 * @param encoding the encoding option for the output (DER or PEM)
+	 * @param bufferSize the buffer size
+	 */
+	public CMSDecryptor(SecretKey secretKey, EncodingOption encoding, int bufferSize) {
+		this.secretKey = secretKey;
 		this.encoding = encoding;
 		this.bufferSize = bufferSize;
 	}
@@ -164,6 +182,14 @@ public class CMSDecryptor {
      */
 	private InputStream createRecipientContentStream(RecipientInformation recipient) throws CMSException, IOException {
 		
+	    if (recipient instanceof KEKRecipientInformation kekRecipient) {
+	        return kekRecipient
+	                .getContentStream(
+	                        new JceKEKEnvelopedRecipient(this.secretKey)
+	                )
+	                .getContentStream();
+	    }
+		
 		ASN1ObjectIdentifier oid = new ASN1ObjectIdentifier(recipient.getKeyEncryptionAlgOID());
 		
 		if(PQCAlgorithms.fromOID(oid) != null && !PQCAlgorithms.fromOID(oid).canSign) { // PQC
@@ -198,6 +224,10 @@ public class CMSDecryptor {
 	}
 	
 	private InputStream createRecipientContentStreamPKCS11(RecipientInformation recipient) throws CMSException, IOException {
+		/*
+		 * A special version of JceKEKEnvelopedRecipient for PKCS#11 is not implemented 
+		 * as only extractable keys are supported at the moment.
+		 */
 		ASN1ObjectIdentifier oid = new ASN1ObjectIdentifier(recipient.getKeyEncryptionAlgOID());
 		if(PQCAlgorithms.fromOID(oid) != null && !PQCAlgorithms.fromOID(oid).canSign) { // PQC
 			return recipient
@@ -257,6 +287,7 @@ public class CMSDecryptor {
      * @return true if the key is a PKCS#11 key, false otherwise.
      */
     private boolean isPKCS11Key(PrivateKey key) {
+    	if(key == null) return false;
         return key.getClass().getName().startsWith("sun.security.pkcs11");
     }
 

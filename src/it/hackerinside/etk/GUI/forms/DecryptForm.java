@@ -8,17 +8,22 @@ import javax.swing.JOptionPane;
 
 import java.awt.BorderLayout;
 import java.awt.Font;
+import java.security.Key;
 import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Stream;
+
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
 import javax.swing.JPanel;
+import javax.crypto.SecretKey;
 import javax.swing.ComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.JButton;
@@ -30,8 +35,10 @@ import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.TimeUtils;
 import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
+import it.hackerinside.etk.GUI.DTOs.SecretKeyWrapper;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Services.DecryptionService;
+import it.hackerinside.etk.core.keystore.AbstractKeystore;
 
 import javax.swing.JProgressBar;
 import java.awt.event.ActionListener;
@@ -40,6 +47,7 @@ import java.awt.event.WindowEvent;
 import java.io.File;
 import java.awt.event.ActionEvent;
 import java.awt.Toolkit;
+import javax.swing.JTabbedPane;
 
 public class DecryptForm {
 
@@ -56,6 +64,10 @@ public class DecryptForm {
     private boolean running = false;
     private SwingWorker<Void, Void> currentWorker;
     private DecryptionService decryptionService;
+    private JTabbedPane tabbedPane;
+    private JPanel pnlPrivateKey;
+    private JComboBox<SecretKeyWrapper> cmbKek;
+    private JPanel pnlKek;
     
 
 	/**
@@ -117,19 +129,6 @@ public class DecryptForm {
 		JPanel panel = new JPanel();
 		frmHackerinsideEncryptionToolkit.getContentPane().add(panel, BorderLayout.CENTER);
 		
-		JLabel lblNewLabel = new JLabel("Private Key");
-		lblNewLabel.setBounds(10, 11, 120, 20);
-		lblNewLabel.setFont(new Font("Tahoma", Font.PLAIN, 16));
-		
-		cmbPrivateKey = new JComboBox();
-		cmbPrivateKey.setBounds(10, 42, 451, 25);
-		cmbPrivateKey.setFont(new Font("Tahoma", Font.PLAIN, 16));
-		
-		JButton btnCertDetails = new JButton("DETAILS");
-		btnCertDetails.setBounds(471, 42, 95, 25);
-
-		btnCertDetails.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
 		JButton btnOpenOutputFile = new JButton("...");
 		btnOpenOutputFile.setBounds(471, 148, 95, 25);
 
@@ -160,11 +159,50 @@ public class DecryptForm {
 		lblStatus.setHorizontalAlignment(SwingConstants.CENTER);
 		lblStatus.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
-		btnCertDetails.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				showRecipientDetails();
-			}
-		});
+		panel.setLayout(null);
+		panel.add(txtbOutputFile);
+		panel.add(btnOpenOutputFile);
+		panel.add(lblInputFile);
+		panel.add(btnDecrypt);
+		panel.add(progressBar);
+		panel.add(lblStatus);
+		
+		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		tabbedPane.setBounds(10, 11, 556, 81);
+		tabbedPane.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		panel.add(tabbedPane);
+		
+		pnlPrivateKey = new JPanel();
+		tabbedPane.addTab("Private Key", null, pnlPrivateKey, null);
+		pnlPrivateKey.setLayout(null);
+		
+		cmbPrivateKey = new JComboBox();
+		cmbPrivateKey.setBounds(10, 11, 426, 25);
+		pnlPrivateKey.add(cmbPrivateKey);
+		cmbPrivateKey.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		
+		JButton btnCertDetails = new JButton("DETAILS");
+		btnCertDetails.setBounds(446, 11, 95, 25);
+		pnlPrivateKey.add(btnCertDetails);
+		
+				btnCertDetails.setFont(new Font("Tahoma", Font.PLAIN, 14));
+				
+				btnCertDetails.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent e) {
+						showRecipientDetails();
+					}
+				});
+		
+		pnlKek = new JPanel();
+		tabbedPane.addTab("Symmetric", null, pnlKek, null);
+		pnlKek.setLayout(null);
+		
+		cmbKek = new JComboBox();
+		cmbKek.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		cmbKek.setBounds(10, 11, 531, 25);
+		pnlKek.add(cmbKek);
+		
+
 		
 		btnOpenOutputFile.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -188,21 +226,31 @@ public class DecryptForm {
 				}
 			}
 		});
+		
 		this.decryptionService = new DecryptionService(ctx);
+		
 		populaterCerts(cmbPrivateKey);
-		panel.setLayout(null);
-		panel.add(lblNewLabel);
-		panel.add(txtbOutputFile);
-		panel.add(cmbPrivateKey);
-		panel.add(btnCertDetails);
-		panel.add(btnOpenOutputFile);
-		panel.add(lblInputFile);
-		panel.add(btnDecrypt);
-		panel.add(progressBar);
-		panel.add(lblStatus);
+		populateSecretKeys(cmbKek);
+		
 		if(this.fileToDecrypt == null) fileInitialization();
 	}
 	
+	/**
+	 * Populates a combo box with SecretKey
+	 * Includes a null option for empty selection.
+	 * 
+	 * @param combo the combo box to populate with SecretKey wrappers
+	 */
+	private void populateSecretKeys(JComboBox<SecretKeyWrapper> combo) {
+		combo.addItem(null);
+		List<AbstractKeystore> keystores = Stream.of(
+		        ctx.getKeystore()
+		    )
+		    .filter(Objects::nonNull)
+		    .toList();
+		
+		Utils.populateSecretKeys(combo, keystores);
+	}
 	
 	/**
 	 * Initializes the file selection process
@@ -234,8 +282,8 @@ public class DecryptForm {
 	            try {
 	                Optional<String> aliasOpt = get();
 	                if (aliasOpt.isPresent()) {
-	                    selectAliasInCombo(aliasOpt.get());
-	                    lblStatus.setText("Found private key: " + aliasOpt.get());
+	                    selectAlias(aliasOpt.get());
+	                    lblStatus.setText("Found recipient key: " + aliasOpt.get());
 	                } else {
 	                    DialogUtils.showMessageBox(
 	                        null,
@@ -261,16 +309,56 @@ public class DecryptForm {
 	    };
 	    worker.execute();
 	}
+	
+	private void selectAlias(String alias) {
+	    if (selectAliasInPrivateCombo(alias)) {
+	        tabbedPane.setSelectedComponent(pnlPrivateKey);
+	        return;
+	    }
 
-	private void selectAliasInCombo(String alias) {
+	    if (selectAliasInSecretCombo(alias)) {
+	        tabbedPane.setSelectedComponent(pnlKek);
+	        return;
+	    }
+
+	    lblStatus.setText("Manually select the correct certificate.");
+	}
+
+	private boolean selectAliasInPrivateCombo(String alias) {
 	    ComboBoxModel<CertificateWrapper> model = cmbPrivateKey.getModel();
 	    for (int i = 0; i < model.getSize(); i++) {
-	        CertificateWrapper certWrapper = model.getElementAt(i);
-	        if (certWrapper != null && alias.equals(certWrapper.getAlias())) {
+	        CertificateWrapper cert = model.getElementAt(i);
+	        if (cert != null && alias.equals(cert.getAlias())) {
 	            cmbPrivateKey.setSelectedIndex(i);
-	            return;
+	            tabbedPane.setSelectedComponent(pnlPrivateKey);
+	            return true;
 	        }
 	    }
+	    return false;
+	}
+
+	private boolean selectAliasInSecretCombo(String alias) {
+	    ComboBoxModel<SecretKeyWrapper> model = cmbKek.getModel();
+	    for (int i = 0; i < model.getSize(); i++) {
+	        SecretKeyWrapper key = model.getElementAt(i);
+	        if (key != null && alias.equals(key.getAlias())) {
+	            cmbKek.setSelectedIndex(i);
+	            tabbedPane.setSelectedComponent(pnlKek);
+	            return true;
+	        }
+	    }
+	    return false;
+	}
+	
+	private String getSelectedAlias() {
+	    if (tabbedPane.getSelectedComponent() == pnlPrivateKey) {
+	        CertificateWrapper cert = (CertificateWrapper) cmbPrivateKey.getSelectedItem();
+	        return cert != null ? cert.getAlias() : null;
+	    } else if (tabbedPane.getSelectedComponent() == pnlKek) {
+	        SecretKeyWrapper key = (SecretKeyWrapper) cmbKek.getSelectedItem();
+	        return key != null ? key.getAlias() : null;
+	    }
+	    return null;
 	}
 
 	/**
@@ -303,8 +391,6 @@ public class DecryptForm {
 	            defaultOutput.getAbsolutePath()
 	    );
 		setOutputFile(outputFile);
-
-	    
 	}
 	
 	/**
@@ -348,17 +434,44 @@ public class DecryptForm {
 		new CertificateDetailsForm(getCertificate());
 	}
 	
-	private void decrypt() {
-	    File output = new File(txtbOutputFile.getText());
-	    if(!FileDialogUtils.overwriteIfExists(output)) return;
-	    String alias = ((CertificateWrapper) cmbPrivateKey.getSelectedItem()).getAlias();
+	private Key getDecryptionKey() {
+	    String alias = getSelectedAlias();
 	    if (alias == null) {
-	        throw new IllegalStateException("No certificates selected.");
+		    DialogUtils.showMessageBox(
+		            null,
+		            "Missing fields",
+		            "No key selected.",
+		            "",
+		            JOptionPane.ERROR_MESSAGE
+		    );
 	    }
 	    
-	    
-	    PrivateKey priv = Utils.getPrivateKeyDialog(alias);
-	    if(priv == null) return;
+	    // 1. PrivateKey
+	    try {
+	    	if(ctx.getKeystore().isPrivateKey(alias)) {
+	    		PrivateKey priv = Utils.getPrivateKeyDialog(alias);
+	    		if (priv != null) return priv;
+	    	}
+	    }catch(Exception e) {
+	    	return null;
+	    }
+	    // 2. SecretKey
+	    try {
+	    	if(ctx.getKeystore().isSecretKeyEntry(alias)) {
+			    SecretKey sk = Utils.getSecretKeyDialog(alias);
+			    if (sk != null) return sk;
+	    	}
+	    }catch(Exception e) {
+	    	return null;
+	    }
+
+	    return null;
+	}
+	
+	private void decrypt() {
+	    File output = new File(txtbOutputFile.getText());
+	    Key key = getDecryptionKey();
+	    if(key == null) return;
 	    
 	    startDecryptionUI();
 	    running = true;
@@ -368,11 +481,22 @@ public class DecryptForm {
 			@Override
 			protected Void doInBackground() throws Exception {
 		        startTime = System.currentTimeMillis();
-		        decryptionService.decrypt(
-		        		priv,
-		                fileToDecrypt,
-		                output
-		            );
+		        if (key instanceof PrivateKey pk) {
+			        decryptionService.decrypt(
+			        		pk,
+			                fileToDecrypt,
+			                output
+			            );
+		        }else if (key instanceof SecretKey sk) {
+			        decryptionService.decrypt(
+			        		sk,
+			                fileToDecrypt,
+			                output
+			            );
+		        } else {
+		            throw new IllegalStateException("Unsupported key type");
+		        }
+
 
 			    return null;
 			}

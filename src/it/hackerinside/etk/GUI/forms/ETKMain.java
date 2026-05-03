@@ -144,7 +144,7 @@ public class ETKMain {
 	    JMenuItem mntmAbout = new JMenuItem("About");
 	    fileMenu.add(mntmAbout);
 	    
-	    JMenu mnNewMenu = new JMenu("Certificates");
+	    JMenu mnNewMenu = new JMenu("Keys & Certificates");
 	    menuBar.add(mnNewMenu);
 	    
 	    JMenuItem menuItemKeystoreLogin = new JMenuItem("Keystore Login");
@@ -156,6 +156,9 @@ public class ETKMain {
 	    
 	    JMenuItem menuItemNewKeypair = new JMenuItem("New Keypair");
 	    mnNewMenu.add(menuItemNewKeypair);
+	    
+	    JMenuItem mntmManageSymmetricKeys = new JMenuItem("Manage Symmetric Keys");
+	    mnNewMenu.add(mntmManageSymmetricKeys);
 	    
 	    JMenuItem menuItemImportKeypair = new JMenuItem("Import KeyPair");
 	    mnNewMenu.add(menuItemImportKeypair);
@@ -181,6 +184,8 @@ public class ETKMain {
 	    menuItemImportKnownCertURL.addActionListener(e -> importKnownCertFromURL());
 	    mntmFilesChecksum.addActionListener(e -> filesChecksum());
 
+	    mntmManageSymmetricKeys.addActionListener(e -> manageSymmetricKeys());
+	    
 	    btnSign.addActionListener(e -> sign());
 	    btnVerify.addActionListener(e -> verify());
 	    btnEncrypt.addActionListener(e -> encrypt());
@@ -396,6 +401,7 @@ public class ETKMain {
 	 * @param row the certificate table row containing the certificate to delete
 	 */
 	private void deleteCertificate(CertificateTableRow row) {
+		if(checkPkcs11Operation()) return;
         try {
         	kms.setConfirmationProvider(() ->DialogUtils.showConfirmBox(
 		            null, 
@@ -551,15 +557,7 @@ public class ETKMain {
 		    updateTable();
 		    
 		}
-		
-		/*
-		 * At the moment the software does not properly support encryption and decryption 
-		 * with pkcs11 devices, so it is better to disable the option to prevent data loss.
-		 */
-		if(ctx.usePKCS11() && ctx.isPkcs11SignOnly()) {
-			btnDecrypt.setEnabled(false);
-			btnEncrypt.setEnabled(false);
-		}
+		pkcs11DisableOperations();
 	}
 
 	/**
@@ -591,6 +589,18 @@ public class ETKMain {
 	    } finally {
 	    	if(password != null) Arrays.fill(password, (char)0x00);
 	    }
+	    pkcs11DisableOperations();
+	}
+	
+	/*
+	 * At the moment the software does not properly support encryption and decryption 
+	 * with pkcs11 devices, so it is better to disable the option to prevent data loss.
+	 */
+	private void pkcs11DisableOperations() {
+		if(ctx.usePKCS11() && ctx.isPkcs11SignOnly()) {
+			btnDecrypt.setEnabled(false);
+			btnEncrypt.setEnabled(false);
+		}
 	}
 
 	/**
@@ -857,7 +867,7 @@ public class ETKMain {
 	 * Imports key pairs from an external keystore file into the application's current keystore.
 	 */
 	private void importKeypair() {
-		if(ctx.usePKCS11()) throw new UnsupportedOperationException("Operation not supported for PKCS11");
+		if(checkPkcs11Operation()) return;
 		
 		if(!loggedIn) {
 			notLoggedInError();
@@ -876,6 +886,8 @@ public class ETKMain {
 	 * @param row the entry to rename
 	 */
 	private void renameAlias(CertificateTableRow row) {
+		if(checkPkcs11Operation()) return;
+
 	    String currAlias = row.keystoreAlias();
 
 	    // Alias input
@@ -889,6 +901,7 @@ public class ETKMain {
 	    kms.setPwdProvider(() -> Utils.passwordCacheHitOrMiss(currAlias, () -> askUnlockPrivateKey(currAlias)));
 
 	    try {
+			if(ctx.usePKCS11()) throw new UnsupportedOperationException("Operation not supported for PKCS11");
 	        String newName = kms.renameAlias(row);
 	        if(newName == null) return;
 	        
@@ -925,10 +938,12 @@ public class ETKMain {
 	 * Changes the selected alias password.
 	 */
 	private void changeAliasPassword(CertificateTableRow row) {
+		if(checkPkcs11Operation()) return;
 	    if(!loggedIn) {
 	        notLoggedInError();
 	        return;
 	    }
+
 
 	    if(ctx.getKeystore() == null) return;
 
@@ -994,8 +1009,7 @@ public class ETKMain {
 	 * Changes the master password of the keystore.
 	 */
 	private void changeKeystoreMasterKey() {
-		if(ctx.usePKCS11()) throw new UnsupportedOperationException("Operation not supported for PKCS11");
-
+		if(checkPkcs11Operation()) return;
 		
 		if(!loggedIn) {
 			notLoggedInError();
@@ -1093,6 +1107,7 @@ public class ETKMain {
 	 * Opens the key pair generation form
 	 */
 	private void newKeyPair() {
+		if(checkPkcs11Operation()) return;
 		if(!loggedIn) {
 			notLoggedInError();
 			return;
@@ -1111,8 +1126,33 @@ public class ETKMain {
 		fh.setVisible();
 
 	}
+
+	private void manageSymmetricKeys() {
+		if(checkPkcs11Operation()) return;
+		if(!loggedIn) {
+			notLoggedInError();
+			return;
+		}
+		SecretKeyManagementForm skmf = new SecretKeyManagementForm();
+		skmf.setVisible();
+	}
 	
 	private void notLoggedInError() {
 		DialogUtils.showMessageBox(null, "You are not logged in", "You are not logged in", null, 0);
+	}
+	
+	private boolean checkPkcs11Operation() {
+		boolean res = ctx.usePKCS11();
+		if(res) { DialogUtils.showMessageBox(
+	            null,
+	            "Operation not supported!",
+	            "Operation not supported for PKCS11",
+	            "",
+	            JOptionPane.WARNING_MESSAGE
+	        ); 
+		return res;
+		}
+		
+		return false;
 	}
 }

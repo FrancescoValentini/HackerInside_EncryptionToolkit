@@ -10,8 +10,10 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.Provider;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.cert.CertificateEncodingException;
@@ -23,7 +25,9 @@ import java.security.spec.MGF1ParameterSpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 
+import javax.crypto.SecretKey;
 import javax.crypto.spec.OAEPParameterSpec;
 import javax.crypto.spec.PSource;
 
@@ -38,6 +42,7 @@ import org.bouncycastle.cms.CMSAlgorithm;
 import org.bouncycastle.cms.CMSEnvelopedDataStreamGenerator;
 import org.bouncycastle.cms.RecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JceCMSContentEncryptorBuilder;
+import org.bouncycastle.cms.jcajce.JceKEKRecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JceKEMRecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JceKeyAgreeRecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JceKeyTransRecipientInfoGenerator;
@@ -62,10 +67,10 @@ public class CMSEncryptor implements Encryptor {
     private EncodingOption encoding;
     private int bufferSize;
     private ArrayList<X509Certificate> recipients;
+    private HashMap<byte[], SecretKey> symRecipients;
     private boolean useOnlySKI = false;
     private volatile boolean aborted = false;
     private boolean useOAEP = true;
-    
     /**
      * Constructs a new CMSEncryptor with the specified parameters.
      *
@@ -78,6 +83,7 @@ public class CMSEncryptor implements Encryptor {
         this.encoding = encoding;
         this.bufferSize = bufferSize;
         this.recipients = new ArrayList<>();
+        this.symRecipients = new HashMap<>();
     }
     
     /**
@@ -90,6 +96,10 @@ public class CMSEncryptor implements Encryptor {
      */
     public void addRecipients(X509Certificate... recipient) {
         recipients.addAll(Arrays.asList(recipient));
+    }
+    
+    public void addRecipients(byte[] kid, SecretKey recipient) {
+    	symRecipients.put(kid, recipient);
     }
     
     /**
@@ -200,6 +210,16 @@ public class CMSEncryptor implements Encryptor {
         // Add recipients
         for (X509Certificate recipient : new ArrayList<>(recipients)) {
             generator.addRecipientInfoGenerator(createRecipientInfoGenerator(recipient));
+        }
+        
+        // Symmetric recipients (KEK)
+        for (var entry : new HashMap<>(symRecipients).entrySet()) {
+            byte[] keyIdentifier = entry.getKey();
+            SecretKey key = entry.getValue();
+
+            generator.addRecipientInfoGenerator(
+                buildSymmetricRecipientInfo(keyIdentifier, key)
+            );
         }
         return generator;
     }
@@ -315,6 +335,22 @@ public class CMSEncryptor implements Encryptor {
             return new JceKeyTransRecipientInfoGenerator(recipientCert);
     	}
     }
+    
+    private RecipientInfoGenerator buildSymmetricRecipientInfo(byte[] kid, SecretKey key) throws Exception {
+        return new JceKEKRecipientInfoGenerator(
+        		sha256(kid), // Hash the key identifier to avoid exposing the raw identifier
+                key
+        );
+    }
+    
+	private byte[] sha256(byte[] input) {
+	    try {
+	        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+	        return digest.digest(input);
+	    } catch (NoSuchAlgorithmException e) {
+	        throw new RuntimeException("SHA-256 not available", e);
+	    }
+	}
 
     /**
      * Return a RFC 3280 type 1 key identifier
