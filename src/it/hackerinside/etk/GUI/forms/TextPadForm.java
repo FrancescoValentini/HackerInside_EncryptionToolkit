@@ -331,12 +331,15 @@ public class TextPadForm {
 				} catch (KeyStoreException e1) {
 					e1.printStackTrace();
 				}
+			}else {
+				this.recipient = null;
 			}
 		});
 		
 		cmbSymmetricKeys.addActionListener(e -> {
 			SecretKeyWrapper selected = (SecretKeyWrapper) cmbSymmetricKeys.getSelectedItem();
 			if (selected != null) this.symmetricRecipient = selected.getAlias();
+			else this.symmetricRecipient = null;
 		});
 		
 		
@@ -468,6 +471,16 @@ public class TextPadForm {
 	 * If encryption fails, an error dialog is displayed and the original data remains unchanged.
 	 */
 	private void encrypt() {
+		if(this.recipient == null) {
+	        DialogUtils.showMessageBox(
+	                null,
+	                "Invalid recipient",
+	                "Select a recipient!",
+	                "",
+	                JOptionPane.WARNING_MESSAGE
+	        );
+	        return;
+		}
 	    if (!isRecipientValid()) return;
 
 	    SymmetricAlgorithms cipher = getSelectedCipher();
@@ -613,6 +626,16 @@ public class TextPadForm {
 	}
 	
 	private void symetricKeyEncrypt() {
+		if(this.symmetricRecipient == null || symmetricRecipient.isEmpty()) {
+	        DialogUtils.showMessageBox(
+	                null,
+	                "Invalid recipient",
+	                "Select a recipient!",
+	                "",
+	                JOptionPane.WARNING_MESSAGE
+	        );
+	        return;
+		}
 	    SecretKey sk = Utils.getSecretKeyDialog(symmetricRecipient);
 	    if (sk == null) return;
 
