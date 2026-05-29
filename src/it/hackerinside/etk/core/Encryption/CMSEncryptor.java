@@ -13,7 +13,6 @@ import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.security.Provider;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.cert.CertificateEncodingException;
@@ -39,6 +38,7 @@ import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.asn1.x9.ECNamedCurveTable;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cms.CMSAlgorithm;
+import org.bouncycastle.cms.CMSAuthEnvelopedDataStreamGenerator;
 import org.bouncycastle.cms.CMSEnvelopedDataStreamGenerator;
 import org.bouncycastle.cms.RecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JceCMSContentEncryptorBuilder;
@@ -46,6 +46,7 @@ import org.bouncycastle.cms.jcajce.JceKEKRecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JceKEMRecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JceKeyAgreeRecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JceKeyTransRecipientInfoGenerator;
+import org.bouncycastle.operator.OutputAEADEncryptor;
 import org.bouncycastle.operator.OutputEncryptor;
 import org.bouncycastle.operator.jcajce.JcaAlgorithmParametersConverter;
 
@@ -136,26 +137,35 @@ public class CMSEncryptor implements Encryptor {
      * @throws Exception if encryption fails due to cryptographic errors, I/O errors,
      *                   or unsupported algorithms
      */
-    public void encrypt(InputStream input, OutputStream output) throws Exception  {
-        CMSEnvelopedDataStreamGenerator generator = getGenerator();
-        
-        // Configure encryptor
-        OutputEncryptor encryptor = new JceCMSContentEncryptorBuilder(encryptionAlgorithm.getCipherASN1())
-                .setProvider("BC")
-                .setSecureRandom(new SecureRandom())
-                .build();
-        
-        // Encrypt
-        try (OutputStream encodedOut = wrapEncoding(output);
-             OutputStream cmsOut = generator.open(encodedOut, encryptor)) {
+    public void encrypt(InputStream input, OutputStream output) throws Exception {
+        OutputEncryptor encryptor =
+                new JceCMSContentEncryptorBuilder(encryptionAlgorithm.getCipherASN1())
+                        .setProvider("BC")
+                        .setSecureRandom(new SecureRandom())
+                        .build();
 
-            byte[] buffer = new byte[bufferSize];
-            int bytesRead;
-            while ((bytesRead = input.read(buffer)) != -1) {
-                if (aborted || Thread.currentThread().isInterrupted()) {
-                    throw new InterruptedIOException("Encryption aborted");
+        try (OutputStream encodedOut = wrapEncoding(output)) {
+            OutputStream cmsOut;
+
+            if (encryptionAlgorithm.isAEAD()) {
+                CMSAuthEnvelopedDataStreamGenerator generator = getAuthGenerator();
+                cmsOut = generator.open(encodedOut, (OutputAEADEncryptor)encryptor);
+
+            } else {
+                CMSEnvelopedDataStreamGenerator generator = getGenerator();
+                cmsOut = generator.open(encodedOut, encryptor);
+            }
+            try (cmsOut) {
+                byte[] buffer = new byte[bufferSize];
+                int bytesRead;
+                
+                while ((bytesRead = input.read(buffer))!= -1) {
+                    if (aborted || Thread.currentThread().isInterrupted()) {
+                        throw new InterruptedIOException("Encryption aborted");
+                    }
+                    
+                    cmsOut.write(buffer, 0, bytesRead);
                 }
-                cmsOut.write(buffer, 0, bytesRead);
             }
         }
     }
@@ -221,6 +231,49 @@ public class CMSEncryptor implements Encryptor {
                 buildSymmetricRecipientInfo(keyIdentifier, key)
             );
         }
+        return generator;
+    }
+    
+    /**
+     * Creates a {@link CMSAuthEnvelopedDataStreamGenerator} for generating authenticated
+     * CMS (Cryptographic Message Syntax) enveloped data streams. This method configures
+     * the generator with all recipient information required for authenticated encryption,
+     * including both X.509 certificate recipients and symmetric KEK (Key Encryption Key)
+     * recipients.
+     *
+     * <p>The method iterates through the configured recipient collections and adds the
+     * appropriate recipient information generators to the CMS generator instance.
+     *
+     * @return a configured {@link CMSAuthEnvelopedDataStreamGenerator} that will be used
+     *         to generate authenticated encrypted data streams for the configured recipients.
+     * @throws Exception if an error occurs while generating recipient information,
+     *                   processing certificates, or creating KEK recipient generators.
+     *                   This may occur if a recipient's algorithm is unsupported or
+     *                   if the recipient configuration is invalid.
+     */
+    private CMSAuthEnvelopedDataStreamGenerator getAuthGenerator() throws Exception {
+
+        CMSAuthEnvelopedDataStreamGenerator generator =
+                new CMSAuthEnvelopedDataStreamGenerator();
+
+        // X509 recipients
+        for (X509Certificate recipient : new ArrayList<>(recipients)) {
+            generator.addRecipientInfoGenerator(
+                    createRecipientInfoGenerator(recipient)
+            );
+        }
+
+        // KEK recipients
+        for (var entry : new HashMap<>(symRecipients).entrySet()) {
+
+            byte[] keyIdentifier = entry.getKey();
+            SecretKey key = entry.getValue();
+
+            generator.addRecipientInfoGenerator(
+                    buildSymmetricRecipientInfo(keyIdentifier, key)
+            );
+        }
+
         return generator;
     }
 
