@@ -13,19 +13,19 @@ import org.bouncycastle.cms.CMSAlgorithm;
  */
 public enum SymmetricAlgorithms {
     /** AES 128-bit key with CBC (Cipher Block Chaining) mode */
-    AES_128_CBC("AES-128-CBC", CMSAlgorithm.AES128_CBC),
+    AES_128_CBC("AES-128-CBC", CMSAlgorithm.AES128_CBC,false),
     
     /** AES 128-bit key with GCM (Galois/Counter Mode) mode */
-    AES_128_GCM("AES-128-GCM", CMSAlgorithm.AES128_GCM),
+    AES_128_GCM("AES-128-GCM", CMSAlgorithm.AES128_GCM,true),
     
     /** AES 256-bit key with CBC (Cipher Block Chaining) mode */
-    AES_256_CBC("AES-256-CBC", CMSAlgorithm.AES256_CBC),
+    AES_256_CBC("AES-256-CBC", CMSAlgorithm.AES256_CBC,false),
     
     /** AES 256-bit key with GCM (Galois/Counter Mode) mode */
-    AES_256_GCM("AES-256-GCM", CMSAlgorithm.AES256_GCM),
+    AES_256_GCM("AES-256-GCM", CMSAlgorithm.AES256_GCM,true),
     
     /** ChaCha20 with Poly1305 (AEAD mode) */
-    CHACHA20_POLY1305("ChaCha20-Poly1305", CMSAlgorithm.ChaCha20Poly1305);
+    CHACHA20_POLY1305("ChaCha20-Poly1305", CMSAlgorithm.ChaCha20Poly1305,true);
     
     /**
      * The algorithm name as a string.
@@ -38,14 +38,21 @@ public enum SymmetricAlgorithms {
     private final ASN1ObjectIdentifier cipher;
     
     /**
+     * Indicates whether the cipher uses Authenticated Encryption with Associated Data (AEAD).
+     */
+    private final boolean aead;
+    
+    /**
      * Constructs a new SymmetricAlgorithms enum value.
      *
      * @param algorithm the algorithm name as a string
      * @param cipher the ASN.1 object identifier for the cipher
+     * @param aead indicates whether the cipher uses Authenticated Encryption with Associated Data (AEAD).
      */
-    private SymmetricAlgorithms(String algorithm, ASN1ObjectIdentifier cipher) {
+    private SymmetricAlgorithms(String algorithm, ASN1ObjectIdentifier cipher, boolean aead) {
         this.algorithm = algorithm;
         this.cipher = cipher;
+        this.aead = aead;
     }
 
     /**
@@ -117,6 +124,13 @@ public enum SymmetricAlgorithms {
         throw new IllegalStateException("Unknown key size for algorithm: " + algorithm);
     }
     
+    /**
+     * Indicates whether the cipher uses Authenticated Encryption with Associated Data (AEAD).
+     * @return true if the cipher uses Authenticated Encryption with Associated Data (AEAD).
+     */
+    public boolean isAEAD() {
+    	return this.aead;
+    }
     
     /**
      * Returns the algorithm name as a string.
