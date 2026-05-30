@@ -270,6 +270,8 @@ public class DecryptForm {
 	}
 	
 	private void identifyRecipientKeyAsync() {
+		lblStatus.setText("Identifying recipients...");
+		btnDecrypt.setEnabled(false);
 	    SwingWorker<Optional<String>, Void> worker = new SwingWorker<>() {
 
 	        @Override
@@ -304,6 +306,8 @@ public class DecryptForm {
 	                );
 	                lblStatus.setText("Error identifying key");
 	                e.printStackTrace();
+	            }finally {
+	            	btnDecrypt.setEnabled(true);
 	            }
 	        }
 	    };
