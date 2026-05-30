@@ -40,12 +40,16 @@ import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cms.CMSAlgorithm;
 import org.bouncycastle.cms.CMSAuthEnvelopedDataStreamGenerator;
 import org.bouncycastle.cms.CMSEnvelopedDataStreamGenerator;
+import org.bouncycastle.cms.CMSException;
+import org.bouncycastle.cms.PasswordRecipient;
+import org.bouncycastle.cms.PasswordRecipient.PRF;
 import org.bouncycastle.cms.RecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JceCMSContentEncryptorBuilder;
 import org.bouncycastle.cms.jcajce.JceKEKRecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JceKEMRecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JceKeyAgreeRecipientInfoGenerator;
 import org.bouncycastle.cms.jcajce.JceKeyTransRecipientInfoGenerator;
+import org.bouncycastle.cms.jcajce.JcePasswordRecipientInfoGenerator;
 import org.bouncycastle.operator.OutputAEADEncryptor;
 import org.bouncycastle.operator.OutputEncryptor;
 import org.bouncycastle.operator.jcajce.JcaAlgorithmParametersConverter;
@@ -69,6 +73,7 @@ public class CMSEncryptor implements Encryptor {
     private int bufferSize;
     private ArrayList<X509Certificate> recipients;
     private HashMap<byte[], SecretKey> symRecipients;
+    private ArrayList<char[]> passwordRecipients;
     private boolean useOnlySKI = false;
     private volatile boolean aborted = false;
     private boolean useOAEP = true;
@@ -85,6 +90,7 @@ public class CMSEncryptor implements Encryptor {
         this.bufferSize = bufferSize;
         this.recipients = new ArrayList<>();
         this.symRecipients = new HashMap<>();
+        this.passwordRecipients = new ArrayList<>();
     }
     
     /**
@@ -95,13 +101,9 @@ public class CMSEncryptor implements Encryptor {
      *                  to be included in the encryption process.
      *                  The certificates will be used to encrypt the data for each recipient.
      */
-    public void addRecipients(X509Certificate... recipient) {
-        recipients.addAll(Arrays.asList(recipient));
-    }
-    
-    public void addRecipients(byte[] kid, SecretKey recipient) {
-    	symRecipients.put(kid, recipient);
-    }
+    public void addRecipients(X509Certificate... recipient) {recipients.addAll(Arrays.asList(recipient));}
+    public void addRecipients(byte[] kid, SecretKey recipient) {symRecipients.put(kid, recipient);}
+    public void addRecipients(char[] password) {passwordRecipients.add(password);}
     
     /**
      * If TRUE, forces the RecipientInfoGenerator to include ONLY the recipient's SKI.
@@ -231,6 +233,42 @@ public class CMSEncryptor implements Encryptor {
                 buildSymmetricRecipientInfo(keyIdentifier, key)
             );
         }
+        
+        // Password Recipients
+        for(char[] pwd : passwordRecipients) {
+        	generator.addRecipientInfoGenerator(buildPasswordRecipientInfo(pwd));
+        }
+        return generator;
+    }
+    
+    /**
+     * Builds a CMS {@link RecipientInfoGenerator} for password-based encryption using PBKDF2.
+     * 
+     * 
+	 * @param password the password used to derive the encryption key
+	 * @return a configured {@link RecipientInfoGenerator} ready for CMS encryption
+	 * @throws CMSException if the generator cannot be initialized
+     */
+    private RecipientInfoGenerator buildPasswordRecipientInfo(char[] password) throws CMSException {
+        SecureRandom random = new SecureRandom();
+        byte[] salt = new byte[16];
+        random.nextBytes(salt);
+        JcePasswordRecipientInfoGenerator generator = new JcePasswordRecipientInfoGenerator(
+        		CMSAlgorithm.AES256_CBC,
+                        password
+                );
+        generator.setProvider("BC");
+        generator.setSecureRandom(random);
+
+        // PKCS#5 UTF-8 conversion
+        generator.setPasswordConversionScheme(PasswordRecipient.PKCS5_SCHEME2_UTF8);
+
+        // PBKDF2 parameters
+        generator.setSaltAndIterationCount(salt,600_000);
+        
+        // PRF
+        generator.setPRF(PRF.HMacSHA256);
+        
         return generator;
     }
     
@@ -274,6 +312,10 @@ public class CMSEncryptor implements Encryptor {
             );
         }
 
+        // Password Recipients
+        for(char[] pwd : passwordRecipients) {
+        	generator.addRecipientInfoGenerator(buildPasswordRecipientInfo(pwd));
+        }
         return generator;
     }
 
