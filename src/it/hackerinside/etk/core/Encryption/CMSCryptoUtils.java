@@ -6,12 +6,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.cms.CMSAuthEnvelopedDataParser;
 import org.bouncycastle.cms.CMSEnvelopedDataParser;
+import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.KEKRecipientId;
 import org.bouncycastle.cms.KEMRecipientId;
 import org.bouncycastle.cms.KeyAgreeRecipientId;
@@ -24,11 +25,12 @@ import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.RecipientIdentifier;
 import it.hackerinside.etk.core.PEM.PemInputStream;
 
+
+
 /**
- * Utility helper for extracting recipient identifiers from a CMS (EnvelopedData)
+ * Utility helper for extracting recipient identifiers from a CMS (EnvelopedData and AuthEnvelopedData)
  */
 public class CMSCryptoUtils {
-
 	/**
 	 * Parse a CMS EnvelopedData stream (DER or PEM via PemInputStream) and returns
 	 * a collection of RecipientIdentifier objects (one per recipientInfo).
@@ -47,51 +49,130 @@ public class CMSCryptoUtils {
 	 * @param encoding Encoding option (DER or PEM)
 	 * @return list of recipient identifiers (one per recipientInfo)
 	 * @throws IOException on I/O problems or parsing errors
+	 * @throws CMSException 
 	 */
-	public static List<RecipientIdentifier> extractRecipientIdentifiers(InputStream input,
-			EncodingOption encoding) throws IOException {
-		Objects.requireNonNull(input, "input must not be null");
-		Objects.requireNonNull(encoding, "encoding must not be null");
+	public static List<RecipientIdentifier> extractRecipientIdentifiers(
+	        InputStream input,
+	        EncodingOption encoding) throws IOException, CMSException {
 
-		InputStream decodingStream = wrapEncoding(input, encoding);
-		List<RecipientIdentifier> result = new ArrayList<>();
-		CMSEnvelopedDataParser parser = null;
+	    Objects.requireNonNull(input, "input must not be null");
+	    Objects.requireNonNull(encoding, "encoding must not be null");
 
-		try {
-			parser = new CMSEnvelopedDataParser(decodingStream); // streaming parser
-			RecipientInformationStore rstore = parser.getRecipientInfos();
-			Collection<RecipientInformation> recipients = rstore.getRecipients();
+	    InputStream decoded = wrapEncoding(input, encoding);
+	    return resolveRecipientIdentifiers(decoded);
+	}
+	
+	/**
+	 * Resolves recipient identifiers from a CMS message by first attempting to parse
+	 * it as an EnvelopedData structure and, if that fails, as an AuthEnvelopedData structure.
+	 *
+	 * @param input the CMS message input stream
+	 * @return the list of recipient identifiers found in the message
+	 * @throws IOException if an I/O error occurs while reading the stream
+	 * @throws CMSException if neither CMS format can be successfully parsed
+	 */
+	private static List<RecipientIdentifier> resolveRecipientIdentifiers(InputStream input)
+	        throws IOException, CMSException {
 
-			for (RecipientInformation ri : recipients) {
-			    RecipientId rid = ri.getRID();
+	    try {
+	        return parseEnveloped(input);
+	    } catch (CMSException envFail) {
+	        return parseAuthEnveloped(input);
+	    }
+	}
+	
+	/**
+	 * Parses a CMS EnvelopedData message and extracts its recipient identifiers.
+	 *
+	 * @param input the CMS message input stream
+	 * @return the list of recipient identifiers
+	 * @throws IOException if an I/O error occurs while reading the stream
+	 * @throws CMSException if the message cannot be parsed as EnvelopedData
+	 */
+	private static List<RecipientIdentifier> parseEnveloped(InputStream input)
+	        throws IOException, CMSException {
 
-			    byte[] keyId = getSubjectKeyIdentifier(rid);
+	    CMSEnvelopedDataParser parser = new CMSEnvelopedDataParser(input);
 
-			    if (keyId != null) {
-			        if (rid instanceof KEKRecipientId) {
-			            result.add(RecipientIdentifier.fromKekKeyId(keyId));
-			        } else {
-			            result.add(RecipientIdentifier.fromSki(keyId));
-			        }
-			    } else {
-			        X500Name issuer = getIssuer(rid);
-			        BigInteger serial = getSerialNumber(rid);
-			        if (issuer != null && serial != null) {
-			            result.add(RecipientIdentifier.fromIssuerSerial(issuer.getEncoded(), serial));
-			        }
-			    }
-			}
-		} catch (IOException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new IOException("Failed to parse CMS recipients: " + e.getMessage(), e);
-		} finally {
-			if (parser != null) {
-				try { parser.close(); } catch (Exception ignore) {}
-			}
-		}
+	    try {
+	        return collectRecipientIdentifiers(parser.getRecipientInfos());
+	    } finally {
+	        parser.close();
+	    }
+	}
+	
+	
+	/**
+	 * Parses a CMS AuthEnvelopedData message and extracts its recipient identifiers.
+	 *
+	 * @param input the CMS message input stream
+	 * @return the list of recipient identifiers
+	 * @throws IOException if an I/O error occurs while reading the stream
+	 * @throws CMSException if the message cannot be parsed as AuthEnvelopedData
+	 */
+	private static List<RecipientIdentifier> parseAuthEnveloped(InputStream input)
+	        throws IOException, CMSException {
 
-		return result;
+	    CMSAuthEnvelopedDataParser parser = new CMSAuthEnvelopedDataParser(input);
+
+	    try {
+	        return collectRecipientIdentifiers(parser.getRecipientInfos());
+	    } finally {
+	        parser.close();
+	    }
+	}
+
+	/**
+	 * Iterates a RecipientInformationStore and maps each entry
+	 * to a RecipientIdentifier (SKI, KEK key ID, or issuer/serial).
+	 *
+	 * @param rstore recipient info store from a parsed CMS object
+	 * @return list of recipient identifiers; empty if none could be mapped
+	 */
+	private static List<RecipientIdentifier> collectRecipientIdentifiers(
+	        RecipientInformationStore rstore) {
+
+	    List<RecipientIdentifier> result = new ArrayList<>();
+
+	    for (RecipientInformation ri : rstore.getRecipients()) {
+	        RecipientIdentifier id = toRecipientIdentifier(ri.getRID());
+	        if (id != null) {
+	            result.add(id);
+	        }
+	    }
+
+	    return result;
+	}
+
+	/**
+	 * Converts a single RecipientId to a RecipientIdentifier,
+	 * preferring key identifier over issuer/serial.
+	 *
+	 * @param rid the recipient ID from a RecipientInformation entry
+	 * @return mapped identifier, or null if neither form is present
+	 */
+	private static RecipientIdentifier toRecipientIdentifier(RecipientId rid) {
+
+	    byte[] keyId = getSubjectKeyIdentifier(rid);
+
+	    if (keyId != null) {
+	        return (rid instanceof KEKRecipientId)
+	                ? RecipientIdentifier.fromKekKeyId(keyId)
+	                : RecipientIdentifier.fromSki(keyId);
+	    }
+
+	    X500Name issuer = getIssuer(rid);
+	    BigInteger serial = getSerialNumber(rid);
+
+	    if (issuer != null && serial != null) {
+	        try {
+	            return RecipientIdentifier.fromIssuerSerial(issuer.getEncoded(), serial);
+	        } catch (IOException e) {
+	            return null;
+	        }
+	    }
+
+	    return null;
 	}
 
 	//Extracts the SubjectKeyIdentifier from a RecipientId
@@ -148,9 +229,10 @@ public class CMSCryptoUtils {
 	 * @param encoding encoding of the file
 	 * @return list of recipient identifiers
 	 * @throws IOException on I/O problems
+	 * @throws CMSException 
 	 */
 	public static List<RecipientIdentifier> extractRecipientIdentifiers(File file,
-			EncodingOption encoding) throws IOException {
+			EncodingOption encoding) throws IOException, CMSException {
 		try (InputStream in = new FileInputStream(file)) {
 			return extractRecipientIdentifiers(in, encoding);
 		}
