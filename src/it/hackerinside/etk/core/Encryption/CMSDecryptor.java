@@ -207,6 +207,7 @@ public class CMSDecryptor {
 		}
 		
         AsymmetricAlgorithm keyAlgo = algFromCMSOid(oid);
+        
         return switch (keyAlgo) {
             case RSA -> recipient
                         .getContentStream(new JceKeyTransEnvelopedRecipient(privateKey).setProvider("BC"))
@@ -225,7 +226,8 @@ public class CMSDecryptor {
 	        }
 
 	    // EC (ECDH CMS)
-	    if (id.startsWith("1.3.132.1.11")) {
+	    // 1.3.133.16.840.63.0.2 = LEGACY dhSinglePass-stdDH-sha1kdf-scheme
+	    if (id.startsWith("1.3.132.1.11") || id.equals("1.3.133.16.840.63.0.2")) {
 	        return AsymmetricAlgorithm.EC;
 	    }
 	    return null;
