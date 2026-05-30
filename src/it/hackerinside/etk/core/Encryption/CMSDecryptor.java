@@ -13,13 +13,16 @@ import java.util.Collection;
 
 import javax.crypto.SecretKey;
 
+import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.cms.CMSObjectIdentifiers;
+import org.bouncycastle.asn1.cms.ContentInfo;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
-import org.bouncycastle.cms.CMSEnvelopedDataParser;
+import org.bouncycastle.cms.CMSAuthEnvelopedData;
+import org.bouncycastle.cms.CMSEnvelopedData;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.KEKRecipientInformation;
 import org.bouncycastle.cms.RecipientInformation;
-import org.bouncycastle.cms.RecipientInformationStore;
 import org.bouncycastle.cms.jcajce.JceKEKEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKEMEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKeyAgreeEnvelopedRecipient;
@@ -99,7 +102,7 @@ public class CMSDecryptor {
     	boolean success = false;
     	Exception lastError = null;
     	
-    	Collection<RecipientInformation> recipients = findReciepients(cmsInput);
+    	Collection<RecipientInformation> recipients = findRecipients(cmsInput);
 
     	for (RecipientInformation recipient : recipients) {
     		try {
@@ -155,16 +158,21 @@ public class CMSDecryptor {
      * @throws NullPointerException if the cmsInput parameter is null
      *
      */
-    private Collection<RecipientInformation> findReciepients(InputStream cmsInput) throws CMSException, IOException{
-        CMSEnvelopedDataParser parser = new CMSEnvelopedDataParser(cmsInput);
-        RecipientInformationStore recipients = parser.getRecipientInfos();
-        Collection<RecipientInformation> recipientInfos = recipients.getRecipients();
+    private Collection<RecipientInformation> findRecipients(InputStream cmsInput)
+            throws CMSException, IOException {
 
-        if (recipientInfos.isEmpty()) {
-            throw new CMSException("No recipient information found in CMS data.");
+        try (ASN1InputStream asn1 = new ASN1InputStream(cmsInput)) {
+            ContentInfo contentInfo = ContentInfo.getInstance(asn1.readObject());
+            ASN1ObjectIdentifier contentType = contentInfo.getContentType();
+
+            if (CMSObjectIdentifiers.authEnvelopedData.equals(contentType)) {
+                return new CMSAuthEnvelopedData(contentInfo).getRecipientInfos().getRecipients();
+            } else if (CMSObjectIdentifiers.envelopedData.equals(contentType)) {
+                return new CMSEnvelopedData(contentInfo).getRecipientInfos().getRecipients();
+            } else {
+                throw new CMSException("Unsupported CMS content type: " + contentType.getId());
+            }
         }
-        
-        return recipientInfos;
     }
     
     /**
