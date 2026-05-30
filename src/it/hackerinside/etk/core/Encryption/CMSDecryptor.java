@@ -22,11 +22,14 @@ import org.bouncycastle.cms.CMSAuthEnvelopedData;
 import org.bouncycastle.cms.CMSEnvelopedData;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.KEKRecipientInformation;
+import org.bouncycastle.cms.PasswordRecipient;
+import org.bouncycastle.cms.PasswordRecipientInformation;
 import org.bouncycastle.cms.RecipientInformation;
 import org.bouncycastle.cms.jcajce.JceKEKEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKEMEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKeyAgreeEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKeyTransEnvelopedRecipient;
+import org.bouncycastle.cms.jcajce.JcePasswordEnvelopedRecipient;
 
 import it.hackerinside.etk.core.Models.AsymmetricAlgorithm;
 import it.hackerinside.etk.core.Models.EncodingOption;
@@ -47,6 +50,7 @@ public class CMSDecryptor {
 	private volatile boolean aborted = false;
 	private Provider provider;
 	private SecretKey secretKey;
+	private char[] password;
 	
 	/**
 	 * Constructs a new CMSDecryptor with the specified parameters.
@@ -73,6 +77,12 @@ public class CMSDecryptor {
 		this.encoding = encoding;
 		this.bufferSize = bufferSize;
 	}
+	
+	public CMSDecryptor(char[] password, EncodingOption encoding, int bufferSize) {
+		this.password = password;
+		this.encoding = encoding;
+		this.bufferSize = bufferSize;
+	} 
 	/**
 	 * Aborts the decryption
 	 */
@@ -198,6 +208,15 @@ public class CMSDecryptor {
 	                .getContentStream();
 	    }
 		
+	    if (recipient instanceof PasswordRecipientInformation) {
+	        JcePasswordEnvelopedRecipient decryptor =
+	                new JcePasswordEnvelopedRecipient(password);
+
+	        decryptor.setProvider("BC");
+
+	        return recipient.getContentStream(decryptor).getContentStream();
+	    }
+	    
 		ASN1ObjectIdentifier oid = new ASN1ObjectIdentifier(recipient.getKeyEncryptionAlgOID());
 		
 		if(PQCAlgorithms.fromOID(oid) != null && !PQCAlgorithms.fromOID(oid).canSign) { // PQC
