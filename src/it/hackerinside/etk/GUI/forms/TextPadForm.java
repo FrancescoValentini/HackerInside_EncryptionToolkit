@@ -68,6 +68,7 @@ import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.JCheckBox;
+import javax.swing.JPasswordField;
 
 public class TextPadForm {
 
@@ -85,6 +86,11 @@ public class TextPadForm {
 	private JComboBox<SecretKeyWrapper> cmbSymmetricKeys;
 	private JTabbedPane tabbedPane;
 	private String symmetricRecipient;
+	private JPanel pwdPanel;
+	private JPasswordField txtbPassword;
+	private JPanel pnlKnownCert;
+	private JPanel pnlFileCert;
+	private JPanel pnlSymmetricEncryption;
 	/**
 	 * Launch the application.
 	 */
@@ -241,39 +247,39 @@ public class TextPadForm {
 					.addContainerGap())
 		);
 		
-		JPanel panel_1_1 = new JPanel();
-		panel_1_1.setLayout(null);
-		tabbedPane.addTab("Known Certificates", null, panel_1_1, null);
+		pnlKnownCert = new JPanel();
+		pnlKnownCert.setLayout(null);
+		tabbedPane.addTab("Known Certificates", null, pnlKnownCert, null);
 		
 		cmbRecipientCert = new JComboBox();
 		cmbRecipientCert.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		cmbRecipientCert.setBounds(10, 11, 414, 28);
-		panel_1_1.add(cmbRecipientCert);
+		pnlKnownCert.add(cmbRecipientCert);
 		
 		JButton btnCertDetails = new JButton("DETAILS");
 
 
 		btnCertDetails.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		btnCertDetails.setBounds(434, 11, 108, 28);
-		panel_1_1.add(btnCertDetails);
+		pnlKnownCert.add(btnCertDetails);
 		
-		JPanel panel_2 = new JPanel();
-		panel_2.setLayout(null);
-		tabbedPane.addTab("File", null, panel_2, null);
+		pnlFileCert = new JPanel();
+		pnlFileCert.setLayout(null);
+		tabbedPane.addTab("File", null, pnlFileCert, null);
 		
 		JButton btnOpenCertFile = new JButton("...");
 
 		btnOpenCertFile.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		btnOpenCertFile.setBounds(481, 12, 61, 25);
-		panel_2.add(btnOpenCertFile);
+		pnlFileCert.add(btnOpenCertFile);
 		
 		txtbRecipientFile = new JTextField();
 		txtbRecipientFile.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		txtbRecipientFile.setColumns(10);
 		txtbRecipientFile.setBounds(10, 11, 448, 26);
-		panel_2.add(txtbRecipientFile);
+		pnlFileCert.add(txtbRecipientFile);
 		
-		JPanel pnlSymmetricEncryption = new JPanel();
+		pnlSymmetricEncryption = new JPanel();
 		tabbedPane.addTab("Symmetric", null, pnlSymmetricEncryption, null);
 		pnlSymmetricEncryption.setLayout(null);
 		
@@ -281,6 +287,22 @@ public class TextPadForm {
 		cmbSymmetricKeys.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		cmbSymmetricKeys.setBounds(10, 11, 532, 28);
 		pnlSymmetricEncryption.add(cmbSymmetricKeys);
+		
+		pwdPanel = new JPanel();
+		tabbedPane.addTab("Password", null, pwdPanel, null);
+		pwdPanel.setLayout(null);
+
+		JLabel lblNewLabel = new JLabel("Password:");
+		lblNewLabel.setFont(new Font("Tahoma", Font.PLAIN, 17));
+		lblNewLabel.setBounds(10, 11, 120, 25);
+		pwdPanel.add(lblNewLabel);
+
+		txtbPassword = new JPasswordField();
+		txtbPassword.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		txtbPassword.setBounds(143, 11, 399, 26);
+		pwdPanel.add(txtbPassword);
+		
+		
 		panel_1.setLayout(gl_panel_1);
 		panel.setLayout(gl_panel);
 		
@@ -355,6 +377,8 @@ public class TextPadForm {
 				
 				if(tabbedPane.getSelectedComponent() == pnlSymmetricEncryption) {
 					symetricKeyEncrypt();
+				}else if(tabbedPane.getSelectedComponent() == pwdPanel) {
+					passwordEncrypt();
 				}else {
 					encrypt();
 				}
@@ -372,6 +396,9 @@ public class TextPadForm {
 				loadCertificateFromFile();
 			}
 		});
+		
+
+		tabbedPane.addChangeListener(e -> reset());
 		
 		start();
 		
@@ -535,11 +562,65 @@ public class TextPadForm {
 	 *
 	 * @return The private key for decryption, or null if no matching key is found or
 	 *         password entry fails/cancels
+	 * @throws Exception 
 	 */
-	private Object getDecryptionKey() {
+	private Object getDecryptionKey() throws Exception {
+		
+		// autodetect
+	    String text = txtbData.getText();
+	    ByteArrayInputStream input =
+	            new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
+
+	    Optional<String> aliasOpt = findRecipientAlias(input);
+	    
+	    // Password 
+	    boolean hasPassword = dc.hasPasswordRecipient(new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)), EncodingOption.ENCODING_PEM);
+	    if (!aliasOpt.isPresent() && !hasPassword) {
+	        DialogUtils.showMessageBox(
+	                null,
+	                "Key not found!",
+	                "No matching key found for decryption",
+	                "",
+	                JOptionPane.WARNING_MESSAGE
+	        );
+	        //return null;
+	    }else if(hasPassword) {
+	    	if((txtbPassword.getPassword().length != 0)) {
+	    		return txtbPassword.getPassword();
+	    	}else {
+	    		return DialogUtils.showPasswordInputBox(null, "Password", "Decryption Password", "Password");
+	    	}
+	    	
+	    }
+
+	    String aliasAuto =null;
+	    
+	    try {
+	    	aliasAuto = aliasOpt.get();
+	    } catch (Exception ignored) {}
+	    		
+	    if(aliasAuto != null) {
+		    try {
+		        if (ctx.getKeystore().isPrivateKey(aliasAuto)) {
+		            PrivateKey priv = Utils.getPrivateKeyDialog(aliasAuto);
+		            if (priv != null) return priv;
+		            return null;
+		        }
+		    } catch (Exception ignored) {}
+
+		    try {
+		        if (ctx.getKeystore().isSecretKeyEntry(aliasAuto)) {
+		            SecretKey sk = Utils.getSecretKeyDialog(aliasAuto);
+		            if (sk != null) return sk;
+		            return null;
+		        }
+		    } catch (Exception ignored) {}
+	    }
+
+		
 		// user selection
 	    CertificateWrapper certWrapper = (CertificateWrapper) cmbRecipientCert.getSelectedItem();
-	    if (certWrapper != null) {
+	    if (certWrapper != null && tabbedPane.getSelectedComponent() == pnlKnownCert) {
 	        try {
 	            String alias = certWrapper.getAlias();
 	            if (ctx.getKeystore().isPrivateKey(alias)) {
@@ -550,7 +631,7 @@ public class TextPadForm {
 	    }
 
 	    SecretKeyWrapper skWrapper = (SecretKeyWrapper) cmbSymmetricKeys.getSelectedItem();
-	    if (skWrapper != null) {
+	    if (skWrapper != null && tabbedPane.getSelectedComponent() == pnlSymmetricEncryption) {
 	        try {
 	            String alias = skWrapper.getAlias();
 	            if (ctx.getKeystore().isSecretKeyEntry(alias)) {
@@ -559,40 +640,10 @@ public class TextPadForm {
 	            }
 	        } catch (Exception ignored) {}
 	    }
+	    
+	  
 
-	    // autodetect
-	    String text = txtbData.getText();
-	    ByteArrayInputStream input =
-	            new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
-
-	    Optional<String> aliasOpt = findRecipientAlias(input);
-
-	    if (!aliasOpt.isPresent()) {
-	        DialogUtils.showMessageBox(
-	                null,
-	                "Key not found!",
-	                "No matching key found for decryption",
-	                "",
-	                JOptionPane.WARNING_MESSAGE
-	        );
-	        return null;
-	    }
-
-	    String alias = aliasOpt.get();
-
-	    try {
-	        if (ctx.getKeystore().isPrivateKey(alias)) {
-	            PrivateKey priv = Utils.getPrivateKeyDialog(alias);
-	            if (priv != null) return priv;
-	        }
-	    } catch (Exception ignored) {}
-
-	    try {
-	        if (ctx.getKeystore().isSecretKeyEntry(alias)) {
-	            SecretKey sk = Utils.getSecretKeyDialog(alias);
-	            if (sk != null) return sk;
-	        }
-	    } catch (Exception ignored) {}
+	    
 
 	    return null;
 	}
@@ -603,7 +654,13 @@ public class TextPadForm {
 	 * If decryption fails, an error dialog is displayed and the encrypted data remains unchanged.
 	 */
 	private void decrypt() {
-	    Object key = getDecryptionKey();
+	    Object key = null;
+		try {
+			key = getDecryptionKey();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	    if (key == null) return;
 
 	    ByteArrayInputStream input = toInput(txtbData.getText());
@@ -611,10 +668,16 @@ public class TextPadForm {
 
 	    try {
 	        if (key instanceof PrivateKey pk) {
+	        	System.out.println("Decrypting with private key");
 	            dc.decrypt(pk, EncodingOption.ENCODING_PEM, input, output);
 	        } else if (key instanceof SecretKey sk) {
+	        	System.out.println("Decrypting with secret key");
 	            dc.decrypt(sk, EncodingOption.ENCODING_PEM, input, output);
-	        } else {
+	        } else if (key instanceof char[] pwd) {
+	        	System.out.println("Decrypting with password");
+	        	dc.decrypt(pwd, EncodingOption.ENCODING_PEM, input, output);
+	        }
+	        else {
 	            throw new IllegalStateException("Unsupported key type");
 	        }
 
@@ -663,6 +726,42 @@ public class TextPadForm {
 	        showError("Error during encryption", "Error during encryption!", e);
 	    }
 	}
+	
+	private void passwordEncrypt() {
+		char[] pwd = txtbPassword.getPassword();
+		if(pwd == null || pwd.length == 0) {
+	        DialogUtils.showMessageBox(
+	                null,
+	                "Invalid recipient",
+	                "Set a password!",
+	                "",
+	                JOptionPane.WARNING_MESSAGE
+	        );
+	        return;
+		}
+		
+		ByteArrayInputStream input = toInput(txtbData.getText());
+	    ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+	    try {
+	        ec.encrypt(
+	                getSelectedCipher(),
+	                EncodingOption.ENCODING_PEM,
+	                Collections.emptyList(),
+	                Collections.emptyMap(),
+	                List.of(pwd),
+	                input,
+	                output,
+	                chckbUseSKI.isSelected(),
+	                ctx.useRsaOaep()
+	        );
+	        txtbData.setText(fromOutput(output));
+
+	    } catch (Exception e) {
+	        showError("Error during encryption", "Error during encryption!", e);
+	    }
+	}
+	
 	/**
 	 * Adds a popup menu trigger to the specified component.
 	 *
@@ -782,5 +881,13 @@ public class TextPadForm {
 
 	    return !ctx.validateKeyUsages() ||
 	           Utils.validateCertFlags(recipient, KeyUsageProfile.ENCRYPTION);
+	}
+	private void reset() {
+		this.cmbRecipientCert.setSelectedItem(null);
+		this.cmbSymmetricKeys.setSelectedItem(null);
+		this.symmetricRecipient = null;
+		this.txtbPassword.setText("");
+		this.recipient = null;
+
 	}
 }
