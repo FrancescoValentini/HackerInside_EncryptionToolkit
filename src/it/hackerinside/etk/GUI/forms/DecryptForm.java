@@ -37,6 +37,7 @@ import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.GUI.DTOs.SecretKeyWrapper;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
+import it.hackerinside.etk.core.Models.IdentifiedRecipient;
 import it.hackerinside.etk.core.Services.DecryptionService;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
 
@@ -68,6 +69,7 @@ public class DecryptForm {
     private JPanel pnlPrivateKey;
     private JComboBox<SecretKeyWrapper> cmbKek;
     private JPanel pnlKek;
+    private boolean hasPassword = false;
     
 
 	/**
@@ -272,20 +274,27 @@ public class DecryptForm {
 	private void identifyRecipientKeyAsync() {
 		lblStatus.setText("Identifying recipients...");
 		btnDecrypt.setEnabled(false);
-	    SwingWorker<Optional<String>, Void> worker = new SwingWorker<>() {
+	    SwingWorker<IdentifiedRecipient, Void> worker = new SwingWorker<>() {
 
 	        @Override
-	        protected Optional<String> doInBackground() throws Exception {
+	        protected IdentifiedRecipient doInBackground() throws Exception {
 	        	return decryptionService.identifyRecipient(fileToDecrypt);
 	        }
 
 	        @Override
 	        protected void done() {
 	            try {
-	                Optional<String> aliasOpt = get();
+	            	IdentifiedRecipient rec = get();
+	            	
+	                Optional<String> aliasOpt = rec.keystoreAlias();
 	                if (aliasOpt.isPresent()) {
 	                    selectAlias(aliasOpt.get());
 	                    lblStatus.setText("Found recipient key: " + aliasOpt.get());
+	                    return;
+	                } if(rec.hasPassword()) {
+	                	hasPassword = true;
+	                	lblStatus.setText("Detected password recipient");
+	                	return;
 	                } else {
 	                    DialogUtils.showMessageBox(
 	                        null,
@@ -440,7 +449,7 @@ public class DecryptForm {
 	
 	private Key getDecryptionKey() {
 	    String alias = getSelectedAlias();
-	    if (alias == null) {
+	    if (alias == null && !hasPassword) {
 		    DialogUtils.showMessageBox(
 		            null,
 		            "Missing fields",
@@ -475,7 +484,7 @@ public class DecryptForm {
 	private void decrypt() {
 	    File output = new File(txtbOutputFile.getText());
 	    Key key = getDecryptionKey();
-	    if(key == null) return;
+	    if(key == null && !hasPassword) return;
 	    
 	    startDecryptionUI();
 	    running = true;
@@ -497,7 +506,22 @@ public class DecryptForm {
 			                fileToDecrypt,
 			                output
 			            );
-		        } else {
+		        } else if(key == null && hasPassword) {
+		        	char[] pwd = DialogUtils.showPasswordInputBox(
+	                        null,
+	                        "Password",
+	                        "Decryption Password",
+	                        "Password"
+	                );
+		        	if(pwd == null || pwd.length == 0) return null;
+			        decryptionService.decrypt(
+			        		pwd,
+			                fileToDecrypt,
+			                output
+			            );
+		        }
+		        
+		        else {
 		            throw new IllegalStateException("Unsupported key type");
 		        }
 

@@ -13,6 +13,7 @@ import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.core.Encryption.CMSCryptoUtils;
 import it.hackerinside.etk.core.Encryption.CMSDecryptor;
 import it.hackerinside.etk.core.Models.EncodingOption;
+import it.hackerinside.etk.core.Models.IdentifiedRecipient;
 import it.hackerinside.etk.core.Models.RecipientIdentifier;
 import it.hackerinside.etk.core.PEM.PEMUtils;
 
@@ -45,12 +46,17 @@ public class DecryptionService {
      * @param file the encrypted file to analyze; must not be {@code null}
      * @return an {@link Optional} containing the alias of the matching recipient in the keystore.
      */
-    public Optional<String> identifyRecipient(File file) throws Exception {
+    public IdentifiedRecipient identifyRecipient(File file) throws Exception {
         EncodingOption encoding = PEMUtils.findFileEncoding(file);
         Collection<RecipientIdentifier> recipients =
                 CMSCryptoUtils.extractRecipientIdentifiers(file, encoding);
+        
+        boolean hasPassword = recipients.stream()
+                .anyMatch(r -> r.getType() == RecipientIdentifier.Type.PASSWORD);
+        
+        Optional<String> alias = ctx.getKeystore().findAliasForRecipients(recipients);
 
-        return ctx.getKeystore().findAliasForRecipients(recipients);
+        return new IdentifiedRecipient(alias,hasPassword);
     }
     
     /**
@@ -144,6 +150,23 @@ public class DecryptionService {
         decryptor.decrypt(input, output);
     }
     
+	/**
+	 * Decrypts CMS-encrypted data from a file using the provided password.
+	 *
+	 * @param password password used for decryption
+	 * @param input encrypted input file
+	 * @param output destination file for decrypted data
+	 * @throws Exception if decryption fails or no password is provided
+	 */
+    public void decrypt(char[] pwd, File input, File output) throws Exception {
+        if (pwd == null || pwd.length == 0) throw new IllegalStateException("Password not provided");
+
+        EncodingOption encoding = PEMUtils.findFileEncoding(input);
+
+        decryptor = new CMSDecryptor(pwd, encoding, ctx.getBufferSize());
+
+        decryptor.decrypt(input, output);
+    }
 
     /**
      * Decrypts encrypted data from an input stream and writes the decrypted result
@@ -221,7 +244,6 @@ public class DecryptionService {
 
         decryptor.decrypt(input, output);
     }
-
 
     /**
      * Aborts an ongoing decryption operation, if one is in progress.
