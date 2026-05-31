@@ -575,7 +575,21 @@ public class TextPadForm {
 	    
 	    // Password 
 	    boolean hasPassword = dc.hasPasswordRecipient(new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)), EncodingOption.ENCODING_PEM);
-	    if (!aliasOpt.isPresent() && !hasPassword) {
+	    if (!aliasOpt.isPresent()) {
+
+	        if (hasPassword) {
+	            if (txtbPassword.getPassword().length != 0) {
+	                return txtbPassword.getPassword();
+	            } else {
+	                return DialogUtils.showPasswordInputBox(
+	                        null,
+	                        "Password",
+	                        "Decryption Password",
+	                        "Password"
+	                );
+	            }
+	        }
+
 	        DialogUtils.showMessageBox(
 	                null,
 	                "Key not found!",
@@ -583,14 +597,6 @@ public class TextPadForm {
 	                "",
 	                JOptionPane.WARNING_MESSAGE
 	        );
-	        //return null;
-	    }else if(hasPassword) {
-	    	if((txtbPassword.getPassword().length != 0)) {
-	    		return txtbPassword.getPassword();
-	    	}else {
-	    		return DialogUtils.showPasswordInputBox(null, "Password", "Decryption Password", "Password");
-	    	}
-	    	
 	    }
 
 	    String aliasAuto =null;

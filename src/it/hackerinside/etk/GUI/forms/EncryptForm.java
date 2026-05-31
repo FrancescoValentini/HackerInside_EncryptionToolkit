@@ -37,6 +37,7 @@ import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.GUI.DTOs.ETKRecipient;
+import it.hackerinside.etk.GUI.DTOs.PasswordTableRow;
 import it.hackerinside.etk.GUI.DTOs.SecretKeyTableRow;
 import it.hackerinside.etk.GUI.DTOs.SecretKeyWrapper;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
@@ -381,6 +382,8 @@ public class EncryptForm {
 						symRecipient.remove(key.keystoreAlias().getBytes(StandardCharsets.UTF_8));
 						byte[] target = key.keystoreAlias().getBytes(StandardCharsets.UTF_8);
 						symRecipient.keySet().removeIf(k -> Arrays.equals(k, target));
+					}else if (selected instanceof PasswordTableRow pwd) {
+						pwdRecipients.remove(pwd.original());
 					}
 					listModel.removeElement(selected);
 				}
@@ -433,6 +436,16 @@ public class EncryptForm {
 				symRecipient.put(selected.getAlias().getBytes(StandardCharsets.UTF_8), sk);
 				cmbSymmetricKeys.setSelectedItem(null);
 				symmetricRecipientAlias = "";
+				return;
+			}
+		}
+		
+		if(this.txtbPassword.getPassword().length > 0  && tabbedPane.getSelectedComponent() == pwdPanel ) {
+			char[] pwd = this.txtbPassword.getPassword();
+			if(pwd != null && pwd.length > 0) {
+				listModel.addElement(new PasswordTableRow(pwd));
+				pwdRecipients.add(pwd);
+				this.txtbPassword.setText("");
 				return;
 			}
 		}
@@ -658,6 +671,7 @@ public class EncryptForm {
 	                    encoding,
 	                    recipients,
 	                    symRecipient,
+	                    pwdRecipients,
 	                    plaintextFile,
 	                    cipherFile,
 	                    chckbxUseSki.isSelected(),
@@ -753,6 +767,10 @@ public class EncryptForm {
             });
         }
         
+        if(!this.pwdRecipients.isEmpty()) {
+        	okMessage.append("- " + "Password Recipient" + "\n");
+        }
+        
        
         return okMessage.toString();
 	}
@@ -763,7 +781,7 @@ public class EncryptForm {
 	 * @return true if all required inputs are present and valid, false otherwise
 	 */
 	private boolean allReady() {
-	    return (this.recipients.size() > 0 || !this.symRecipient.isEmpty()) &&
+	    return (this.recipients.size() > 0 || !this.symRecipient.isEmpty() || !this.pwdRecipients.isEmpty()) &&
 	           this.plaintextFile != null &&
 	           this.plaintextFile.exists() &&
 	           !this.txtbOutputFile.getText().isEmpty();
