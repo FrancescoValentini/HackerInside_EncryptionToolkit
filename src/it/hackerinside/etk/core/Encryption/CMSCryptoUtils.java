@@ -17,6 +17,7 @@ import org.bouncycastle.cms.KEKRecipientId;
 import org.bouncycastle.cms.KEMRecipientId;
 import org.bouncycastle.cms.KeyAgreeRecipientId;
 import org.bouncycastle.cms.KeyTransRecipientId;
+import org.bouncycastle.cms.PasswordRecipientId;
 import org.bouncycastle.cms.RecipientId;
 import org.bouncycastle.cms.RecipientInformation;
 import org.bouncycastle.cms.RecipientInformationStore;
@@ -152,13 +153,16 @@ public class CMSCryptoUtils {
 	 * @return mapped identifier, or null if neither form is present
 	 */
 	private static RecipientIdentifier toRecipientIdentifier(RecipientId rid) {
+		
+		if(rid instanceof  PasswordRecipientId) return RecipientIdentifier.passwordRecipient(); 
 
 	    byte[] keyId = getSubjectKeyIdentifier(rid);
 
 	    if (keyId != null) {
-	        return (rid instanceof KEKRecipientId)
-	                ? RecipientIdentifier.fromKekKeyId(keyId)
-	                : RecipientIdentifier.fromSki(keyId);
+	    	return switch (rid) {
+		        case KEKRecipientId kek -> RecipientIdentifier.fromKekKeyId(keyId);
+		        default -> RecipientIdentifier.fromSki(keyId);
+	    	};
 	    }
 
 	    X500Name issuer = getIssuer(rid);

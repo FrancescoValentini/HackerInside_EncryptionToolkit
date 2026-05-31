@@ -37,6 +37,7 @@ import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.GUI.DTOs.ETKRecipient;
+import it.hackerinside.etk.GUI.DTOs.PasswordTableRow;
 import it.hackerinside.etk.GUI.DTOs.SecretKeyTableRow;
 import it.hackerinside.etk.GUI.DTOs.SecretKeyWrapper;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
@@ -50,6 +51,7 @@ import it.hackerinside.etk.core.Services.EncryptionService;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
 
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import javax.swing.JTabbedPane;
 import javax.swing.JComboBox;
 import javax.crypto.SecretKey;
@@ -86,6 +88,7 @@ public class EncryptForm {
     private DefaultListModel<ETKRecipient<?>> listModel = new DefaultListModel<>();
     private List<X509Certificate> recipients;
     private Map<byte[], SecretKey> symRecipient;
+    private List<char[]> pwdRecipients;
     private boolean running = false;
     private SwingWorker<Void, Void> currentWorker;
     
@@ -103,6 +106,8 @@ public class EncryptForm {
 	private JPanel pnlSymmetric;
 	private JTabbedPane tabbedPane;
 	private JComboBox cmbRecipientCert;
+	private JPanel pwdPanel;
+	private JPasswordField txtbPassword;
 
 	/**
 	 * Launch the application.
@@ -139,6 +144,7 @@ public class EncryptForm {
 	private void initialize() {
 		recipients = new ArrayList<>();
 		symRecipient = new HashMap<byte[], SecretKey>();
+		pwdRecipients = new ArrayList<>();
 		frmEncrypt = new JFrame();
 		frmEncrypt.addWindowListener(new WindowAdapter() {
 			@Override
@@ -376,6 +382,8 @@ public class EncryptForm {
 						symRecipient.remove(key.keystoreAlias().getBytes(StandardCharsets.UTF_8));
 						byte[] target = key.keystoreAlias().getBytes(StandardCharsets.UTF_8);
 						symRecipient.keySet().removeIf(k -> Arrays.equals(k, target));
+					}else if (selected instanceof PasswordTableRow pwd) {
+						pwdRecipients.remove(pwd.original());
 					}
 					listModel.removeElement(selected);
 				}
@@ -396,10 +404,32 @@ public class EncryptForm {
 		populateKnowCerts(cmbRecipientCert);
 		populateSecretKeys(cmbSymmetricKeys);
 		
+		pwdPanel = new JPanel();
+		tabbedPane.addTab("Password", null, pwdPanel, null);
+		pwdPanel.setLayout(null);
+
+		JLabel lblNewLabel1 = new JLabel("Password:");
+		lblNewLabel1.setFont(new Font("Tahoma", Font.PLAIN, 17));
+		lblNewLabel1.setBounds(10, 11, 120, 25);
+		pwdPanel.add(lblNewLabel1);
+
+		txtbPassword = new JPasswordField();
+		txtbPassword.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		txtbPassword.setBounds(143, 11, 399, 26);
+		pwdPanel.add(txtbPassword);
+		
 		this.chckbPemOutput.setSelected(ctx.usePEM());
 		this.cmbEncAlgorithm.setSelectedItem(ctx.getCipher());
 		this.chckbxUseSki.setSelected(ctx.useSKI());
 		if(this.plaintextFile == null) fileInitialization();
+		
+		if (!ctx.isLoggedIn()) {
+		    int index = tabbedPane.indexOfComponent(pnlSymmetric);
+
+		    if (index >= 0) {
+		        tabbedPane.setEnabledAt(index, false);
+		    }
+		}
 	}
 	
 	
@@ -414,6 +444,16 @@ public class EncryptForm {
 				symRecipient.put(selected.getAlias().getBytes(StandardCharsets.UTF_8), sk);
 				cmbSymmetricKeys.setSelectedItem(null);
 				symmetricRecipientAlias = "";
+				return;
+			}
+		}
+		
+		if(this.txtbPassword.getPassword().length > 0  && tabbedPane.getSelectedComponent() == pwdPanel ) {
+			char[] pwd = this.txtbPassword.getPassword();
+			if(pwd != null && pwd.length > 0) {
+				listModel.addElement(new PasswordTableRow(pwd));
+				pwdRecipients.add(pwd);
+				this.txtbPassword.setText("");
 				return;
 			}
 		}
@@ -639,6 +679,7 @@ public class EncryptForm {
 	                    encoding,
 	                    recipients,
 	                    symRecipient,
+	                    pwdRecipients,
 	                    plaintextFile,
 	                    cipherFile,
 	                    chckbxUseSki.isSelected(),
@@ -734,6 +775,10 @@ public class EncryptForm {
             });
         }
         
+        if(!this.pwdRecipients.isEmpty()) {
+        	okMessage.append("- " + "Password Recipient" + "\n");
+        }
+        
        
         return okMessage.toString();
 	}
@@ -744,7 +789,7 @@ public class EncryptForm {
 	 * @return true if all required inputs are present and valid, false otherwise
 	 */
 	private boolean allReady() {
-	    return (this.recipients.size() > 0 || !this.symRecipient.isEmpty()) &&
+	    return (this.recipients.size() > 0 || !this.symRecipient.isEmpty() || !this.pwdRecipients.isEmpty()) &&
 	           this.plaintextFile != null &&
 	           this.plaintextFile.exists() &&
 	           !this.txtbOutputFile.getText().isEmpty();
