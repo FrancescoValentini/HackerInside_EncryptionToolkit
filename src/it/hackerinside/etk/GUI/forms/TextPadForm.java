@@ -414,11 +414,15 @@ public class TextPadForm {
 		populateKnowCerts(cmbRecipientCert);
 		populateSecretKeys(cmbSymmetricKeys);
 		
-		if(ctx.getKeystore() == null) {
-			 btnDecrypt.setEnabled(false);
-		}else {
-			dc = new DecryptionService(ctx);
+		if (ctx.getKeystore() == null) {
+		    int index = tabbedPane.indexOfComponent(pnlSymmetricEncryption);
+
+		    if (index >= 0) {
+		        tabbedPane.setEnabledAt(index, false);
+		    }
 		}
+		
+		dc = new DecryptionService(ctx);
 	}
 	
 	/**
@@ -541,6 +545,7 @@ public class TextPadForm {
 	 */
 	private Optional<String> findRecipientAlias(ByteArrayInputStream data) {
         Optional<String> recipient = java.util.Optional.empty();
+        if(ctx.getKeystore() == null) return recipient;
         try {
         	recipient = dc.identifyRecipient(data, EncodingOption.ENCODING_PEM);
 		} catch (Exception e) {
@@ -570,7 +575,8 @@ public class TextPadForm {
 	    String text = txtbData.getText();
 	    ByteArrayInputStream input =
 	            new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
-
+	    
+	    
 	    Optional<String> aliasOpt = findRecipientAlias(input);
 	    
 	    // Password 
@@ -664,7 +670,6 @@ public class TextPadForm {
 		try {
 			key = getDecryptionKey();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	    if (key == null) return;
@@ -674,13 +679,10 @@ public class TextPadForm {
 
 	    try {
 	        if (key instanceof PrivateKey pk) {
-	        	System.out.println("Decrypting with private key");
 	            dc.decrypt(pk, EncodingOption.ENCODING_PEM, input, output);
 	        } else if (key instanceof SecretKey sk) {
-	        	System.out.println("Decrypting with secret key");
 	            dc.decrypt(sk, EncodingOption.ENCODING_PEM, input, output);
 	        } else if (key instanceof char[] pwd) {
-	        	System.out.println("Decrypting with password");
 	        	dc.decrypt(pwd, EncodingOption.ENCODING_PEM, input, output);
 	        }
 	        else {
