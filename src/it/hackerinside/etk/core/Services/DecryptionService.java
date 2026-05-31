@@ -67,6 +67,40 @@ public class DecryptionService {
 
         return ctx.getKeystore().findAliasForRecipients(recipients);
     }
+    
+    /**
+     * Checks whether the CMS message contains at least one password-based recipient.
+     *
+     * @param in CMS input stream
+     * @param encoding CMS encoding format
+     * @return {@code true} if a password recipient is present; otherwise {@code false}
+     * @throws Exception if the CMS message cannot be processed
+     */
+    public Boolean hasPasswordRecipient(InputStream in, EncodingOption encoding) throws Exception {
+        Collection<RecipientIdentifier> recipients = CMSCryptoUtils.extractRecipientIdentifiers(in, encoding);
+
+        if (recipients == null) return false;
+        
+        return recipients.stream()
+                .anyMatch(r -> r.getType() == RecipientIdentifier.Type.PASSWORD);
+    }
+    
+    /**
+     * Checks whether the CMS message contains at least one password-based recipient.
+     *
+     * @param in CMS input file
+     * @param encoding CMS encoding format
+     * @return {@code true} if a password recipient is present; otherwise {@code false}
+     * @throws Exception if the CMS message cannot be processed
+     */
+    public Boolean hasPasswordRecipient(File in, EncodingOption encoding) throws Exception {
+        Collection<RecipientIdentifier> recipients = CMSCryptoUtils.extractRecipientIdentifiers(in, encoding);
+
+        if (recipients == null) return false;
+
+        return recipients.stream()
+                .anyMatch(r -> r.getType() == RecipientIdentifier.Type.PASSWORD);
+    }
 
     /**
      * Decrypts an encrypted input file and writes the decrypted content to the specified output file.
@@ -149,6 +183,41 @@ public class DecryptionService {
         decryptor = new CMSDecryptor(secretKey, encoding, ctx.getBufferSize());
 
         if (ctx.usePKCS11()) decryptor.setProvider(ctx.getKeystore().getProvider());
+
+        decryptor.decrypt(input, output);
+    }
+    
+    /**
+     * Decrypts CMS-encrypted data from an input stream using the provided password.
+     *
+     * @param password password used for decryption
+     * @param encoding CMS encoding format
+     * @param input encrypted input stream
+     * @param output destination output stream for decrypted data
+     * @throws Exception if decryption fails or no password is provided
+     */
+    public void decrypt(char[] password, EncodingOption encoding, InputStream input, OutputStream output) throws Exception {
+        if (password == null || password.length==0) throw new IllegalStateException("Password not provided");
+
+        decryptor = new CMSDecryptor(password, encoding, ctx.getBufferSize());
+
+        decryptor.decrypt(input, output);
+    }
+    
+
+	/**
+	 * Decrypts CMS-encrypted data from a file using the provided password.
+	 *
+	 * @param password password used for decryption
+	 * @param encoding CMS encoding format
+	 * @param input encrypted input file
+	 * @param output destination file for decrypted data
+	 * @throws Exception if decryption fails or no password is provided
+	 */
+    public void decrypt(char[] password, EncodingOption encoding, File input, File output) throws Exception {
+        if (password == null || password.length==0) throw new IllegalStateException("Password not provided");
+
+        decryptor = new CMSDecryptor(password, encoding, ctx.getBufferSize());
 
         decryptor.decrypt(input, output);
     }
