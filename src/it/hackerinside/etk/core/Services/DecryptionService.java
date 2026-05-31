@@ -99,9 +99,11 @@ public class DecryptionService {
      * @return {@code true} if a password recipient is present; otherwise {@code false}
      * @throws Exception if the CMS message cannot be processed
      */
-    public Boolean hasPasswordRecipient(File in, EncodingOption encoding) throws Exception {
+    public Boolean hasPasswordRecipient(File in) throws Exception {
+    	EncodingOption encoding = PEMUtils.findFileEncoding(in);
+    	
         Collection<RecipientIdentifier> recipients = CMSCryptoUtils.extractRecipientIdentifiers(in, encoding);
-
+        
         if (recipients == null) return false;
 
         return recipients.stream()

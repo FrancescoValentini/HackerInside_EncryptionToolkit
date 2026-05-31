@@ -422,6 +422,14 @@ public class EncryptForm {
 		this.cmbEncAlgorithm.setSelectedItem(ctx.getCipher());
 		this.chckbxUseSki.setSelected(ctx.useSKI());
 		if(this.plaintextFile == null) fileInitialization();
+		
+		if (!ctx.isLoggedIn()) {
+		    int index = tabbedPane.indexOfComponent(pnlSymmetric);
+
+		    if (index >= 0) {
+		        tabbedPane.setEnabledAt(index, false);
+		    }
+		}
 	}
 	
 	

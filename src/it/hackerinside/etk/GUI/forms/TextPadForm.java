@@ -414,7 +414,7 @@ public class TextPadForm {
 		populateKnowCerts(cmbRecipientCert);
 		populateSecretKeys(cmbSymmetricKeys);
 		
-		if (ctx.getKeystore() == null) {
+		if (!ctx.isLoggedIn()) {
 		    int index = tabbedPane.indexOfComponent(pnlSymmetricEncryption);
 
 		    if (index >= 0) {
@@ -545,7 +545,7 @@ public class TextPadForm {
 	 */
 	private Optional<String> findRecipientAlias(ByteArrayInputStream data) {
         Optional<String> recipient = java.util.Optional.empty();
-        if(ctx.getKeystore() == null) return recipient;
+        if(!ctx.isLoggedIn()) return recipient;
         try {
         	recipient = dc.identifyRecipient(data, EncodingOption.ENCODING_PEM);
 		} catch (Exception e) {

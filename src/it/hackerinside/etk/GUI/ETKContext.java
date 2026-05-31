@@ -70,6 +70,8 @@ public class ETKContext {
      */
     private char[] keystoreMasterPassword;
     
+    private boolean isLoggedIn = false;
+    
     /**
      * Private constructor to enforce singleton pattern.
      * Initializes the context by loading preferences and known certificates.
@@ -277,7 +279,13 @@ public class ETKContext {
         }
     }
 
-
+    public void setLoggedIn(boolean loggedIn) {
+    	this.isLoggedIn = loggedIn;
+    }
+    
+    public boolean isLoggedIn() {
+    	return this.isLoggedIn;
+    }
     
     /**
      * Returns the main keystore used for cryptographic operations.

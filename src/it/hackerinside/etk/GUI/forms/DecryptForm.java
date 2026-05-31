@@ -234,6 +234,8 @@ public class DecryptForm {
 		populaterCerts(cmbPrivateKey);
 		populateSecretKeys(cmbKek);
 		
+		if(!ctx.isLoggedIn()) tabbedPane.setVisible(false);
+		
 		if(this.fileToDecrypt == null) fileInitialization();
 	}
 	
@@ -245,13 +247,16 @@ public class DecryptForm {
 	 */
 	private void populateSecretKeys(JComboBox<SecretKeyWrapper> combo) {
 		combo.addItem(null);
-		List<AbstractKeystore> keystores = Stream.of(
-		        ctx.getKeystore()
-		    )
-		    .filter(Objects::nonNull)
-		    .toList();
 		
-		Utils.populateSecretKeys(combo, keystores);
+		if(ctx.isLoggedIn()) {
+			List<AbstractKeystore> keystores = Stream.of(
+			        ctx.getKeystore()
+			    )
+			    .filter(Objects::nonNull)
+			    .toList();
+			
+			Utils.populateSecretKeys(combo, keystores);
+		}
 	}
 	
 	/**
@@ -278,7 +283,13 @@ public class DecryptForm {
 
 	        @Override
 	        protected IdentifiedRecipient doInBackground() throws Exception {
-	        	return decryptionService.identifyRecipient(fileToDecrypt);
+	        	
+	        	if(ctx.isLoggedIn()) {
+	        		return decryptionService.identifyRecipient(fileToDecrypt);
+	        	}else {
+	        		boolean hasPwd = decryptionService.hasPasswordRecipient(fileToDecrypt);
+	        		return new IdentifiedRecipient(Optional.empty(),hasPwd);
+	        	}
 	        }
 
 	        @Override
@@ -293,17 +304,28 @@ public class DecryptForm {
 	                    return;
 	                } if(rec.hasPassword()) {
 	                	hasPassword = true;
-	                	lblStatus.setText("Detected password recipient");
+	                	lblStatus.setText("Found password recipient");
 	                	return;
 	                } else {
-	                    DialogUtils.showMessageBox(
-	                        null,
-	                        "Private key not found!",
-	                        "No matching private key",
-	                        "Manually select the correct certificate.",
-	                        JOptionPane.WARNING_MESSAGE
-	                    );
-	                    lblStatus.setText("Manually select the correct certificate.");
+	                	if(ctx.isLoggedIn()) {
+		                    DialogUtils.showMessageBox(
+			                        null,
+			                        "Private key not found!",
+			                        "No matching private key",
+			                        "Manually select the correct certificate.",
+			                        JOptionPane.WARNING_MESSAGE
+			                    );
+		                    lblStatus.setText("Manually select the correct certificate.");
+	                	}else {
+		                    DialogUtils.showMessageBox(
+			                        null,
+			                        "Private key not found!",
+			                        "You are not logged in, no matching private key",
+			                        "You are not logged in, and no decryption key could be identified. \nThe encrypted message does not contain a password-based recipient, \ntherefore it cannot be decrypted using a password and decryption cannot proceed.",
+			                        JOptionPane.WARNING_MESSAGE
+			                    );
+		                    lblStatus.setText("You are not logged in, no matching private key");
+	                	}
 	                }
 	            } catch (Exception e) {
 	                DialogUtils.showMessageBox(
@@ -416,19 +438,21 @@ public class DecryptForm {
 	}
 	
 	private void populaterCerts(JComboBox<CertificateWrapper> combo) {
-	    Utils.populateCerts(
-	        combo,
-	        List.of(ctx.getKeystore()),
-	        cert -> {
-	            String alg = cert.getPublicKey().getAlgorithm();
+		if(ctx.isLoggedIn()) {
+		    Utils.populateCerts(
+			        combo,
+			        List.of(ctx.getKeystore()),
+			        cert -> {
+			            String alg = cert.getPublicKey().getAlgorithm();
 
-	            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
-	            boolean hideECC = ctx.usePKCS11() && !ctx.isPkcs11SignOnly()
-	                              && alg != null && alg.toUpperCase().contains("EC");
+			            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
+			            boolean hideECC = ctx.usePKCS11() && !ctx.isPkcs11SignOnly()
+			                              && alg != null && alg.toUpperCase().contains("EC");
 
-	            return alg != null && !isDSA && !hideECC;
-	        }
-	    );
+			            return alg != null && !isDSA && !hideECC;
+			        }
+			    );
+		}
 	}
 	
 	private X509Certificate getCertificate() {
