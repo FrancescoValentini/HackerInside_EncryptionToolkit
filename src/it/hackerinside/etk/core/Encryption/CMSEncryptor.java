@@ -152,9 +152,10 @@ public class CMSEncryptor implements Encryptor {
             if (encryptionAlgorithm.isAEAD()) {
                 CMSAuthEnvelopedDataStreamGenerator generator = getAuthGenerator();
                 cmsOut = generator.open(encodedOut, (OutputAEADEncryptor)encryptor);
-
+                generator.setBufferSize(bufferSize);
             } else {
                 CMSEnvelopedDataStreamGenerator generator = getGenerator();
+                generator.setBufferSize(bufferSize);
                 cmsOut = generator.open(encodedOut, encryptor);
             }
             try (cmsOut) {

@@ -22,7 +22,6 @@ import org.bouncycastle.cms.CMSAuthEnvelopedData;
 import org.bouncycastle.cms.CMSEnvelopedData;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.KEKRecipientInformation;
-import org.bouncycastle.cms.PasswordRecipient;
 import org.bouncycastle.cms.PasswordRecipientInformation;
 import org.bouncycastle.cms.RecipientInformation;
 import org.bouncycastle.cms.jcajce.JceKEKEnvelopedRecipient;
