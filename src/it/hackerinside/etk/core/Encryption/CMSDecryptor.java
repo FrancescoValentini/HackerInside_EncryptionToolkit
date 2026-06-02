@@ -13,17 +13,22 @@ import java.util.Collection;
 
 import javax.crypto.SecretKey;
 
+import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.cms.CMSObjectIdentifiers;
+import org.bouncycastle.asn1.cms.ContentInfo;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
-import org.bouncycastle.cms.CMSEnvelopedDataParser;
+import org.bouncycastle.cms.CMSAuthEnvelopedData;
+import org.bouncycastle.cms.CMSEnvelopedData;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.KEKRecipientInformation;
+import org.bouncycastle.cms.PasswordRecipientInformation;
 import org.bouncycastle.cms.RecipientInformation;
-import org.bouncycastle.cms.RecipientInformationStore;
 import org.bouncycastle.cms.jcajce.JceKEKEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKEMEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKeyAgreeEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKeyTransEnvelopedRecipient;
+import org.bouncycastle.cms.jcajce.JcePasswordEnvelopedRecipient;
 
 import it.hackerinside.etk.core.Models.AsymmetricAlgorithm;
 import it.hackerinside.etk.core.Models.EncodingOption;
@@ -44,6 +49,7 @@ public class CMSDecryptor {
 	private volatile boolean aborted = false;
 	private Provider provider;
 	private SecretKey secretKey;
+	private char[] password;
 	
 	/**
 	 * Constructs a new CMSDecryptor with the specified parameters.
@@ -70,6 +76,12 @@ public class CMSDecryptor {
 		this.encoding = encoding;
 		this.bufferSize = bufferSize;
 	}
+	
+	public CMSDecryptor(char[] password, EncodingOption encoding, int bufferSize) {
+		this.password = password;
+		this.encoding = encoding;
+		this.bufferSize = bufferSize;
+	} 
 	/**
 	 * Aborts the decryption
 	 */
@@ -99,7 +111,7 @@ public class CMSDecryptor {
     	boolean success = false;
     	Exception lastError = null;
     	
-    	Collection<RecipientInformation> recipients = findReciepients(cmsInput);
+    	Collection<RecipientInformation> recipients = findRecipients(cmsInput);
 
     	for (RecipientInformation recipient : recipients) {
     		try {
@@ -155,16 +167,21 @@ public class CMSDecryptor {
      * @throws NullPointerException if the cmsInput parameter is null
      *
      */
-    private Collection<RecipientInformation> findReciepients(InputStream cmsInput) throws CMSException, IOException{
-        CMSEnvelopedDataParser parser = new CMSEnvelopedDataParser(cmsInput);
-        RecipientInformationStore recipients = parser.getRecipientInfos();
-        Collection<RecipientInformation> recipientInfos = recipients.getRecipients();
+    private Collection<RecipientInformation> findRecipients(InputStream cmsInput)
+            throws CMSException, IOException {
 
-        if (recipientInfos.isEmpty()) {
-            throw new CMSException("No recipient information found in CMS data.");
+        try (ASN1InputStream asn1 = new ASN1InputStream(cmsInput)) {
+            ContentInfo contentInfo = ContentInfo.getInstance(asn1.readObject());
+            ASN1ObjectIdentifier contentType = contentInfo.getContentType();
+
+            if (CMSObjectIdentifiers.authEnvelopedData.equals(contentType)) {
+                return new CMSAuthEnvelopedData(contentInfo).getRecipientInfos().getRecipients();
+            } else if (CMSObjectIdentifiers.envelopedData.equals(contentType)) {
+                return new CMSEnvelopedData(contentInfo).getRecipientInfos().getRecipients();
+            } else {
+                throw new CMSException("Unsupported CMS content type: " + contentType.getId());
+            }
         }
-        
-        return recipientInfos;
     }
     
     /**
@@ -190,6 +207,15 @@ public class CMSDecryptor {
 	                .getContentStream();
 	    }
 		
+	    if (recipient instanceof PasswordRecipientInformation) {
+	        JcePasswordEnvelopedRecipient decryptor =
+	                new JcePasswordEnvelopedRecipient(password);
+
+	        decryptor.setProvider("BC");
+
+	        return recipient.getContentStream(decryptor).getContentStream();
+	    }
+	    
 		ASN1ObjectIdentifier oid = new ASN1ObjectIdentifier(recipient.getKeyEncryptionAlgOID());
 		
 		if(PQCAlgorithms.fromOID(oid) != null && !PQCAlgorithms.fromOID(oid).canSign) { // PQC
@@ -199,6 +225,7 @@ public class CMSDecryptor {
 		}
 		
         AsymmetricAlgorithm keyAlgo = algFromCMSOid(oid);
+        
         return switch (keyAlgo) {
             case RSA -> recipient
                         .getContentStream(new JceKeyTransEnvelopedRecipient(privateKey).setProvider("BC"))
@@ -217,7 +244,8 @@ public class CMSDecryptor {
 	        }
 
 	    // EC (ECDH CMS)
-	    if (id.startsWith("1.3.132.1.11")) {
+	    // 1.3.133.16.840.63.0.2 = LEGACY dhSinglePass-stdDH-sha1kdf-scheme
+	    if (id.startsWith("1.3.132.1.11") || id.equals("1.3.133.16.840.63.0.2")) {
 	        return AsymmetricAlgorithm.EC;
 	    }
 	    return null;

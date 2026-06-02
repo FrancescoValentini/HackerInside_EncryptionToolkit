@@ -60,6 +60,8 @@ import java.awt.event.ItemEvent;
 import javax.swing.border.TitledBorder;
 import javax.swing.border.EtchedBorder;
 import java.awt.Color;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.ChangeEvent;
 
 public class SettingsForm {
 
@@ -183,6 +185,7 @@ public class SettingsForm {
 		chckbHideInvalidCerts.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		chckbPKCS11SignOnly = new JCheckBox("PKCS#11 sign-only mode");
+
 		chckbPKCS11SignOnly.setToolTipText("Prevents decryption issues with PKCS#11 tokens that do not support decryption.");
 		chckbPKCS11SignOnly.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
@@ -559,6 +562,18 @@ public class SettingsForm {
 		    }
 		});
 		
+		chckbPKCS11SignOnly.addChangeListener(e -> {
+		    boolean signOnly = chckbPKCS11SignOnly.isSelected();
+
+		    if (signOnly) {
+		        chckbRSAOAEP.setEnabled(true);
+		        chckbRSAOAEP.setSelected(true);
+		    } else {
+		        chckbRSAOAEP.setSelected(false);
+		        chckbRSAOAEP.setEnabled(false);
+		    }
+		});
+		
 		start();
 	}
 	
@@ -707,6 +722,18 @@ public class SettingsForm {
 		spnBufferSize.setValue(ctx.getBufferSize());
 		spnCacheTimeout.setValue(ctx.getCacheEntryTimeout());
 		
+		chckbPKCS11SignOnly.setSelected(ctx.isPkcs11SignOnly());
+		chckbRSAOAEP.setSelected(ctx.useRsaOaep());
+
+		if (ctx.isPkcs11SignOnly()) {
+		    chckbRSAOAEP.setEnabled(true);
+		    chckbRSAOAEP.setSelected(true);
+		} else {
+		    chckbRSAOAEP.setSelected(false);
+		    chckbRSAOAEP.setEnabled(false);
+		}
+
+		
 	}
 	
 	
@@ -743,7 +770,7 @@ public class SettingsForm {
 						"You have enabled PKCS11 also for encrypt and decrypt operations!", 
 						"The software cannot decrypt documents encrypted with RSA-OAEP.\r\n"
 						+ "\r\n"
-						+ "Make sure you've disabled RSA-OAEP in the Algorithms section.\r\n"
+						+ "RSA-OAEP has been automatically disabled.\r\n"
 						+ "\r\n"
 						+ "Press OK to confirm the changes; CANCEL to exit without saving.",
 						 0

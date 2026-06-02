@@ -572,24 +572,35 @@ public class ETKMain {
 	         ctx.usePKCS11() ? "PKCS#11 DEVICE" : ctx.getKeyStorePath(),
 	        "Password:"
 	    );
+	    if(password == null) {
+	        loggedIn = false;
+	        disablePrivateKeyOperations();
+	        notLoggedInMessage(null);
+	        return;
+	    };
 	    try {
 	        ctx.loadKeystore(password);
 	        loggedIn = true;
 	        enablePrivateKeyOperations();
 	    } catch (Exception e) {
-	        DialogUtils.showMessageBox(
-	            null,
-	            "Unable to load keystore!",
-	            "Unable to unlock keystore; only Encryption and Digital Signature Verification are available.",
-	            e.getMessage(),
-	            JOptionPane.ERROR_MESSAGE
-	        );
+	    	notLoggedInMessage(e.getMessage());
 	        loggedIn = false;
 	        disablePrivateKeyOperations();
 	    } finally {
+	    	ctx.setLoggedIn(loggedIn);
 	    	if(password != null) Arrays.fill(password, (char)0x00);
 	    }
 	    pkcs11DisableOperations();
+	}
+	
+	private void notLoggedInMessage(String msg) {
+        DialogUtils.showMessageBox(
+	            null,
+	            "Unable to load keystore!",
+	            "<html>Unable to unlock keystore.<br/><br/>Only Password Decryption and Digital Signature Verification are available.</html>",
+	            msg,
+	            JOptionPane.ERROR_MESSAGE
+	        );
 	}
 	
 	/*
@@ -641,7 +652,6 @@ public class ETKMain {
 	 */
 	private void disablePrivateKeyOperations() {
 	    btnSign.setEnabled(false);
-	    btnDecrypt.setEnabled(false);
 	}
 
 	

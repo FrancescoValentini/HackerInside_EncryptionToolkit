@@ -69,7 +69,7 @@ public class X509CertificateExporter {
 	    String cert = Base64.getMimeEncoder(64, new byte[]{'\n'})
 	    		.encodeToString(crt.getPublicKey().getEncoded());
 	    sb.append(cert);
-	    sb.append("\n-----BEGIN PUBLIC KEY-----\n");
+	    sb.append("\n-----END PUBLIC KEY-----\n");
 	    return sb.toString();
 	}
 }

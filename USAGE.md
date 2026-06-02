@@ -27,7 +27,7 @@ In questa finestra è possibile:
 
 1. Fai clic sul pulsante **Encrypt** e seleziona il file da cifrare.
 2. Seleziona il destinatario: il menu a tendina mostra i certificati presenti nel **Keystore personale** e in quello dei **certificati fidati**.
-   Puoi anche aprire la scheda **File** per importare un certificato esterno o (se presente) puoi utilizzare una chiave simmetrica.
+   Puoi anche aprire la scheda **File** per importare un certificato esterno oppure utilizzare una **chiave simmetrica**, se disponibile, o una **password**.
 3. Aggiungere il destinatario alla lista con il pulsante **+**
 4. *(Opzionale)* L'algoritmo e l'encoding sono selezionati automaticamente in base alle impostazioni predefinite, ma puoi modificarli per questa singola operazione.
 5. Premi **Encrypt** e attendi la conferma.
@@ -37,7 +37,7 @@ In questa finestra è possibile:
 ### 🔓 Decifratura (Decrypt)
 
 1. Fai clic su **Decrypt** e seleziona il file da decifrare (verranno mostrati solo i file con estensione `.p7e`).
-2. Se il software individua automaticamente la chiave privata (o della chiave simmetrica) corretta, questa verrà selezionata nel menu a tendina. In caso contrario, puoi sceglierla manualmente.
+2. Se il software individua automaticamente la chiave privata (o la chiave simmetrica) corretta, questa verrà selezionata nel menu a tendina. In caso contrario, puoi sceglierla manualmente. Se il file è stato cifrato con una **password**, ti verrà richiesto di inserirla per procedere con la decifratura.
 3. Premi **Decrypt**, inserisci la password della chiave privata (o della chiave simmetrica) e attendi la conferma.
 
 > [!WARNING]

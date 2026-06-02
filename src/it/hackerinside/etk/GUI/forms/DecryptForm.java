@@ -37,6 +37,7 @@ import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.GUI.DTOs.SecretKeyWrapper;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
+import it.hackerinside.etk.core.Models.IdentifiedRecipient;
 import it.hackerinside.etk.core.Services.DecryptionService;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
 
@@ -68,6 +69,7 @@ public class DecryptForm {
     private JPanel pnlPrivateKey;
     private JComboBox<SecretKeyWrapper> cmbKek;
     private JPanel pnlKek;
+    private boolean hasPassword = false;
     
 
 	/**
@@ -232,6 +234,8 @@ public class DecryptForm {
 		populaterCerts(cmbPrivateKey);
 		populateSecretKeys(cmbKek);
 		
+		if(!ctx.isLoggedIn()) tabbedPane.setVisible(false);
+		
 		if(this.fileToDecrypt == null) fileInitialization();
 	}
 	
@@ -243,13 +247,16 @@ public class DecryptForm {
 	 */
 	private void populateSecretKeys(JComboBox<SecretKeyWrapper> combo) {
 		combo.addItem(null);
-		List<AbstractKeystore> keystores = Stream.of(
-		        ctx.getKeystore()
-		    )
-		    .filter(Objects::nonNull)
-		    .toList();
 		
-		Utils.populateSecretKeys(combo, keystores);
+		if(ctx.isLoggedIn()) {
+			List<AbstractKeystore> keystores = Stream.of(
+			        ctx.getKeystore()
+			    )
+			    .filter(Objects::nonNull)
+			    .toList();
+			
+			Utils.populateSecretKeys(combo, keystores);
+		}
 	}
 	
 	/**
@@ -270,29 +277,55 @@ public class DecryptForm {
 	}
 	
 	private void identifyRecipientKeyAsync() {
-	    SwingWorker<Optional<String>, Void> worker = new SwingWorker<>() {
+		lblStatus.setText("Identifying recipients...");
+		btnDecrypt.setEnabled(false);
+	    SwingWorker<IdentifiedRecipient, Void> worker = new SwingWorker<>() {
 
 	        @Override
-	        protected Optional<String> doInBackground() throws Exception {
-	        	return decryptionService.identifyRecipient(fileToDecrypt);
+	        protected IdentifiedRecipient doInBackground() throws Exception {
+	        	
+	        	if(ctx.isLoggedIn()) {
+	        		return decryptionService.identifyRecipient(fileToDecrypt);
+	        	}else {
+	        		boolean hasPwd = decryptionService.hasPasswordRecipient(fileToDecrypt);
+	        		return new IdentifiedRecipient(Optional.empty(),hasPwd);
+	        	}
 	        }
 
 	        @Override
 	        protected void done() {
 	            try {
-	                Optional<String> aliasOpt = get();
+	            	IdentifiedRecipient rec = get();
+	            	
+	                Optional<String> aliasOpt = rec.keystoreAlias();
 	                if (aliasOpt.isPresent()) {
 	                    selectAlias(aliasOpt.get());
 	                    lblStatus.setText("Found recipient key: " + aliasOpt.get());
+	                    return;
+	                } if(rec.hasPassword()) {
+	                	hasPassword = true;
+	                	lblStatus.setText("Found password recipient");
+	                	return;
 	                } else {
-	                    DialogUtils.showMessageBox(
-	                        null,
-	                        "Private key not found!",
-	                        "No matching private key",
-	                        "Manually select the correct certificate.",
-	                        JOptionPane.WARNING_MESSAGE
-	                    );
-	                    lblStatus.setText("Manually select the correct certificate.");
+	                	if(ctx.isLoggedIn()) {
+		                    DialogUtils.showMessageBox(
+			                        null,
+			                        "Private key not found!",
+			                        "No matching private key",
+			                        "Manually select the correct certificate.",
+			                        JOptionPane.WARNING_MESSAGE
+			                    );
+		                    lblStatus.setText("Manually select the correct certificate.");
+	                	}else {
+		                    DialogUtils.showMessageBox(
+			                        null,
+			                        "Private key not found!",
+			                        "You are not logged in, no matching private key",
+			                        "You are not logged in, and no decryption key could be identified. \nThe encrypted message does not contain a password-based recipient, \ntherefore it cannot be decrypted using a password and decryption cannot proceed.",
+			                        JOptionPane.WARNING_MESSAGE
+			                    );
+		                    lblStatus.setText("You are not logged in, no matching private key");
+	                	}
 	                }
 	            } catch (Exception e) {
 	                DialogUtils.showMessageBox(
@@ -304,6 +337,8 @@ public class DecryptForm {
 	                );
 	                lblStatus.setText("Error identifying key");
 	                e.printStackTrace();
+	            }finally {
+	            	btnDecrypt.setEnabled(true);
 	            }
 	        }
 	    };
@@ -403,19 +438,21 @@ public class DecryptForm {
 	}
 	
 	private void populaterCerts(JComboBox<CertificateWrapper> combo) {
-	    Utils.populateCerts(
-	        combo,
-	        List.of(ctx.getKeystore()),
-	        cert -> {
-	            String alg = cert.getPublicKey().getAlgorithm();
+		if(ctx.isLoggedIn()) {
+		    Utils.populateCerts(
+			        combo,
+			        List.of(ctx.getKeystore()),
+			        cert -> {
+			            String alg = cert.getPublicKey().getAlgorithm();
 
-	            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
-	            boolean hideECC = ctx.usePKCS11() && !ctx.isPkcs11SignOnly()
-	                              && alg != null && alg.toUpperCase().contains("EC");
+			            boolean isDSA = alg != null && alg.toUpperCase().contains("DSA");
+			            boolean hideECC = ctx.usePKCS11() && !ctx.isPkcs11SignOnly()
+			                              && alg != null && alg.toUpperCase().contains("EC");
 
-	            return alg != null && !isDSA && !hideECC;
-	        }
-	    );
+			            return alg != null && !isDSA && !hideECC;
+			        }
+			    );
+		}
 	}
 	
 	private X509Certificate getCertificate() {
@@ -436,7 +473,7 @@ public class DecryptForm {
 	
 	private Key getDecryptionKey() {
 	    String alias = getSelectedAlias();
-	    if (alias == null) {
+	    if (alias == null && !hasPassword) {
 		    DialogUtils.showMessageBox(
 		            null,
 		            "Missing fields",
@@ -471,7 +508,7 @@ public class DecryptForm {
 	private void decrypt() {
 	    File output = new File(txtbOutputFile.getText());
 	    Key key = getDecryptionKey();
-	    if(key == null) return;
+	    if(key == null && !hasPassword) return;
 	    
 	    startDecryptionUI();
 	    running = true;
@@ -493,7 +530,22 @@ public class DecryptForm {
 			                fileToDecrypt,
 			                output
 			            );
-		        } else {
+		        } else if(key == null && hasPassword) {
+		        	char[] pwd = DialogUtils.showPasswordInputBox(
+	                        null,
+	                        "Password",
+	                        "Decryption Password",
+	                        "Password"
+	                );
+		        	if(pwd == null || pwd.length == 0) return null;
+			        decryptionService.decrypt(
+			        		pwd,
+			                fileToDecrypt,
+			                output
+			            );
+		        }
+		        
+		        else {
 		            throw new IllegalStateException("Unsupported key type");
 		        }
 

@@ -28,7 +28,7 @@ import it.hackerinside.etk.core.keystore.PKCS12Keystore;
  */
 public class ETKContext {
 	
-	public static final String ETK_VERSION = "1.0.14";
+	public static final String ETK_VERSION = "1.0.15";
 	
     /**
      * Singleton instance of ETKContext.
@@ -69,6 +69,8 @@ public class ETKContext {
      * The Keystore Master Password
      */
     private char[] keystoreMasterPassword;
+    
+    private boolean isLoggedIn = false;
     
     /**
      * Private constructor to enforce singleton pattern.
@@ -277,7 +279,13 @@ public class ETKContext {
         }
     }
 
-
+    public void setLoggedIn(boolean loggedIn) {
+    	this.isLoggedIn = loggedIn;
+    }
+    
+    public boolean isLoggedIn() {
+    	return this.isLoggedIn;
+    }
     
     /**
      * Returns the main keystore used for cryptographic operations.

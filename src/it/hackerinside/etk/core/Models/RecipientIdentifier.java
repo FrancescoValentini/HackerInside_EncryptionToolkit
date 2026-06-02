@@ -7,7 +7,7 @@ import java.math.BigInteger;
  * either a Subject Key Identifier (SKI) or Issuer + SerialNumber.
  */
 public class RecipientIdentifier {
-    public enum Type { SUBJECT_KEY_IDENTIFIER, ISSUER_SERIAL, KEK_KEY_ID }
+    public enum Type { PASSWORD, SUBJECT_KEY_IDENTIFIER, ISSUER_SERIAL, KEK_KEY_ID }
 
     private final Type type;
 
@@ -31,6 +31,11 @@ public class RecipientIdentifier {
     // Issuer + Serial
     public static RecipientIdentifier fromIssuerSerial(byte[] issuerEncoded, BigInteger serial) {
         return new RecipientIdentifier(Type.ISSUER_SERIAL, null, issuerEncoded, serial);
+    }
+    
+    // PWRI
+    public static RecipientIdentifier passwordRecipient() {
+        return new RecipientIdentifier(Type.PASSWORD, null, null, null);
     }
 
     private RecipientIdentifier(Type type, byte[] keyIdentifier, byte[] issuerEncoded, BigInteger serial) {
@@ -58,6 +63,8 @@ public class RecipientIdentifier {
                 return "KEK:" + toHexString(keyIdentifier);
             case ISSUER_SERIAL:
                 return "ISSUER_SERIAL:" + toHexString(issuerEncoded) + ":" + serial.toString(16);
+            case PASSWORD:
+            	return "PASSWORD_RECIPIENT";
             default:
                 throw new IllegalStateException("Unknown type");
         }
