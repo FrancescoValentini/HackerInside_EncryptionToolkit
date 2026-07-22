@@ -142,7 +142,6 @@ public class CMSEncryptor implements Encryptor {
     public void encrypt(InputStream input, OutputStream output) throws Exception {
         OutputEncryptor encryptor =
                 new JceCMSContentEncryptorBuilder(encryptionAlgorithm.getCipherASN1())
-                        .setProvider("BC")
                         .setSecureRandom(new SecureRandom())
                         .build();
 
