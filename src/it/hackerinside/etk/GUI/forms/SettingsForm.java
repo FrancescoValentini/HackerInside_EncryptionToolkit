@@ -712,9 +712,7 @@ public class SettingsForm {
 		chckbHideInvalidCerts.setSelected(ctx.hideInvalidCerts());
 		chckbxUseTruststore.setSelected(ctx.useTrustStore());
 		chckbPKCS11SignOnly.setSelected(ctx.isPkcs11SignOnly());
-		chckbRSAOAEP.setSelected(ctx.useRsaOaep());
 		chckbValKeyUsages.setSelected(ctx.validateKeyUsages());
-		
 		
 		cmbEncAlgPath.setSelectedItem(ctx.getCipher());
 		cmbHashAlgPath.setSelectedItem(ctx.getHashAlgorithm());
@@ -723,17 +721,14 @@ public class SettingsForm {
 		spnCacheTimeout.setValue(ctx.getCacheEntryTimeout());
 		
 		chckbPKCS11SignOnly.setSelected(ctx.isPkcs11SignOnly());
-		chckbRSAOAEP.setSelected(ctx.useRsaOaep());
-
 		if (ctx.isPkcs11SignOnly()) {
 		    chckbRSAOAEP.setEnabled(true);
-		    chckbRSAOAEP.setSelected(true);
+		    if(ctx.useRsaOaep()) chckbRSAOAEP.setSelected(true);
+		    else chckbRSAOAEP.setSelected(false);
 		} else {
 		    chckbRSAOAEP.setSelected(false);
 		    chckbRSAOAEP.setEnabled(false);
 		}
-
-		
 	}
 	
 	
