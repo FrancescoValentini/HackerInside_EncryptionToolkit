@@ -778,7 +778,8 @@ public class ETKMain {
 	 * @param cert the X.509 certificate to save
 	 */
 	private void saveKnownCertificate(X509Certificate cert) {
-		kms.setAliasProvider(() -> DialogUtils.showInputBox(null, "Certificate Alias", "Enter Certificate Alias", ""));
+		String cn = X509Utils.extractCN(cert.getSubjectX500Principal().getName());
+		kms.setAliasProvider(() -> DialogUtils.showInputBox(null, "Certificate Alias", "Enter Certificate Alias", "",cn));
 		kms.setConfirmationProvider(() -> Utils.acceptX509Certificate(cert));
         try {
         	if(!certImportWarning(cert)) return;
