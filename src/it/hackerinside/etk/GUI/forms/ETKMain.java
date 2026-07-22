@@ -68,6 +68,7 @@ public class ETKMain {
 	private JCheckBoxMenuItem chckbxmntmHideInvalidCertificate;
 	private static boolean loggedIn = false;
 	private KeysManagementService kms;
+	private JMenuItem menuItemKeystoreLogin;
 	/**
 	 * Launch the application.
 	 */
@@ -147,7 +148,7 @@ public class ETKMain {
 	    JMenu mnNewMenu = new JMenu("Keys & Certificates");
 	    menuBar.add(mnNewMenu);
 	    
-	    JMenuItem menuItemKeystoreLogin = new JMenuItem("Keystore Login");
+	    menuItemKeystoreLogin = new JMenuItem("Keystore Login");
 
 	    mnNewMenu.add(menuItemKeystoreLogin);
 	    
@@ -211,8 +212,19 @@ public class ETKMain {
 	    	if(!loggedIn) {
 		        unlockKeystore();
 		        updateTable();
+	    	}else { // logout
+	    		ETKMain.loggedIn = false;
+	    		disablePrivateKeyOperations();
+	    		updateTable();
+	    		ctx.unloadKeystore();
 	    	}
+	    	
+	    	updateKeystoreLoginText();
 	    });
+	    
+
+	    
+	    
 	    
 	    settingsMenuItem.addActionListener(e -> settings());
 	    menuItemImportKeypair.addActionListener(e -> importKeypair());
@@ -393,6 +405,11 @@ public class ETKMain {
 
 	    startProcedure();
 	}
+	
+    private void updateKeystoreLoginText() {
+    	if(!loggedIn) menuItemKeystoreLogin.setText("Keystore Login");
+    	else menuItemKeystoreLogin.setText("Keystore Logout");
+    }
 	
 	/**
 	 * Deletes a certificate from the appropriate keystore based on its location.
@@ -591,6 +608,7 @@ public class ETKMain {
 	    	if(password != null) Arrays.fill(password, (char)0x00);
 	    }
 	    pkcs11DisableOperations();
+	    updateKeystoreLoginText();
 	}
 	
 	private void notLoggedInMessage(String msg) {

@@ -17,6 +17,7 @@ import org.bouncycastle.util.Arrays;
 
 import it.hackerinside.etk.core.Models.ApplicationPreferences;
 import it.hackerinside.etk.core.Models.HashAlgorithm;
+import it.hackerinside.etk.core.Models.SupportedKeystores;
 import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
 import it.hackerinside.etk.core.keystore.PKCS11Keystore;
@@ -222,6 +223,15 @@ public class ETKContext {
     	ensureDirectoryExists(this.getTrustStorePath());
         this.trustStore = new PKCS12Keystore(this.getTrustStorePath(), "".toCharArray());
         trustStore.load();
+    }
+    
+    public void unloadKeystore() {
+    	if (this.keystore.getKeystoreType().equals(SupportedKeystores.PKCS12)) {
+    		((PKCS12Keystore) this.keystore).unload();
+    	}
+		this.keystore = null;
+		this.isLoggedIn = false;
+        Arrays.fill(keystoreMasterPassword, '\0');
     }
     
     /**
