@@ -801,9 +801,9 @@ public class ETKMain {
 		kms.setConfirmationProvider(() -> Utils.acceptX509Certificate(cert));
         try {
         	if(!certImportWarning(cert)) return;
-        	kms.saveKnownCertificate(cert);
+        	boolean ok = kms.saveKnownCertificate(cert);
     	    updateTable();
-    	    showCertificateInformation(cert);
+    	    if(ok) showCertificateInformation(cert);
         }catch (Exception e) {
             e.printStackTrace();
             DialogUtils.showMessageBox(
