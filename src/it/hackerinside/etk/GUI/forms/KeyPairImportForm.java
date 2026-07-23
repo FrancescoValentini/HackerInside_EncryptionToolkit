@@ -12,6 +12,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 
+import it.hackerinside.etk.GUI.ColumnVisibilityManager;
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
@@ -45,6 +46,7 @@ public class KeyPairImportForm {
     private Runnable callback;
     private JTable table;
     private CertificateTableModel tableModel;
+    private ColumnVisibilityManager columnsManager;
 
     public KeyPairImportForm(File input) {
         initialize();
@@ -79,6 +81,7 @@ public class KeyPairImportForm {
 
         table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        columnsManager = new ColumnVisibilityManager(table);
 
         JScrollPane scrollPane = new JScrollPane(
                 table,
@@ -166,7 +169,13 @@ public class KeyPairImportForm {
         start();
     }
     
+	private void updateTableColumns() {
+		columnsManager.hideAll();
+		columnsManager.showColumns(ctx.getVisibleColumns()); 
+	}
+    
     private void start() {
+    	updateTableColumns();
     	if(inputKeystoreFile == null) {
     	    File sourceKeystore = FileDialogUtils.openFileDialog(
     		        null,
@@ -186,6 +195,7 @@ public class KeyPairImportForm {
 	    kms.setCertificateValidationProvider((crt) -> Utils.acceptX509Certificate(crt));
 
     	loadKeystore();
+    	
     	
     }
     

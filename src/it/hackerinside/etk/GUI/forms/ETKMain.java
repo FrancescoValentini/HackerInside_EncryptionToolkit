@@ -1123,7 +1123,7 @@ public class ETKMain {
 	private void settings() {
 		SettingsForm settfrm = new SettingsForm();
 		settfrm.setVisible();
-		
+		settfrm.setCallback(() -> updateTableColumns());
 	}
 	
 	/**
