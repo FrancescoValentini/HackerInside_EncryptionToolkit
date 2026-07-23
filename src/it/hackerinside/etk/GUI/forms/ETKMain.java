@@ -70,6 +70,7 @@ public class ETKMain {
 	private static boolean loggedIn = false;
 	private KeysManagementService kms;
 	private JMenuItem menuItemKeystoreLogin;
+	private ColumnVisibilityManager columnsManager;
 	/**
 	 * Launch the application.
 	 */
@@ -123,7 +124,10 @@ public class ETKMain {
 	    
 	    tableModel = new CertificateTableModel();
 	    table = new JTable(tableModel);
-	    ColumnVisibilityManager manager = new ColumnVisibilityManager(table);
+	    columnsManager = new ColumnVisibilityManager(table);
+	    
+	    
+	    
 	    table.setFont(new Font("Consolas", Font.PLAIN, 16));
 	    panel.add(new JScrollPane(table), BorderLayout.CENTER);
 
@@ -408,6 +412,11 @@ public class ETKMain {
 	    startProcedure();
 	}
 	
+	private void updateTableColumns() {
+		columnsManager.hideAll();
+		columnsManager.showColumns(ctx.getVisibleColumns()); 
+	}
+	
     private void updateKeystoreLoginText() {
     	if(!loggedIn) menuItemKeystoreLogin.setText("Keystore Login");
     	else menuItemKeystoreLogin.setText("Keystore Logout");
@@ -565,6 +574,7 @@ public class ETKMain {
 	 * the keystore and then updating the certificate table.
 	 */
 	private void startProcedure() {
+		updateTableColumns();
 		kms = new KeysManagementService(ctx);
 		chckbxmntmHideInvalidCertificate.setSelected(ctx.hideInvalidCerts());
 		disablePrivateKeyOperations();
