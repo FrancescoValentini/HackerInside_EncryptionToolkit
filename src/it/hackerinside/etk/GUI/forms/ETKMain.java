@@ -26,6 +26,7 @@ import javax.swing.SwingConstants;
 
 import org.bouncycastle.util.Arrays;
 
+import it.hackerinside.etk.GUI.ColumnVisibilityManager;
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
@@ -122,6 +123,7 @@ public class ETKMain {
 	    
 	    tableModel = new CertificateTableModel();
 	    table = new JTable(tableModel);
+	    ColumnVisibilityManager manager = new ColumnVisibilityManager(table);
 	    table.setFont(new Font("Consolas", Font.PLAIN, 16));
 	    panel.add(new JScrollPane(table), BorderLayout.CENTER);
 

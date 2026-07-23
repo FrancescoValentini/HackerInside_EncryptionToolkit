@@ -24,6 +24,9 @@ public record CertificateTableRow(
     String keystoreAlias,
     String CommonName,
     String truncatedFingerprint,
+    String algorithm,
+    String expirationDate,
+    
     KeysLocations location,
     X509Certificate original) implements ETKRecipient<X509Certificate>{
 
@@ -42,6 +45,8 @@ public record CertificateTableRow(
             alias,
             extractCommonName(cert),
             generateTruncatedFingerprint(cert),
+            X509Utils.getPublicKeyDescription(cert.getPublicKey()),
+            cert.getNotAfter().toString(),
             location,
             cert
         );
