@@ -1167,7 +1167,7 @@ public class ETKMain {
 	}
 	
 	private void notLoggedInError() {
-		DialogUtils.showMessageBox(null, "You are not logged in", "You are not logged in", null, 0);
+		DialogUtils.showMessageBox(null, "You are not logged in", "You are not logged in", null, JOptionPane.WARNING_MESSAGE);
 	}
 	
 	private boolean checkPkcs11Operation() {
