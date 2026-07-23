@@ -13,6 +13,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -20,6 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
@@ -800,19 +803,24 @@ public class TextPadForm {
 	 * @param f The file to read from
 	 * @return The complete content of the file as a string, or empty string if file not found
 	 */
-	private String readTextFile(File f) {
-		String data = "";
-		try {
-			Scanner s = new Scanner(f);
-			while(s.hasNextLine()) {
-				data = data + s.nextLine();
-			}
-			s.close();
-		} catch (FileNotFoundException e) {
-			JOptionPane.showMessageDialog(null,e.getMessage());
-			e.printStackTrace();
-		}
-		return data;
+	private String readTextFile(File file) {
+	    StringBuilder sb = new StringBuilder();
+
+	    try (BufferedReader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
+
+	        char[] buffer = new char[8192];
+	        int n;
+
+	        while ((n = reader.read(buffer)) != -1) {
+	            sb.append(buffer, 0, n);
+	        }
+
+	    } catch (IOException e) {
+	        showError("Error reading the file","An error occurred while reading the file.",e);
+	        e.printStackTrace();
+	    }
+
+	    return sb.toString();
 	}
 
 
@@ -822,17 +830,13 @@ public class TextPadForm {
 	 * @param f The file to write to
 	 * @param data The text data to write to the file
 	 */
-	private void writeTextToFile(File f,String data) {
-		try {
-			FileWriter myWriter = new FileWriter(f);
-			myWriter.write(data);
-			myWriter.close();
-
-		} catch (IOException e) {
-			JOptionPane.showMessageDialog(null,e.getMessage());
-			e.printStackTrace();
-		}
-		return;
+	private void writeTextToFile(File file, String data) {
+	    try (BufferedWriter writer = Files.newBufferedWriter(file.toPath(), StandardCharsets.UTF_8)) {
+	        writer.write(data);
+	    } catch (IOException e) {
+	        showError("Error writing the file","An error occurred while writing the file.",e);
+	        e.printStackTrace();
+	    }
 	}
 	
 	/**
