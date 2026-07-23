@@ -3,8 +3,10 @@ package it.hackerinside.etk.GUI;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.security.MessageDigest;
+import java.security.PublicKey;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPublicKey;
 
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -16,8 +18,11 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
 
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.asn1.x9.ECNamedCurveTable;
+import org.bouncycastle.asn1.x9.X962Parameters;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
-
 import it.hackerinside.etk.Utils.X509CertificateExporter;
 import it.hackerinside.etk.Utils.X509Utils;
 
@@ -113,7 +118,10 @@ public class CertificateDetailsPanel extends JPanel {
         addRow("Valid to", cert.getNotAfter().toString());
         addRow("Key usage", cert.getKeyUsage() != null ? keyUsageToString(cert.getKeyUsage()) : "N/A");
         addRow("Signature Algorithm", cert.getSigAlgName());
-        addRow("Public Key Algorithm", cert.getPublicKey().getAlgorithm());
+        PublicKey pk = cert.getPublicKey();
+
+        addRow("Public Key Algorithm", getPublicKeyDescription(pk));
+
         addRow("Version", String.valueOf(cert.getVersion()));
         try {
 			addRow("PEM Certificate",X509CertificateExporter.exportCertificateToString(cert));
@@ -127,6 +135,67 @@ public class CertificateDetailsPanel extends JPanel {
         autoResizeColumnWidths();
     }
     
+    private String getPublicKeyDescription(PublicKey key) {
+        if (key == null) {
+            return "";
+        }
+
+        try {
+            String alg = key.getAlgorithm();
+
+            switch (alg) {
+                case "RSA":
+                    return getRsaDescription(key);
+
+                case "EC":
+                    return getEcDescription(key);
+
+                default:
+                    return alg;
+            }
+        } catch (Exception e) {
+            return key.getAlgorithm();
+        }
+    }
+
+    private static String getRsaDescription(PublicKey key) {
+        if (key instanceof RSAPublicKey rsa) {
+            return "RSA-" + rsa.getModulus().bitLength();
+        }
+
+        return "RSA";
+    }
+
+    private static String getEcDescription(PublicKey key) {
+        String curve = getEcCurveName(key);
+        return curve == null ? "EC" : "EC (" + curve + ")";
+    }
+
+    private static String getEcCurveName(PublicKey key) {
+        try {
+            SubjectPublicKeyInfo spki =
+                    SubjectPublicKeyInfo.getInstance(key.getEncoded());
+
+            X962Parameters params =
+                    X962Parameters.getInstance(spki.getAlgorithm().getParameters());
+
+            if (!params.isNamedCurve()) {
+                return null;
+            }
+
+            ASN1ObjectIdentifier oid =
+                    ASN1ObjectIdentifier.getInstance(params.getParameters());
+
+            String name = ECNamedCurveTable.getName(oid);
+
+            return name != null ? name : oid.getId();
+
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+
 
     /**
      * Adds a new row to the certificate details table.
