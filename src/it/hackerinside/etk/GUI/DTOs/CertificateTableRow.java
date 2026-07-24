@@ -1,7 +1,8 @@
 package it.hackerinside.etk.GUI.DTOs;
 
 import java.security.cert.X509Certificate;
-
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 
@@ -46,7 +47,10 @@ public record CertificateTableRow(
             extractCommonName(cert),
             generateTruncatedFingerprint(cert),
             X509Utils.getPublicKeyDescription(cert.getPublicKey()),
-            cert.getNotAfter().toString(),
+            cert.getNotAfter()
+            	.toInstant()
+            	.atZone(ZoneId.systemDefault())
+            	.format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")),
             location,
             cert
         );

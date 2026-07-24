@@ -17,10 +17,6 @@ import it.hackerinside.etk.GUI.CertificateColumn;
  *
  * @author Francesco Valentini
  */
-import javax.swing.table.AbstractTableModel;
-import java.util.ArrayList;
-import java.util.List;
-
 public class CertificateTableModel extends AbstractTableModel {
 
     private final CertificateColumn[] columns = CertificateColumn.values();
