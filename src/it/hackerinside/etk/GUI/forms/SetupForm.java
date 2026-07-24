@@ -110,6 +110,7 @@ public class SetupForm {
         frame.setResizable(false);
         frame.setBounds(100, 100, 715, 558);
         frame.getContentPane().setLayout(new BorderLayout());
+        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
         // Card layout for different screens
         cardLayout = new CardLayout();
