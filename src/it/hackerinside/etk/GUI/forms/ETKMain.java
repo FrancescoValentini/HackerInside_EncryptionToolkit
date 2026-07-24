@@ -853,7 +853,7 @@ public class ETKMain {
 	 */
 	private void exportKeypair(CertificateTableRow row) {		
 		try {
-			if(row.location() == KeysLocations.KNWOWN_CERTIFICATES) {
+			if(row.location() == KeysLocations.KNOWN_CERTIFICATES) {
 				throw new UnsupportedOperationException("The key pair export operation cannot be performed on known certificates as they do not have a private key.");
 			}else if(row.location() == KeysLocations.PKCS11) {
 				throw new UnsupportedOperationException("Operation not supported for PKCS11");
