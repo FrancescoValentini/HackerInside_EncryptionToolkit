@@ -507,6 +507,7 @@ public class DecryptForm {
 	
 	private void decrypt() {
 	    File output = new File(txtbOutputFile.getText());
+	    if (!FileDialogUtils.overwriteIfExists(output)) return;
 	    Key key = getDecryptionKey();
 	    if(key == null && !hasPassword) return;
 	    
@@ -538,6 +539,7 @@ public class DecryptForm {
 	                        "Password"
 	                );
 		        	if(pwd == null || pwd.length == 0) return null;
+		        	startTime = System.currentTimeMillis(); // reset startTime
 			        decryptionService.decrypt(
 			        		pwd,
 			                fileToDecrypt,
