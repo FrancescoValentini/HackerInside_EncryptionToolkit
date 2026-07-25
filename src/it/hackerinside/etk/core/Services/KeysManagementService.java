@@ -84,7 +84,7 @@ public class KeysManagementService {
 	        rows.addAll(getCertificates(privateLocation));
 	    }
 
-	    rows.addAll(getCertificates(KeysLocations.KNWOWN_CERTIFICATES));
+	    rows.addAll(getCertificates(KeysLocations.KNOWN_CERTIFICATES));
 
 	    return rows;
 	}
@@ -100,7 +100,7 @@ public class KeysManagementService {
 	    AbstractKeystore keystore;
 
 	    switch (location) {
-	        case KNWOWN_CERTIFICATES:
+	        case KNOWN_CERTIFICATES:
 	            keystore = ctx.getKnownCerts();
 	            break;
 
@@ -145,7 +145,7 @@ public class KeysManagementService {
 	            ctx.getKeystore().renameEntry(currentAlias, newAlias, pwd);
 	            ctx.getKeystore().save();
 
-	        } else if (location == KeysLocations.KNWOWN_CERTIFICATES) {
+	        } else if (location == KeysLocations.KNOWN_CERTIFICATES) {
 	            ctx.getKnownCerts().renameEntry(currentAlias, newAlias, null);
 	            ctx.getKnownCerts().save();
 	        }
@@ -190,7 +190,7 @@ public class KeysManagementService {
 	            if(newPwd != null) Arrays.fill(newPwd, (char)0x00);
 	        }
 
-	    } else if(location == KeysLocations.KNWOWN_CERTIFICATES) {
+	    } else if(location == KeysLocations.KNOWN_CERTIFICATES) {
 	        throw new UnsupportedOperationException("Cannot change password for certificates without private key");
 	    } else if(location == KeysLocations.PKCS11) {
 	        throw new UnsupportedOperationException("Operation not supported for PKCS11");
@@ -213,7 +213,7 @@ public class KeysManagementService {
 	            ctx.getKeystore().save();
 	    		return true;
 	    	}
-	    } else if(location == KeysLocations.KNWOWN_CERTIFICATES) {
+	    } else if(location == KeysLocations.KNOWN_CERTIFICATES) {
             ctx.getKnownCerts().deleteKeyOrCertificate(row.keystoreAlias());
             ctx.getKnownCerts().save();
 	    } else if(location == KeysLocations.PKCS11) {
@@ -327,7 +327,7 @@ public class KeysManagementService {
 				if(keyPassword != null) Arrays.fill(keyPassword, (char)0x00);
 			}
 			
-		} else if(row.location() == KeysLocations.KNWOWN_CERTIFICATES) {
+		} else if(row.location() == KeysLocations.KNOWN_CERTIFICATES) {
 			throw new UnsupportedOperationException("The key pair export operation cannot be performed on known certificates as they do not have a private key.");
 		} else if(row.location() == KeysLocations.PKCS11) {
 			throw new UnsupportedOperationException("Operation not supported for PKCS11");

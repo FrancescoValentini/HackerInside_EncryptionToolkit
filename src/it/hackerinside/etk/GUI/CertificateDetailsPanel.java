@@ -120,7 +120,7 @@ public class CertificateDetailsPanel extends JPanel {
         addRow("Signature Algorithm", cert.getSigAlgName());
         PublicKey pk = cert.getPublicKey();
 
-        addRow("Public Key Algorithm", getPublicKeyDescription(pk));
+        addRow("Public Key Algorithm", X509Utils.getPublicKeyDescription(pk));
 
         addRow("Version", String.valueOf(cert.getVersion()));
         try {
@@ -135,68 +135,6 @@ public class CertificateDetailsPanel extends JPanel {
         autoResizeColumnWidths();
     }
     
-    private String getPublicKeyDescription(PublicKey key) {
-        if (key == null) {
-            return "";
-        }
-
-        try {
-            String alg = key.getAlgorithm();
-
-            switch (alg) {
-                case "RSA":
-                    return getRsaDescription(key);
-
-                case "EC":
-                    return getEcDescription(key);
-
-                default:
-                    return alg;
-            }
-        } catch (Exception e) {
-            return key.getAlgorithm();
-        }
-    }
-
-    private static String getRsaDescription(PublicKey key) {
-        if (key instanceof RSAPublicKey rsa) {
-            return "RSA-" + rsa.getModulus().bitLength();
-        }
-
-        return "RSA";
-    }
-
-    private static String getEcDescription(PublicKey key) {
-        String curve = getEcCurveName(key);
-        return curve == null ? "EC" : "EC (" + curve + ")";
-    }
-
-    private static String getEcCurveName(PublicKey key) {
-        try {
-            SubjectPublicKeyInfo spki =
-                    SubjectPublicKeyInfo.getInstance(key.getEncoded());
-
-            X962Parameters params =
-                    X962Parameters.getInstance(spki.getAlgorithm().getParameters());
-
-            if (!params.isNamedCurve()) {
-                return null;
-            }
-
-            ASN1ObjectIdentifier oid =
-                    ASN1ObjectIdentifier.getInstance(params.getParameters());
-
-            String name = ECNamedCurveTable.getName(oid);
-
-            return name != null ? name : oid.getId();
-
-        } catch (Exception e) {
-            return null;
-        }
-    }
-    
-
-
     /**
      * Adds a new row to the certificate details table.
      * 

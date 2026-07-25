@@ -102,7 +102,9 @@ public enum ApplicationPreferences {
 	 */
 	PKCS11_SIGN_ONLY("PKCS11_SIGN_ONLY","true"),
 	
-	VALIDATE_KEY_USAGES("VALIDATE_KEY_USAGES","true");
+	VALIDATE_KEY_USAGES("VALIDATE_KEY_USAGES","true"),
+	
+	CERTIFICATE_TABLE_COLUMNS("CERTIFICATE_TABLE_COLUMNS","ALIAS,COMMON_NAME,FINGERPRINT,LOCATION");
     
     private final String key;
     private final String value;

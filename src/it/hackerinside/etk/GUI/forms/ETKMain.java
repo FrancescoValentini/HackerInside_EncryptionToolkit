@@ -26,6 +26,7 @@ import javax.swing.SwingConstants;
 
 import org.bouncycastle.util.Arrays;
 
+import it.hackerinside.etk.GUI.ColumnVisibilityManager;
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
@@ -69,6 +70,7 @@ public class ETKMain {
 	private static boolean loggedIn = false;
 	private KeysManagementService kms;
 	private JMenuItem menuItemKeystoreLogin;
+	private ColumnVisibilityManager columnsManager;
 	/**
 	 * Launch the application.
 	 */
@@ -122,6 +124,10 @@ public class ETKMain {
 	    
 	    tableModel = new CertificateTableModel();
 	    table = new JTable(tableModel);
+	    columnsManager = new ColumnVisibilityManager(table);
+	    
+	    
+	    
 	    table.setFont(new Font("Consolas", Font.PLAIN, 16));
 	    panel.add(new JScrollPane(table), BorderLayout.CENTER);
 
@@ -406,6 +412,11 @@ public class ETKMain {
 	    startProcedure();
 	}
 	
+	private void updateTableColumns() {
+		columnsManager.hideAll();
+		columnsManager.showColumns(ctx.getVisibleColumns()); 
+	}
+	
     private void updateKeystoreLoginText() {
     	if(!loggedIn) menuItemKeystoreLogin.setText("Keystore Login");
     	else menuItemKeystoreLogin.setText("Keystore Logout");
@@ -563,6 +574,7 @@ public class ETKMain {
 	 * the keystore and then updating the certificate table.
 	 */
 	private void startProcedure() {
+		updateTableColumns();
 		kms = new KeysManagementService(ctx);
 		chckbxmntmHideInvalidCertificate.setSelected(ctx.hideInvalidCerts());
 		disablePrivateKeyOperations();
@@ -841,7 +853,7 @@ public class ETKMain {
 	 */
 	private void exportKeypair(CertificateTableRow row) {		
 		try {
-			if(row.location() == KeysLocations.KNWOWN_CERTIFICATES) {
+			if(row.location() == KeysLocations.KNOWN_CERTIFICATES) {
 				throw new UnsupportedOperationException("The key pair export operation cannot be performed on known certificates as they do not have a private key.");
 			}else if(row.location() == KeysLocations.PKCS11) {
 				throw new UnsupportedOperationException("Operation not supported for PKCS11");
@@ -1111,7 +1123,7 @@ public class ETKMain {
 	private void settings() {
 		SettingsForm settfrm = new SettingsForm();
 		settfrm.setVisible();
-		
+		settfrm.setCallback(() -> updateTableColumns());
 	}
 	
 	/**

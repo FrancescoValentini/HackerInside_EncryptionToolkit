@@ -713,6 +713,18 @@ public class ETKContext {
         return Boolean.parseBoolean(vValKeyUsage);
     }
     
+    public String getVisibleColumns() {
+        String vcolumns = preferences.get(
+                ApplicationPreferences.CERTIFICATE_TABLE_COLUMNS.getKey(),
+                ApplicationPreferences.CERTIFICATE_TABLE_COLUMNS.getValue()
+            );
+        return vcolumns;
+    }
+    
+    public void setVisibleColumns(String columns) {
+    	preferences.put(ApplicationPreferences.CERTIFICATE_TABLE_COLUMNS.getKey(), columns);
+    }
+    
     
     /**
      * Changes the master password of the keystore.

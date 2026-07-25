@@ -12,16 +12,16 @@ public enum KeysLocations {
     /**
      * Represents known certificates containing only public keys.
      */
-	KNWOWN_CERTIFICATES("Known Certificates (PUB)"),
+	KNOWN_CERTIFICATES("Known Certificates"),
     /**
      * Represents certificates and private keys stored on a PKCS#11 compatible hardware device.
      */
-	PKCS11("PKCS11 Device (PRIV + PUB)"),
+	PKCS11("PKCS11 Device (Keys + Certs)"),
 	
     /**
      * Represents certificates and private keys stored in a PKCS#12 file.
      */
-	PKCS12("PKCS12 File (PRIV + PUB)");
+	PKCS12("PKCS12 (Keys + Certs)");
 	
 	private String displayString;
 	
