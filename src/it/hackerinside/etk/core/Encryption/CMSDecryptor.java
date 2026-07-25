@@ -211,8 +211,6 @@ public class CMSDecryptor {
 	        JcePasswordEnvelopedRecipient decryptor =
 	                new JcePasswordEnvelopedRecipient(password);
 
-	        decryptor.setProvider("BC");
-
 	        return recipient.getContentStream(decryptor).getContentStream();
 	    }
 	    
@@ -220,7 +218,7 @@ public class CMSDecryptor {
 		
 		if(PQCAlgorithms.fromOID(oid) != null && !PQCAlgorithms.fromOID(oid).canSign) { // PQC
 			return recipient
-                    .getContentStream(new JceKEMEnvelopedRecipient(privateKey).setProvider("BC"))
+                    .getContentStream(new JceKEMEnvelopedRecipient(privateKey))
                     .getContentStream();
 		}
 		
@@ -228,10 +226,10 @@ public class CMSDecryptor {
         
         return switch (keyAlgo) {
             case RSA -> recipient
-                        .getContentStream(new JceKeyTransEnvelopedRecipient(privateKey).setProvider("BC"))
+                        .getContentStream(new JceKeyTransEnvelopedRecipient(privateKey))
                         .getContentStream();
             case EC -> recipient
-                        .getContentStream(new JceKeyAgreeEnvelopedRecipient(privateKey).setProvider("BC"))
+                        .getContentStream(new JceKeyAgreeEnvelopedRecipient(privateKey).setUnwrappingProvider("BC"))
                         .getContentStream();
             default -> throw new CMSException("Unsupported asymmetric algorithm: " + keyAlgo);
         };
