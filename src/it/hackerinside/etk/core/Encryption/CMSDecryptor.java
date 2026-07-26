@@ -176,7 +176,7 @@ public class CMSDecryptor {
             if (CMSObjectIdentifiers.envelopedData.equals(type)) {
             	useAuth = false;
                 try (InputStream in = new BufferedInputStream(new FileInputStream(inputFile),bufferSize)) {
-                    CMSEnvelopedDataParser parser = new CMSEnvelopedDataParser(in);
+                    CMSEnvelopedDataParser parser = new CMSEnvelopedDataParser(wrapDecoding(in));
                     try {
                         decryptInternal(out, parser.getRecipientInfos().getRecipients());
                     } finally {
@@ -186,7 +186,7 @@ public class CMSDecryptor {
             } else if (CMSObjectIdentifiers.authEnvelopedData.equals(type)) {
             	useAuth = true;
                 try (InputStream in = new BufferedInputStream(new FileInputStream(inputFile),bufferSize)) {
-                    CMSAuthEnvelopedDataParser parser = new CMSAuthEnvelopedDataParser(in);
+                    CMSAuthEnvelopedDataParser parser = new CMSAuthEnvelopedDataParser(wrapDecoding(in));
                     try {
                         decryptInternal(out, parser.getRecipientInfos().getRecipients());
                     } finally {
@@ -203,7 +203,7 @@ public class CMSDecryptor {
     private ASN1ObjectIdentifier detectContentType(File file) throws IOException {
         try (InputStream in = new BufferedInputStream(new FileInputStream(file),bufferSize)) {
 
-            ASN1StreamParser parser = new ASN1StreamParser(in);
+            ASN1StreamParser parser = new ASN1StreamParser(wrapDecoding(in));
 
             ASN1SequenceParser sequence = (ASN1SequenceParser) parser.readObject();
 
