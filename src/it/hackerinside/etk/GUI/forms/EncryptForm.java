@@ -40,16 +40,17 @@ import it.hackerinside.etk.GUI.DTOs.ETKRecipient;
 import it.hackerinside.etk.GUI.DTOs.PasswordTableRow;
 import it.hackerinside.etk.GUI.DTOs.SecretKeyTableRow;
 import it.hackerinside.etk.GUI.DTOs.SecretKeyWrapper;
+import it.hackerinside.etk.Utils.FileSizeFormatter;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
 import it.hackerinside.etk.Utils.X509KeyUsageValidator;
 import it.hackerinside.etk.Utils.X509Utils;
+import it.hackerinside.etk.core.Models.CryptoLimits;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.EncodingOption;
 import it.hackerinside.etk.core.Models.KeyUsageProfile;
 import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
 import it.hackerinside.etk.core.Services.EncryptionService;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
-
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTabbedPane;
@@ -673,6 +674,20 @@ public class EncryptForm {
 	        @Override
 	        protected Void doInBackground() throws Exception {
 	            startTime = System.currentTimeMillis();
+	            
+	            long fileSize = plaintextFile.length();
+
+	            if (!CryptoLimits.isSupported(cipher, fileSize)) {
+	                long maxSize = CryptoLimits.getMaxPlaintextSize(cipher);
+
+	                throw new IllegalArgumentException(
+	                	    String.format(
+	                	        "The selected algorithm %s cannot encrypt files larger than %s in a single CMS encryption operation.",
+	                	        cipher.getAlgorithmName(),
+	                	        FileSizeFormatter.format(maxSize)
+	                	    )
+	                	);
+	            }
 
 	            encryptionService.encrypt(
 	                    cipher,

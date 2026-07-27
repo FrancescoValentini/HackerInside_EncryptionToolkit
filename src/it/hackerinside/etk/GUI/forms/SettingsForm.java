@@ -19,7 +19,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.LayoutStyle.ComponentPlacement;
+import javax.swing.ListModel;
 
+import it.hackerinside.etk.GUI.CertificateColumn;
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
@@ -37,14 +39,18 @@ import java.io.IOException;
 import java.security.KeyStoreException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.InvalidPreferencesFormatException;
+import java.util.stream.Collectors;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.DefaultListModel;
+import javax.swing.DefaultListSelectionModel;
 
 import it.hackerinside.etk.GUI.UIThemes;
 import it.hackerinside.etk.GUI.Utils;
@@ -60,8 +66,6 @@ import java.awt.event.ItemEvent;
 import javax.swing.border.TitledBorder;
 import javax.swing.border.EtchedBorder;
 import java.awt.Color;
-import javax.swing.event.ChangeListener;
-import javax.swing.event.ChangeEvent;
 
 public class SettingsForm {
 
@@ -88,6 +92,8 @@ public class SettingsForm {
 	private JCheckBox chckbRSAOAEP;
 	private JCheckBox chckbPKCS11SignOnly;
 	private JCheckBox chckbValKeyUsages;
+	private JList<CertificateColumn> listboxCertificateTableColumns;
+	private Runnable callback;
 
 	/**
 	 * Launch the application.
@@ -115,6 +121,10 @@ public class SettingsForm {
 	
 	public void setVisible() {
 		this.frmHackerinsideEncryptionToolkit.setVisible(true);
+	}
+	
+	public void setCallback(Runnable r) {
+		this.callback = r;
 	}
 
 	/**
@@ -377,44 +387,52 @@ public class SettingsForm {
 		tabbedPane.addTab("Style", null, panel_3, null);
 		
 		cmbTheme = new JComboBox();
+		cmbTheme.setBounds(109, 11, 339, 25);
 		cmbTheme.setModel(new DefaultComboBoxModel(UIThemes.values()));
 		cmbTheme.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		JLabel lblNewLabel_1_2 = new JLabel("Theme:");
+		lblNewLabel_1_2.setBounds(10, 15, 89, 17);
 		lblNewLabel_1_2.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		JLabel lblNewLabel_2 = new JLabel("Restart the software to apply the theme");
+		lblNewLabel_2.setBounds(10, 282, 515, 25);
 		lblNewLabel_2.setHorizontalAlignment(SwingConstants.CENTER);
 		lblNewLabel_2.setFont(new Font("Tahoma", Font.BOLD, 16));
-		GroupLayout gl_panel_3 = new GroupLayout(panel_3);
-		gl_panel_3.setHorizontalGroup(
-			gl_panel_3.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_panel_3.createSequentialGroup()
-					.addGroup(gl_panel_3.createParallelGroup(Alignment.LEADING)
-						.addGroup(gl_panel_3.createSequentialGroup()
-							.addGap(10)
-							.addComponent(lblNewLabel_1_2, GroupLayout.PREFERRED_SIZE, 89, GroupLayout.PREFERRED_SIZE)
-							.addGap(10)
-							.addComponent(cmbTheme, GroupLayout.PREFERRED_SIZE, 339, GroupLayout.PREFERRED_SIZE))
-						.addGroup(gl_panel_3.createSequentialGroup()
-							.addContainerGap()
-							.addComponent(lblNewLabel_2, GroupLayout.PREFERRED_SIZE, 515, GroupLayout.PREFERRED_SIZE)))
-					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-		);
-		gl_panel_3.setVerticalGroup(
-			gl_panel_3.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_panel_3.createSequentialGroup()
-					.addGap(11)
-					.addGroup(gl_panel_3.createParallelGroup(Alignment.LEADING)
-						.addGroup(gl_panel_3.createSequentialGroup()
-							.addGap(4)
-							.addComponent(lblNewLabel_1_2))
-						.addComponent(cmbTheme, GroupLayout.PREFERRED_SIZE, 25, GroupLayout.PREFERRED_SIZE))
-					.addGap(55)
-					.addComponent(lblNewLabel_2, GroupLayout.PREFERRED_SIZE, 25, GroupLayout.PREFERRED_SIZE)
-					.addGap(495))
-		);
-		panel_3.setLayout(gl_panel_3);
+		panel_3.setLayout(null);
+		panel_3.add(lblNewLabel_1_2);
+		panel_3.add(cmbTheme);
+		panel_3.add(lblNewLabel_2);
+		
+		listboxCertificateTableColumns = new JList<>();
+		listboxCertificateTableColumns.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		listboxCertificateTableColumns.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+
+		listboxCertificateTableColumns.setSelectionModel(new DefaultListSelectionModel() {
+		    @Override
+		    public void setSelectionInterval(int index0, int index1) {
+		        if (isSelectedIndex(index0)) {
+		            super.removeSelectionInterval(index0, index1);
+		        } else {
+		            super.addSelectionInterval(index0, index1);
+		        }
+		    }
+		});
+
+		JScrollPane scrollPane1 = new JScrollPane(listboxCertificateTableColumns);
+		scrollPane1.setBounds(109, 94, 339, 177);
+		scrollPane1.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+		scrollPane1.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+
+		panel_3.add(scrollPane1);
+
+
+
+		
+		JLabel lblNewLabel_1_2_1 = new JLabel("Certificate table columns:");
+		lblNewLabel_1_2_1.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblNewLabel_1_2_1.setBounds(109, 68, 339, 17);
+		panel_3.add(lblNewLabel_1_2_1);
 		
 		JPanel panel_4 = new JPanel();
 		tabbedPane.addTab("TrustStore", null, panel_4, null);
@@ -583,11 +601,25 @@ public class SettingsForm {
 	 * Method executed when the form opens
 	 */
 	private void start() {
+		loadVisibleColumns();
 		loadEncAlgos();
 		loadHashAlgo();
 		loadSettings();
 		refreshCaList();
 	}
+	
+	
+	private void loadVisibleColumns() {
+	    DefaultListModel<CertificateColumn> model = new DefaultListModel<>();
+
+	    for (CertificateColumn column : CertificateColumn.values()) {
+	        model.addElement(column);
+	    }
+	    
+
+	    listboxCertificateTableColumns.setModel(model);
+	}
+
 	
 	/**
 	 * Refreshes the list of CA certificates from the trust store.
@@ -700,6 +732,7 @@ public class SettingsForm {
 	 * Loads the currently used settings
 	 */
 	private void loadSettings() {
+		
 		txtbKeyStorePath.setText(ctx.getKeyStorePath());
 		txtbKnownCertsPath.setText(ctx.getKnownCertsPath());
 		txtPkcs11ConfPath.setText(ctx.getPkcs11Driver());
@@ -712,9 +745,7 @@ public class SettingsForm {
 		chckbHideInvalidCerts.setSelected(ctx.hideInvalidCerts());
 		chckbxUseTruststore.setSelected(ctx.useTrustStore());
 		chckbPKCS11SignOnly.setSelected(ctx.isPkcs11SignOnly());
-		chckbRSAOAEP.setSelected(ctx.useRsaOaep());
 		chckbValKeyUsages.setSelected(ctx.validateKeyUsages());
-		
 		
 		cmbEncAlgPath.setSelectedItem(ctx.getCipher());
 		cmbHashAlgPath.setSelectedItem(ctx.getHashAlgorithm());
@@ -723,17 +754,15 @@ public class SettingsForm {
 		spnCacheTimeout.setValue(ctx.getCacheEntryTimeout());
 		
 		chckbPKCS11SignOnly.setSelected(ctx.isPkcs11SignOnly());
-		chckbRSAOAEP.setSelected(ctx.useRsaOaep());
-
 		if (ctx.isPkcs11SignOnly()) {
 		    chckbRSAOAEP.setEnabled(true);
-		    chckbRSAOAEP.setSelected(true);
+		    if(ctx.useRsaOaep()) chckbRSAOAEP.setSelected(true);
+		    else chckbRSAOAEP.setSelected(false);
 		} else {
 		    chckbRSAOAEP.setSelected(false);
 		    chckbRSAOAEP.setEnabled(false);
 		}
-
-		
+		selectVisibleColumns();
 	}
 	
 	
@@ -760,7 +789,44 @@ public class SettingsForm {
 		ctx.setUseRsaOaep(chckbRSAOAEP.isSelected());
 		ctx.setPkcs11SignOnly(chckbPKCS11SignOnly.isSelected());
 		ctx.setValidateKeyUsages(chckbValKeyUsages.isSelected());
+		
+		String selected = listboxCertificateTableColumns
+		        .getSelectedValuesList()
+		        .stream()
+		        .map(Enum::toString)
+		        .collect(Collectors.joining(","));
+		
+		ctx.setVisibleColumns(selected);
+		
+		if(callback != null) callback.run();
+
 	}
+	
+	private void selectVisibleColumns() {
+	    String visible = ctx.getVisibleColumns();
+
+	    Set<CertificateColumn> selected = Arrays.stream(visible.split(","))
+	            .map(String::trim)
+	            .map(CertificateColumn::valueOf)
+	            .collect(Collectors.toSet());
+
+	    ListModel<CertificateColumn> model = listboxCertificateTableColumns.getModel();
+
+	    listboxCertificateTableColumns.setSelectionMode(
+	            ListSelectionModel.MULTIPLE_INTERVAL_SELECTION
+	    );
+
+	    for (int i = 0; i < model.getSize(); i++) {
+	        CertificateColumn column = model.getElementAt(i);
+
+	        if (selected.contains(column)) {
+	            listboxCertificateTableColumns.getSelectionModel()
+	                    .addSelectionInterval(i, i);
+	        }
+	    }
+	}
+
+
 	
 	private boolean checkSettings() {
 		if(!chckbPKCS11SignOnly.isSelected() && (chckbRSAOAEP.isSelected() || ctx.useRsaOaep())) {

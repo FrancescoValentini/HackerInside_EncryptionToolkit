@@ -5,6 +5,8 @@ import java.util.List;
 
 import javax.swing.table.AbstractTableModel;
 
+import it.hackerinside.etk.GUI.CertificateColumn;
+
 /**
  * A table model for displaying certificate information in a JTable or similar component.
  * This model provides a structured view of certificate data with columns for alias,
@@ -17,15 +19,8 @@ import javax.swing.table.AbstractTableModel;
  */
 public class CertificateTableModel extends AbstractTableModel {
 
-    /**
-     * The names of the columns displayed in the table.
-     * Column order: Alias, Common Name, Fingerprint, Location.
-     */
-    private final String[] columnNames = { "Alias", "Common Name", "Fingerprint", "Location" };
-    
-    /**
-     * The underlying data storage for the table rows.
-     */
+    private final CertificateColumn[] columns = CertificateColumn.values();
+
     private List<CertificateTableRow> rows = new ArrayList<>();
 
     /**
@@ -53,13 +48,12 @@ public class CertificateTableModel extends AbstractTableModel {
 
     /**
      * Returns the number of columns in the table model.
-     * This is fixed to 4 columns: Alias, Common Name, Fingerprint, and Location.
      *
-     * @return always returns 4, the number of defined columns
+     * @return the number of defined columns
      */
     @Override
     public int getColumnCount() {
-        return columnNames.length;
+        return columns.length;
     }
 
     /**
@@ -67,16 +61,15 @@ public class CertificateTableModel extends AbstractTableModel {
      *
      * @param column the column index (0-based)
      * @return the column name for the specified index
-     * @throws ArrayIndexOutOfBoundsException if column is not in the range [0, 3]
      */
     @Override
     public String getColumnName(int column) {
-        return columnNames[column];
+        return columns[column].getTitle();
     }
-    
+
     /**
      * Retrieves the complete certificate table row data for the specified row index.
-     * This provides access to the full {@link CertificateTableRow} object, including
+     * This provides access to the full CertificateTableRow object, including
      * the original X.509 certificate.
      *
      * @param rowIndex the row index (0-based)
@@ -94,30 +87,26 @@ public class CertificateTableModel extends AbstractTableModel {
      *
      * @param rowIndex the row index (0-based)
      * @param columnIndex the column index (0-based)
-     * @return the value at the specified cell position according to the following mapping:
-     *         <ul>
-     *           <li>Column 0: Keystore alias</li>
-     *           <li>Column 1: Common name</li>
-     *           <li>Column 2: Truncated fingerprint</li>
-     *           <li>Column 3: Key location</li>
-     *         </ul>
+     * @return the value at the specified cell position
      * @throws IndexOutOfBoundsException if rowIndex or columnIndex is out of bounds
      */
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         CertificateTableRow row = rows.get(rowIndex);
-        return switch (columnIndex) {
-            case 0 -> row.keystoreAlias();
-            case 1 -> row.CommonName();
-            case 2 -> row.truncatedFingerprint();
-            case 3 -> row.location();
-            default -> null;
+
+        return switch (columns[columnIndex]) {
+            case ALIAS -> row.keystoreAlias();
+            case COMMON_NAME -> row.CommonName();
+            case FINGERPRINT -> row.truncatedFingerprint();
+            case LOCATION -> row.location();
+            case ALGORITHM -> row.algorithm();
+            case EXPIRATION_DATE -> row.expirationDate();
         };
     }
 
     /**
-     * Indicates whether the specified cell is editable. This implementation returns
-     * false for all cells, making the table model read-only.
+     * Indicates whether the specified cell is editable.
+     * This implementation returns false for all cells, making the table model read-only.
      *
      * @param rowIndex the row index of the cell
      * @param columnIndex the column index of the cell
@@ -125,6 +114,6 @@ public class CertificateTableModel extends AbstractTableModel {
      */
     @Override
     public boolean isCellEditable(int rowIndex, int columnIndex) {
-        return false; 
+        return false;
     }
 }

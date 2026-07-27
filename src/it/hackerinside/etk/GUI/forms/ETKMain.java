@@ -26,6 +26,7 @@ import javax.swing.SwingConstants;
 
 import org.bouncycastle.util.Arrays;
 
+import it.hackerinside.etk.GUI.ColumnVisibilityManager;
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.FileDialogUtils;
@@ -68,6 +69,8 @@ public class ETKMain {
 	private JCheckBoxMenuItem chckbxmntmHideInvalidCertificate;
 	private static boolean loggedIn = false;
 	private KeysManagementService kms;
+	private JMenuItem menuItemKeystoreLogin;
+	private ColumnVisibilityManager columnsManager;
 	/**
 	 * Launch the application.
 	 */
@@ -121,6 +124,10 @@ public class ETKMain {
 	    
 	    tableModel = new CertificateTableModel();
 	    table = new JTable(tableModel);
+	    columnsManager = new ColumnVisibilityManager(table);
+	    
+	    
+	    
 	    table.setFont(new Font("Consolas", Font.PLAIN, 16));
 	    panel.add(new JScrollPane(table), BorderLayout.CENTER);
 
@@ -147,7 +154,7 @@ public class ETKMain {
 	    JMenu mnNewMenu = new JMenu("Keys & Certificates");
 	    menuBar.add(mnNewMenu);
 	    
-	    JMenuItem menuItemKeystoreLogin = new JMenuItem("Keystore Login");
+	    menuItemKeystoreLogin = new JMenuItem("Keystore Login");
 
 	    mnNewMenu.add(menuItemKeystoreLogin);
 	    
@@ -211,8 +218,19 @@ public class ETKMain {
 	    	if(!loggedIn) {
 		        unlockKeystore();
 		        updateTable();
+	    	}else { // logout
+	    		ETKMain.loggedIn = false;
+	    		disablePrivateKeyOperations();
+	    		updateTable();
+	    		ctx.unloadKeystore();
 	    	}
+	    	
+	    	updateKeystoreLoginText();
 	    });
+	    
+
+	    
+	    
 	    
 	    settingsMenuItem.addActionListener(e -> settings());
 	    menuItemImportKeypair.addActionListener(e -> importKeypair());
@@ -394,6 +412,16 @@ public class ETKMain {
 	    startProcedure();
 	}
 	
+	private void updateTableColumns() {
+		columnsManager.hideAll();
+		columnsManager.showColumns(ctx.getVisibleColumns()); 
+	}
+	
+    private void updateKeystoreLoginText() {
+    	if(!loggedIn) menuItemKeystoreLogin.setText("Keystore Login");
+    	else menuItemKeystoreLogin.setText("Keystore Logout");
+    }
+	
 	/**
 	 * Deletes a certificate from the appropriate keystore based on its location.
 	 * PKCS11 certificates cannot be deleted and will show a warning message.
@@ -546,6 +574,7 @@ public class ETKMain {
 	 * the keystore and then updating the certificate table.
 	 */
 	private void startProcedure() {
+		updateTableColumns();
 		kms = new KeysManagementService(ctx);
 		chckbxmntmHideInvalidCertificate.setSelected(ctx.hideInvalidCerts());
 		disablePrivateKeyOperations();
@@ -591,6 +620,7 @@ public class ETKMain {
 	    	if(password != null) Arrays.fill(password, (char)0x00);
 	    }
 	    pkcs11DisableOperations();
+	    updateKeystoreLoginText();
 	}
 	
 	private void notLoggedInMessage(String msg) {
@@ -778,13 +808,14 @@ public class ETKMain {
 	 * @param cert the X.509 certificate to save
 	 */
 	private void saveKnownCertificate(X509Certificate cert) {
-		kms.setAliasProvider(() -> DialogUtils.showInputBox(null, "Certificate Alias", "Enter Certificate Alias", ""));
+		String cn = X509Utils.extractCN(cert.getSubjectX500Principal().getName());
+		kms.setAliasProvider(() -> DialogUtils.showInputBox(null, "Certificate Alias", "Enter Certificate Alias", "",cn));
 		kms.setConfirmationProvider(() -> Utils.acceptX509Certificate(cert));
         try {
         	if(!certImportWarning(cert)) return;
-        	kms.saveKnownCertificate(cert);
+        	boolean ok = kms.saveKnownCertificate(cert);
     	    updateTable();
-    	    showCertificateInformation(cert);
+    	    if(ok) showCertificateInformation(cert);
         }catch (Exception e) {
             e.printStackTrace();
             DialogUtils.showMessageBox(
@@ -822,7 +853,7 @@ public class ETKMain {
 	 */
 	private void exportKeypair(CertificateTableRow row) {		
 		try {
-			if(row.location() == KeysLocations.KNWOWN_CERTIFICATES) {
+			if(row.location() == KeysLocations.KNOWN_CERTIFICATES) {
 				throw new UnsupportedOperationException("The key pair export operation cannot be performed on known certificates as they do not have a private key.");
 			}else if(row.location() == KeysLocations.PKCS11) {
 				throw new UnsupportedOperationException("Operation not supported for PKCS11");
@@ -1092,7 +1123,7 @@ public class ETKMain {
 	private void settings() {
 		SettingsForm settfrm = new SettingsForm();
 		settfrm.setVisible();
-		
+		settfrm.setCallback(() -> updateTableColumns());
 	}
 	
 	/**
@@ -1148,7 +1179,7 @@ public class ETKMain {
 	}
 	
 	private void notLoggedInError() {
-		DialogUtils.showMessageBox(null, "You are not logged in", "You are not logged in", null, 0);
+		DialogUtils.showMessageBox(null, "You are not logged in", "You are not logged in", null, JOptionPane.WARNING_MESSAGE);
 	}
 	
 	private boolean checkPkcs11Operation() {

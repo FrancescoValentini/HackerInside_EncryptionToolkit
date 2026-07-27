@@ -185,5 +185,15 @@ public class PKCS12Keystore extends AbstractKeystore {
 	public Provider getProvider() {
 		return keyStore.getProvider();
 	}
+	
+	public void unload() {
+	    if (this.keyStore != null) {
+	        this.keyStore = null;
+	    }
 
+	    if (this.password != null) {
+	        Arrays.fill(this.password, '\0');
+	        this.password = null;
+	    }
+	}
 }

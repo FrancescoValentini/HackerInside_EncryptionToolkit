@@ -172,6 +172,27 @@ public class DialogUtils {
         }
         return null;
     }
+    
+	/**
+	 * Displays an input dialog with a title, header message, and input field.
+	 * 
+	 * @param parent   the parent component for the dialog; can be null
+	 * @param title    the title of the dialog window
+	 * @param header   the main header message (displayed in bold)
+	 * @param label    the descriptive text next to the input field
+	 * @param value
+	 * @return the text entered by the user, or null if the user cancels the operation
+	 */
+    public static String showInputBox(Component parent, String title, String header, String label, String value) {
+        JTextField textField = new JTextField(20);
+        JComponent panel = createInputPanel(header, label, textField);
+        textField.setText(value);
+        int result = showDialog(parent, title, panel,JOptionPane.QUESTION_MESSAGE);
+        if (result == JOptionPane.OK_OPTION) {
+            return textField.getText();
+        }
+        return null;
+    }
 
 	/**
 	 * Displays a password input dialog with a title, header message, and input field.

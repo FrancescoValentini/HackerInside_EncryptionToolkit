@@ -142,7 +142,6 @@ public class CMSEncryptor implements Encryptor {
     public void encrypt(InputStream input, OutputStream output) throws Exception {
         OutputEncryptor encryptor =
                 new JceCMSContentEncryptorBuilder(encryptionAlgorithm.getCipherASN1())
-                        .setProvider("BC")
                         .setSecureRandom(new SecureRandom())
                         .build();
 
@@ -151,8 +150,8 @@ public class CMSEncryptor implements Encryptor {
 
             if (encryptionAlgorithm.isAEAD()) {
                 CMSAuthEnvelopedDataStreamGenerator generator = getAuthGenerator();
-                cmsOut = generator.open(encodedOut, (OutputAEADEncryptor)encryptor);
                 generator.setBufferSize(bufferSize);
+                cmsOut = generator.open(encodedOut, (OutputAEADEncryptor)encryptor);
             } else {
                 CMSEnvelopedDataStreamGenerator generator = getGenerator();
                 generator.setBufferSize(bufferSize);

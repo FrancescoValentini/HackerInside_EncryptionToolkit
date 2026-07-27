@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>HackerInside_EncryptionToolkit</groupId>
 	<artifactId>HackerInside_EncryptionToolkit</artifactId>
-	<version>1.0.15</version>
+	<version>1.0.16</version>
 	<name>HackerInside EncryptionToolkit</name>
 	<properties>
     	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -70,7 +70,7 @@
 		<dependency>
 			<groupId>com.formdev</groupId>
 			<artifactId>flatlaf</artifactId>
-			<version>3.7</version>
+			<version>3.7.2</version>
 		</dependency>
 	</dependencies>
 </project>

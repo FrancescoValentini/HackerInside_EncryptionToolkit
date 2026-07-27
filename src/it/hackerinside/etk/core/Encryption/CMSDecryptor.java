@@ -1,5 +1,7 @@
 package it.hackerinside.etk.core.Encryption;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -15,19 +17,27 @@ import javax.crypto.SecretKey;
 
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1SequenceParser;
+import org.bouncycastle.asn1.ASN1StreamParser;
 import org.bouncycastle.asn1.cms.CMSObjectIdentifiers;
 import org.bouncycastle.asn1.cms.ContentInfo;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.cms.CMSAuthEnvelopedData;
+import org.bouncycastle.cms.CMSAuthEnvelopedDataParser;
 import org.bouncycastle.cms.CMSEnvelopedData;
+import org.bouncycastle.cms.CMSEnvelopedDataParser;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.KEKRecipientInformation;
 import org.bouncycastle.cms.PasswordRecipientInformation;
 import org.bouncycastle.cms.RecipientInformation;
+import org.bouncycastle.cms.jcajce.JceKEKAuthEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKEKEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKEMEnvelopedRecipient;
+import org.bouncycastle.cms.jcajce.JceKeyAgreeAuthEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKeyAgreeEnvelopedRecipient;
+import org.bouncycastle.cms.jcajce.JceKeyTransAuthEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKeyTransEnvelopedRecipient;
+import org.bouncycastle.cms.jcajce.JcePasswordAuthEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JcePasswordEnvelopedRecipient;
 
 import it.hackerinside.etk.core.Models.AsymmetricAlgorithm;
@@ -50,6 +60,8 @@ public class CMSDecryptor {
 	private Provider provider;
 	private SecretKey secretKey;
 	private char[] password;
+	
+    private boolean useAuth = false;
 	
 	/**
 	 * Constructs a new CMSDecryptor with the specified parameters.
@@ -108,10 +120,13 @@ public class CMSDecryptor {
      */
     public void decrypt(InputStream input, OutputStream output) throws Exception  {
     	InputStream cmsInput = wrapDecoding(input);
+    	Collection<RecipientInformation> recipients = findRecipients(cmsInput);
+    	decryptInternal(output, recipients);
+    }
+    
+    private void decryptInternal(OutputStream output, Collection<RecipientInformation> recipients) throws Exception {
     	boolean success = false;
     	Exception lastError = null;
-    	
-    	Collection<RecipientInformation> recipients = findRecipients(cmsInput);
 
     	for (RecipientInformation recipient : recipients) {
     		try {
@@ -121,13 +136,16 @@ public class CMSDecryptor {
 
     			 byte[] buffer = new byte[bufferSize];
                  int bytesRead;
+
                  while ((bytesRead = decryptedStream.read(buffer)) != -1) {
                      if (aborted || Thread.currentThread().isInterrupted()) {
                          throw new InterruptedIOException("Decryption aborted");
                      }
                      output.write(buffer, 0, bytesRead);
                  }
-                 decryptedStream.close();
+                 
+                 //decryptedStream.close();
+                 output.flush();
                  success = true;
                  break;
                  
@@ -150,10 +168,47 @@ public class CMSDecryptor {
      *                   or unsupported algorithms
      */
     public void decrypt(File inputFile, File outputFile) throws Exception {
-        try (InputStream in = new FileInputStream(inputFile);
-                OutputStream out = new FileOutputStream(outputFile)) {
-        		decrypt(in, out);
-           }
+
+        ASN1ObjectIdentifier type = detectContentType(inputFile);
+
+        try (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputFile), bufferSize)) {
+
+            if (CMSObjectIdentifiers.envelopedData.equals(type)) {
+            	useAuth = false;
+                try (InputStream in = new BufferedInputStream(new FileInputStream(inputFile),bufferSize)) {
+                    CMSEnvelopedDataParser parser = new CMSEnvelopedDataParser(wrapDecoding(in));
+                    try {
+                        decryptInternal(out, parser.getRecipientInfos().getRecipients());
+                    } finally {
+                        parser.close();
+                    }
+                }
+            } else if (CMSObjectIdentifiers.authEnvelopedData.equals(type)) {
+            	useAuth = true;
+                try (InputStream in = new BufferedInputStream(new FileInputStream(inputFile),bufferSize)) {
+                    CMSAuthEnvelopedDataParser parser = new CMSAuthEnvelopedDataParser(wrapDecoding(in));
+                    try {
+                        decryptInternal(out, parser.getRecipientInfos().getRecipients());
+                    } finally {
+                        parser.close();
+                    }
+                }
+            } else {
+                throw new CMSException("Unsupported CMS content type: " + type);
+            }
+        }
+    }
+    
+
+    private ASN1ObjectIdentifier detectContentType(File file) throws IOException {
+        try (InputStream in = new BufferedInputStream(new FileInputStream(file),bufferSize)) {
+
+            ASN1StreamParser parser = new ASN1StreamParser(wrapDecoding(in));
+
+            ASN1SequenceParser sequence = (ASN1SequenceParser) parser.readObject();
+
+            return (ASN1ObjectIdentifier) sequence.readObject();
+        }
     }
     /**
      * Parses and extracts recipient information from CMS (Cryptographic Message Syntax) enveloped data.
@@ -175,8 +230,10 @@ public class CMSDecryptor {
             ASN1ObjectIdentifier contentType = contentInfo.getContentType();
 
             if (CMSObjectIdentifiers.authEnvelopedData.equals(contentType)) {
+            	useAuth = true;
                 return new CMSAuthEnvelopedData(contentInfo).getRecipientInfos().getRecipients();
             } else if (CMSObjectIdentifiers.envelopedData.equals(contentType)) {
+            	useAuth = false;
                 return new CMSEnvelopedData(contentInfo).getRecipientInfos().getRecipients();
             } else {
                 throw new CMSException("Unsupported CMS content type: " + contentType.getId());
@@ -198,21 +255,17 @@ public class CMSDecryptor {
      *
      */
 	private InputStream createRecipientContentStream(RecipientInformation recipient) throws CMSException, IOException {
-		
+		if(!this.useAuth) return createNormalRecipientContentStream(recipient);
+		else return createAuthRecipientContentStream(recipient);
+    }
+	
+	private InputStream createNormalRecipientContentStream(RecipientInformation recipient) throws CMSException, IOException {
 	    if (recipient instanceof KEKRecipientInformation kekRecipient) {
-	        return kekRecipient
-	                .getContentStream(
-	                        new JceKEKEnvelopedRecipient(this.secretKey)
-	                )
-	                .getContentStream();
+	        return kekRecipient.getContentStream(new JceKEKEnvelopedRecipient(this.secretKey)).getContentStream();
 	    }
 		
 	    if (recipient instanceof PasswordRecipientInformation) {
-	        JcePasswordEnvelopedRecipient decryptor =
-	                new JcePasswordEnvelopedRecipient(password);
-
-	        decryptor.setProvider("BC");
-
+	    	JcePasswordEnvelopedRecipient decryptor = new JcePasswordEnvelopedRecipient(password);
 	        return recipient.getContentStream(decryptor).getContentStream();
 	    }
 	    
@@ -220,7 +273,7 @@ public class CMSDecryptor {
 		
 		if(PQCAlgorithms.fromOID(oid) != null && !PQCAlgorithms.fromOID(oid).canSign) { // PQC
 			return recipient
-                    .getContentStream(new JceKEMEnvelopedRecipient(privateKey).setProvider("BC"))
+                    .getContentStream(new JceKEMEnvelopedRecipient(privateKey))
                     .getContentStream();
 		}
 		
@@ -228,10 +281,41 @@ public class CMSDecryptor {
         
         return switch (keyAlgo) {
             case RSA -> recipient
-                        .getContentStream(new JceKeyTransEnvelopedRecipient(privateKey).setProvider("BC"))
+                        .getContentStream(new JceKeyTransEnvelopedRecipient(privateKey))
                         .getContentStream();
             case EC -> recipient
-                        .getContentStream(new JceKeyAgreeEnvelopedRecipient(privateKey).setProvider("BC"))
+                        .getContentStream(new JceKeyAgreeEnvelopedRecipient(privateKey).setUnwrappingProvider("BC"))
+                        .getContentStream();
+            default -> throw new CMSException("Unsupported asymmetric algorithm: " + keyAlgo);
+        };
+    }
+	
+	private InputStream createAuthRecipientContentStream(RecipientInformation recipient) throws CMSException, IOException {
+	    if (recipient instanceof KEKRecipientInformation kekRecipient) {
+	        return kekRecipient.getContentStream(new JceKEKAuthEnvelopedRecipient(this.secretKey)).getContentStream();
+	    }
+		
+	    if (recipient instanceof PasswordRecipientInformation) {
+	    	JcePasswordAuthEnvelopedRecipient decryptor = new JcePasswordAuthEnvelopedRecipient(password);
+	        return recipient.getContentStream(decryptor).getContentStream();
+	    }
+	    
+		ASN1ObjectIdentifier oid = new ASN1ObjectIdentifier(recipient.getKeyEncryptionAlgOID());
+		
+		if(PQCAlgorithms.fromOID(oid) != null && !PQCAlgorithms.fromOID(oid).canSign) { // PQC
+			return recipient
+                    .getContentStream(new JceKEMAuthEnvelopedRecipient(privateKey))
+                    .getContentStream();
+		}
+		
+        AsymmetricAlgorithm keyAlgo = algFromCMSOid(oid);
+        
+        return switch (keyAlgo) {
+            case RSA -> recipient
+                        .getContentStream(new JceKeyTransAuthEnvelopedRecipient(privateKey))
+                        .getContentStream();
+            case EC -> recipient
+                        .getContentStream(new JceKeyAgreeAuthEnvelopedRecipient(privateKey).setUnwrappingProvider("BC"))
                         .getContentStream();
             default -> throw new CMSException("Unsupported asymmetric algorithm: " + keyAlgo);
         };
@@ -252,6 +336,11 @@ public class CMSDecryptor {
 	}
 	
 	private InputStream createRecipientContentStreamPKCS11(RecipientInformation recipient) throws CMSException, IOException {
+		if(!this.useAuth) return createNormalRecipientContentStreamPKCS11(recipient);
+		else return createAuthRecipientContentStreamPKCS11(recipient);
+    }
+	
+	private InputStream createNormalRecipientContentStreamPKCS11(RecipientInformation recipient) throws CMSException, IOException {
 		/*
 		 * A special version of JceKEKEnvelopedRecipient for PKCS#11 is not implemented 
 		 * as only extractable keys are supported at the moment.
@@ -281,6 +370,45 @@ public class CMSDecryptor {
             case EC -> recipient
                         .getContentStream(
                         		new JceKeyAgreeEnvelopedRecipient(privateKey)
+                        		.setProvider(provider)
+                        		.setUnwrappingProvider(provider)
+                        		.setContentProvider("BC")
+                        		)
+                        .getContentStream();
+            default -> throw new CMSException("Unsupported asymmetric algorithm: " + keyAlgo);
+        };
+    }
+	
+	private InputStream createAuthRecipientContentStreamPKCS11(RecipientInformation recipient) throws CMSException, IOException {
+		/*
+		 * A special version of JceKEKEnvelopedRecipient for PKCS#11 is not implemented 
+		 * as only extractable keys are supported at the moment.
+		 */
+		ASN1ObjectIdentifier oid = new ASN1ObjectIdentifier(recipient.getKeyEncryptionAlgOID());
+		if(PQCAlgorithms.fromOID(oid) != null && !PQCAlgorithms.fromOID(oid).canSign) { // PQC
+			return recipient
+                    .getContentStream(
+                    		new JceKEMAuthEnvelopedRecipient(privateKey)
+                    		.setProvider(provider)
+                    		.setContentProvider("BC")
+                    		.setMustProduceEncodableUnwrappedKey(false)
+                    		)
+                    .getContentStream();
+		}
+		
+        AsymmetricAlgorithm keyAlgo = algFromCMSOid(oid); 
+        return switch (keyAlgo) {
+            case RSA -> recipient
+                        .getContentStream(
+                        		new JceKeyTransAuthEnvelopedRecipient(privateKey)
+                        		.setProvider(provider)
+                        		.setContentProvider("BC")
+                        		.setMustProduceEncodableUnwrappedKey(false)
+                        		)
+                        .getContentStream();
+            case EC -> recipient
+                        .getContentStream(
+                        		new JceKeyAgreeAuthEnvelopedRecipient(privateKey)
                         		.setProvider(provider)
                         		.setUnwrappingProvider(provider)
                         		.setContentProvider("BC")
