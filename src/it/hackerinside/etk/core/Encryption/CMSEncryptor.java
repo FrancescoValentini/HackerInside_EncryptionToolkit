@@ -140,10 +140,14 @@ public class CMSEncryptor implements Encryptor {
      *                   or unsupported algorithms
      */
     public void encrypt(InputStream input, OutputStream output) throws Exception {
-        OutputEncryptor encryptor =
-                new JceCMSContentEncryptorBuilder(encryptionAlgorithm.getCipherASN1())
-                        .setSecureRandom(new SecureRandom())
-                        .build();
+    	JceCMSContentEncryptorBuilder builder = 
+    			new JceCMSContentEncryptorBuilder(encryptionAlgorithm.getCipherASN1())
+                .setSecureRandom(new SecureRandom());
+    	
+    	if(encryptionAlgorithm.getProvider() != null) 
+    		builder.setProvider(encryptionAlgorithm.getProvider());
+    		
+        OutputEncryptor encryptor = builder.build();
 
         try (OutputStream encodedOut = wrapEncoding(output)) {
             OutputStream cmsOut;
