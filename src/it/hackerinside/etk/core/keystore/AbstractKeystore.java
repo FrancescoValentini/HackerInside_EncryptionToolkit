@@ -134,9 +134,20 @@ public abstract class AbstractKeystore {
 	 * @throws NullPointerException if alias, key, or password is null
 	 */
 	public void addSecretKey(String alias, SecretKey key, char[] password) throws KeyStoreException {
-		KeyStore.SecretKeyEntry entry = new KeyStore.SecretKeyEntry(key);
-		KeyStore.ProtectionParameter protection = new KeyStore.PasswordProtection(password);
-		keyStore.setEntry(alias, entry, protection);
+		String finalAlias = calcFinalAlias(alias);
+	    KeyStore.SecretKeyEntry entry = new KeyStore.SecretKeyEntry(key);
+	    KeyStore.ProtectionParameter protection = new KeyStore.PasswordProtection(password);
+	    keyStore.setEntry(finalAlias, entry, protection);
+	}
+
+	private String calcFinalAlias(String alias) throws KeyStoreException {
+	    String finalAlias = alias;
+	    int counter = 1;
+
+	    while (keyStore.containsAlias(finalAlias)) {
+	        finalAlias = alias + "_" + counter++;
+	    }
+	    return finalAlias;
 	}
 
 	/**
@@ -180,9 +191,11 @@ public abstract class AbstractKeystore {
 	 * @throws NullPointerException if alias, privateKey, password, or chain is null
 	 */
 	public void addPrivateKey(String alias, PrivateKey privateKey, char[] password, X509Certificate[] chain)
-			throws KeyStoreException {
-		keyStore.setKeyEntry(alias, privateKey, password, chain);
+	        throws KeyStoreException {
+		String finalAlias = calcFinalAlias(alias);
+	    keyStore.setKeyEntry(finalAlias, privateKey, password, chain);
 	}
+
 
 	/**
 	 * Retrieves a private key from the keystore using the specified alias and password.

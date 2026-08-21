@@ -19,7 +19,6 @@ import javax.crypto.spec.SecretKeySpec;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.DTOs.CertificateTableRow;
 import it.hackerinside.etk.GUI.DTOs.KeysLocations;
-import it.hackerinside.etk.GUI.DTOs.SecretKeyTableRow;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
 import it.hackerinside.etk.core.keystore.PKCS12Keystore;
 
@@ -370,6 +369,31 @@ public class KeysManagementService {
 			if(keyPwd != null) Arrays.fill(keyPwd, (char)0x00);
 		}
 		return false;
+	}
+	
+	public boolean importSecretKeys(AbstractKeystore src,List<String> aliasesToImport) throws Exception {
+	    if (ctx.usePKCS11()) throw new UnsupportedOperationException("Operation not supported for PKCS11");
+	    if (src == null || aliasesToImport == null || aliasesToImport.isEmpty()) return false;
+	    char[] keyPwd = null;
+	    try {
+	        for (String alias : aliasesToImport) {
+	            keyPwd = invokePwdProvider(alias);
+	            if (keyPwd == null || keyPwd.length == 0) return false;
+	            SecretKey key = src.getSecretKey(alias, keyPwd);
+	            if (key == null)return false;
+	            ctx.getKeystore().addSecretKey(
+	                alias,
+	                key,
+	                keyPwd
+	            );
+	        }
+	        ctx.getKeystore().save();
+	    } finally {
+	        if (keyPwd != null)Arrays.fill(keyPwd, (char) 0x00);
+	    }
+
+	    return true;
+
 	}
 	
 	/**

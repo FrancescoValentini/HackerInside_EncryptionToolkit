@@ -691,6 +691,7 @@ public class ETKMain {
 	private void enablePrivateKeyOperations() {
 	    btnSign.setEnabled(true);
 	    btnDecrypt.setEnabled(true);
+	    btnEncrypt.setEnabled(true);
 	}
 
 	/**
