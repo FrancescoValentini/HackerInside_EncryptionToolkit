@@ -273,7 +273,9 @@ public class ETKContext {
         try {
             if (this.usePKCS11()) {
                 this.keystore = new PKCS11Keystore(this.getPkcs11Driver(), this.keystoreMasterPassword);
-            } else {
+            } else if(this.isUseRemoteKeystore()) {
+            	
+            }else {
                 ensureDirectoryExists(this.getKeyStorePath());
                 this.keystore = new PKCS12Keystore(this.getKeyStorePath(), this.keystoreMasterPassword);
             }
