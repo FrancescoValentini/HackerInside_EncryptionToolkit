@@ -726,6 +726,68 @@ public class ETKContext {
     }
     
     
+    public boolean isUseRemoteKeystore() {
+        String value = preferences.get(
+                ApplicationPreferences.USE_REMOTE_KEYSTORE.getKey(),
+                ApplicationPreferences.USE_REMOTE_KEYSTORE.getValue()
+            );
+        return Boolean.parseBoolean(value);
+    }
+
+    public void setUseRemoteKeystore(boolean useRemoteKeystore) {
+        preferences.put(
+                ApplicationPreferences.USE_REMOTE_KEYSTORE.getKey(),
+                Boolean.toString(useRemoteKeystore)
+            );
+    }
+
+    public String getRemoteKeystoreUrl() {
+        String value = preferences.get(
+                ApplicationPreferences.REMOTE_KEYSTORE_URL.getKey(),
+                ApplicationPreferences.REMOTE_KEYSTORE_URL.getValue()
+            );
+        return value;
+    }
+
+    public void setRemoteKeystoreUrl(String url) {
+        preferences.put(
+                ApplicationPreferences.REMOTE_KEYSTORE_URL.getKey(),
+                url
+            );
+    }
+
+    public String getRemoteKeystoreUser() {
+        String value = preferences.get(
+                ApplicationPreferences.REMOTE_KEYSTORE_USER.getKey(),
+                ApplicationPreferences.REMOTE_KEYSTORE_USER.getValue()
+            );
+        return value;
+    }
+
+    public void setRemoteKeystoreUser(String user) {
+        preferences.put(
+                ApplicationPreferences.REMOTE_KEYSTORE_USER.getKey(),
+                user
+            );
+    }
+
+    public String getRemoteKeystorePwd() {
+        String value = preferences.get(
+                ApplicationPreferences.REMOTE_KEYSTORE_PWD.getKey(),
+                ApplicationPreferences.REMOTE_KEYSTORE_PWD.getValue()
+            );
+        return value;
+    }
+
+    public void setRemoteKeystorePwd(String pwd) {
+        preferences.put(
+                ApplicationPreferences.REMOTE_KEYSTORE_PWD.getKey(),
+                pwd
+            );
+    }
+
+    
+    
     /**
      * Changes the master password of the keystore.
      *
