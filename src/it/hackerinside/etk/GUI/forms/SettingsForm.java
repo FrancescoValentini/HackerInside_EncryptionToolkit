@@ -38,9 +38,11 @@ import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
 import java.security.KeyStoreException;
+import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -67,6 +69,9 @@ import java.awt.event.ItemEvent;
 import javax.swing.border.TitledBorder;
 import javax.swing.border.EtchedBorder;
 import java.awt.Color;
+import javax.swing.BoxLayout;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.ChangeEvent;
 
 public class SettingsForm {
 
@@ -99,6 +104,12 @@ public class SettingsForm {
 	private JTextField txtbRemoteUser;
 	private JPasswordField txtbRemotePwd;
 	private JCheckBox chckbUseRemoteKeystore;
+	private JButton btnLoadServerCert;
+	private JButton btnServerCertInfo;
+	private JButton btnClearServerCert;
+	private JCheckBox chckbxNewCheckBox;
+	private JPasswordField passwordField;
+	private JPasswordField txtbSyncKey;
 
 	/**
 	 * Launch the application.
@@ -139,7 +150,7 @@ public class SettingsForm {
 		frmHackerinsideEncryptionToolkit = new JFrame();
 		frmHackerinsideEncryptionToolkit.setResizable(false);
 		frmHackerinsideEncryptionToolkit.setTitle("HackerInside Encryption Toolkit | Settings");
-		frmHackerinsideEncryptionToolkit.setBounds(100, 100, 879, 450);
+		frmHackerinsideEncryptionToolkit.setBounds(100, 100, 879, 587);
 		//frmHackerinsideEncryptionToolkit.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		
@@ -433,44 +444,196 @@ public class SettingsForm {
 		tabbedPane.addTab("Remote Keystore", null, panel_6, null);
 		panel_6.setLayout(null);
 		
-		chckbUseRemoteKeystore = new JCheckBox("USE REMOTE KEYSTORE");
+		chckbUseRemoteKeystore = new JCheckBox("ENABLE REMOTE KEYSTORE");
 		chckbUseRemoteKeystore.setSelected(false);
 		chckbUseRemoteKeystore.setFont(new Font("Tahoma", Font.PLAIN, 16));
-		chckbUseRemoteKeystore.setBounds(152, 127, 229, 29);
+		chckbUseRemoteKeystore.setBounds(91, 129, 404, 29);
 		panel_6.add(chckbUseRemoteKeystore);
 		
 		txtbKeystoreServer = new JTextField();
 		txtbKeystoreServer.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		txtbKeystoreServer.setColumns(10);
-		txtbKeystoreServer.setBounds(152, 11, 404, 25);
+		txtbKeystoreServer.setBounds(131, 11, 404, 25);
 		panel_6.add(txtbKeystoreServer);
 		
 		JLabel lblServer = new JLabel("Server:");
 		lblServer.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		lblServer.setBounds(10, 11, 123, 25);
+		lblServer.setBounds(10, 11, 109, 25);
 		panel_6.add(lblServer);
 		
 		txtbRemoteUser = new JTextField();
 		txtbRemoteUser.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		txtbRemoteUser.setColumns(10);
-		txtbRemoteUser.setBounds(152, 45, 404, 25);
+		txtbRemoteUser.setBounds(131, 45, 404, 25);
 		panel_6.add(txtbRemoteUser);
 		
 		JLabel lblUsername = new JLabel("Username:");
 		lblUsername.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		lblUsername.setBounds(10, 45, 123, 25);
+		lblUsername.setBounds(10, 45, 109, 25);
 		panel_6.add(lblUsername);
 		
 		txtbRemotePwd = new JPasswordField();
 		txtbRemotePwd.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		txtbRemotePwd.setColumns(10);
-		txtbRemotePwd.setBounds(152, 81, 404, 25);
+		txtbRemotePwd.setBounds(131, 81, 404, 25);
 		panel_6.add(txtbRemotePwd);
 		
 		JLabel lblServer_1_1 = new JLabel("Password:");
 		lblServer_1_1.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		lblServer_1_1.setBounds(10, 81, 123, 25);
+		lblServer_1_1.setBounds(10, 81, 109, 25);
 		panel_6.add(lblServer_1_1);
+		
+		JPanel panel_7 = new JPanel();
+		panel_7.setBorder(new TitledBorder(null, "SSL SETTINGS", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		panel_7.setBounds(91, 284, 542, 108);
+		panel_6.add(panel_7);
+		panel_7.setLayout(null);
+		
+		chckbxNewCheckBox = new JCheckBox("Custom certificate");
+
+		chckbxNewCheckBox.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		chckbxNewCheckBox.setBounds(6, 21, 212, 23);
+		panel_7.add(chckbxNewCheckBox);
+		
+		btnServerCertInfo = new JButton("CERTIFICATE INFO");
+		btnServerCertInfo.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(ctx.getRemoteKeystoreCustomCert() != null) showCertificateInfo(ctx.getRemoteKeystoreCustomCert());
+			}
+		});
+		btnServerCertInfo.setEnabled(false);
+		btnServerCertInfo.setBounds(189, 51, 161, 34);
+		btnServerCertInfo.setFont(new Font("Consolas", Font.PLAIN, 14));
+		panel_7.add(btnServerCertInfo);
+		
+		btnLoadServerCert = new JButton("LOAD CERTIFICATE");
+
+		btnLoadServerCert.setEnabled(false);
+		btnLoadServerCert.setBounds(10, 51, 169, 34);
+		btnLoadServerCert.setFont(new Font("Consolas", Font.PLAIN, 14));
+		panel_7.add(btnLoadServerCert);
+		
+		btnClearServerCert = new JButton("CLEAR CERTIFICATE");
+		btnClearServerCert.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				ctx.setRemoteKeystoreUseCustomCert(false);
+				ctx.setRemoteKeystoreCustomCert(null);
+				btnServerCertInfo.setEnabled(false);
+				btnClearServerCert.setEnabled(false);
+			}
+		});
+		btnClearServerCert.setEnabled(false);
+		btnClearServerCert.setBounds(360, 51, 169, 34);
+		btnClearServerCert.setFont(new Font("Consolas", Font.PLAIN, 14));
+		panel_7.add(btnClearServerCert);
+		
+		JPanel panel_7_1 = new JPanel();
+		panel_7_1.setLayout(null);
+		
+		panel_7_1.setBorder(new TitledBorder(null, "SYNC KEY", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+
+		panel_7_1.setBounds(91, 165, 542, 108);
+		panel_6.add(panel_7_1);
+		// Sync key field
+		txtbSyncKey = new JPasswordField();
+		txtbSyncKey.setBounds(10, 23, 522, 29);
+		panel_7_1.add(txtbSyncKey);
+		txtbSyncKey.setFont(new Font("Consolas", Font.PLAIN, 15));
+		txtbSyncKey.setColumns(10);
+		
+				// Show/Hide button
+				JButton btnShowSyncKey = new JButton("Show");
+				btnShowSyncKey.setFont(new Font("Tahoma", Font.PLAIN, 14));
+				btnShowSyncKey.setBounds(10, 63, 70, 29);
+				panel_7_1.add(btnShowSyncKey);
+				
+						// Random key button
+						JButton btnNewSyncKey = new JButton("New");
+						btnNewSyncKey.setFont(new Font("Tahoma", Font.PLAIN, 14));
+						btnNewSyncKey.setBounds(90, 63, 70, 29);
+						panel_7_1.add(btnNewSyncKey);
+						
+						JButton btnNewSyncKey_1 = new JButton();
+						btnNewSyncKey_1.addActionListener(new ActionListener() {
+							public void actionPerformed(ActionEvent e) {
+								boolean valid = false;
+							    try {
+							    	byte[] decoded = Base64.getDecoder().decode(new String(txtbSyncKey.getPassword()));
+							        valid = decoded.length == 16 || decoded.length == 32;
+							    } catch (IllegalArgumentException e1) {
+							        valid = false;
+							    }
+							    
+							    if(valid) ctx.setRemoteKeystoreSyncKey(new String(txtbSyncKey.getPassword()));
+							    else {
+							        DialogUtils.showMessageBox(
+								            null,
+								            "Unable to save sync-key!",
+								            "<html>Error saving the sync key.</html>",
+								            null,
+								            JOptionPane.ERROR_MESSAGE
+								        );
+							    }
+							}
+						});
+						btnNewSyncKey_1.setText("Save");
+						btnNewSyncKey_1.setFont(new Font("Tahoma", Font.PLAIN, 14));
+						btnNewSyncKey_1.setBounds(170, 63, 70, 29);
+						panel_7_1.add(btnNewSyncKey_1);
+						
+						btnNewSyncKey.addActionListener(e -> {
+							
+							boolean res = DialogUtils.showConfirmBox(
+						            null, 
+						            "NEW SYNC KEY", 
+						            "Are you sure you want to generate a new sync key?",
+						            "If you haven't backed up the key, data encrypted with the previous sync key will no longer be decryptable!",
+						            JOptionPane.WARNING_MESSAGE
+						        );
+							
+							if(!res) return;
+							
+						    byte[] key = new byte[32]; // 256 bits
+						    SecureRandom secureRandom = new SecureRandom();
+						    secureRandom.nextBytes(key);
+
+						    String base64Key = Base64.getEncoder().encodeToString(key);
+
+						    txtbSyncKey.setText(base64Key);
+						});
+				
+						btnShowSyncKey.addActionListener(e -> {
+						    if (txtbSyncKey.getEchoChar() == (char) 0) {
+						    	txtbSyncKey.setEchoChar('•');
+						        btnShowSyncKey.setText("Show");
+						    } else {
+						    	txtbSyncKey.setEchoChar((char) 0);
+						        btnShowSyncKey.setText("Hide");
+						    }
+						});
+		
+		chckbxNewCheckBox.addChangeListener(e -> {
+		    boolean selected = chckbxNewCheckBox.isSelected();
+		    btnLoadServerCert.setEnabled(selected);
+		});
+		
+		btnLoadServerCert.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+			    X509Certificate cert = loadCertificateFromFile();
+				
+				if(cert != null) {
+					ctx.setRemoteKeystoreCustomCert(cert);
+					btnServerCertInfo.setEnabled(true);
+					btnClearServerCert.setEnabled(true);
+					ctx.setRemoteKeystoreUseCustomCert(true);
+				}else {
+					btnServerCertInfo.setEnabled(false);
+					btnClearServerCert.setEnabled(false);
+					ctx.setRemoteKeystoreUseCustomCert(false);
+				}
+			}
+		});
+
 		
 		JPanel panel_5 = new JPanel();
 		tabbedPane.addTab("Preferences", null, panel_5, null);
@@ -732,6 +895,8 @@ public class SettingsForm {
 		txtbRemoteUser.setText(ctx.getRemoteKeystoreUser());
 		txtbRemotePwd.setText(ctx.getRemoteKeystorePwd());
 		chckbUseRemoteKeystore.setSelected(ctx.isUseRemoteKeystore());
+		
+		txtbSyncKey.setText(Base64.getEncoder().encodeToString(ctx.getRemoteKeystoreSyncKey()));
 
 		
 		chckbPKCS11SignOnly.setSelected(ctx.isPkcs11SignOnly());
@@ -744,6 +909,13 @@ public class SettingsForm {
 		    chckbRSAOAEP.setEnabled(false);
 		}
 		selectVisibleColumns();
+		
+		
+		if(ctx.getRemoteKeystoreUseCustomCert() && (ctx.getRemoteKeystoreCustomCert() != null)) {
+			chckbxNewCheckBox.setSelected(true);
+			btnServerCertInfo.setEnabled(true);
+			btnClearServerCert.setEnabled(true);
+		}
 	}
 	
 	
