@@ -102,15 +102,33 @@ public enum ApplicationPreferences {
 	 */
 	PKCS11_SIGN_ONLY("PKCS11_SIGN_ONLY","true"),
 	
+	/** Enables validation of key usages in certificates. */
 	VALIDATE_KEY_USAGES("VALIDATE_KEY_USAGES","true"),
-	
+
+	/** Defines the columns displayed in the certificate table. */
 	CERTIFICATE_TABLE_COLUMNS("CERTIFICATE_TABLE_COLUMNS","ALIAS,COMMON_NAME,FINGERPRINT,LOCATION"),
-	
+
+	/** Enables the use of a remote keystore. */
 	USE_REMOTE_KEYSTORE("USE_REMOTE_KEYSTORE","false"),
+
+	/** URL of the remote keystore. */
 	REMOTE_KEYSTORE_URL("REMOTE_KEYSTORE_URL",""),
+
+	/** Username for accessing the remote keystore. */
 	REMOTE_KEYSTORE_USER("REMOTE_KEYSTORE_USER",""),
-	REMOTE_KEYSTORE_PWD("REMOTE_KEYSTORE_PWD","");
+
+	/** Password for accessing the remote keystore. */
+	REMOTE_KEYSTORE_PWD("REMOTE_KEYSTORE_PWD",""),
+
+	/** Synchronization key for the remote keystore. */
+	REMOTE_KEYSTORE_SYNC_KEY("REMOTE_KEYSTORE_SYNC_KEY",""),
 	
+	/** Enables use of a custom certificate for the remote keystore. */
+	REMOTE_KEYSTORE_USE_CUSTOM_CERT("REMOTE_KEYSTORE_USE_CUSTOM_CERT","false"),
+
+	/** Custom certificate used for the remote keystore. */
+	REMOTE_KEYSTORE_CUSTOM_CERT("REMOTE_KEYSTORE_CUSTOM_CERT","");
+
     
     private final String key;
     private final String value;
