@@ -411,7 +411,7 @@ public class SettingsForm {
 		
 		panel_3_1 = new JPanel();
 		panel_3_1.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, new Color(255, 255, 255), new Color(160, 160, 160)), "Certification Authorities", TitledBorder.LEADING, TitledBorder.TOP, null));
-		panel_3_1.setBounds(10, 74, 625, 195);
+		panel_3_1.setBounds(10, 74, 703, 195);
 		panel_4.add(panel_3_1);
 		panel_3_1.setLayout(new BorderLayout(0, 0));
 		
