@@ -595,12 +595,24 @@ public class ETKMain {
 	 * private key operations in case of failure.
 	 */
 	private void unlockKeystore() {
-	    char[] password = DialogUtils.showPasswordInputBox(
-	        null,
-	        "Unlock Keystore",
-	         ctx.usePKCS11() ? "PKCS#11 DEVICE" : ctx.getKeyStorePath(),
-	        "Password:"
-	    );
+		char[] password = null;
+		if(ctx.isUseRemoteKeystore()) {
+			 password = DialogUtils.showPasswordInputBox(
+				        null,
+				        "Unlock Keystore",
+				         "REMOTE PKCS#12 KEYSTORE",
+				        "Password:"
+				    );
+		}else {
+			 password = DialogUtils.showPasswordInputBox(
+				        null,
+				        "Unlock Keystore",
+				         ctx.usePKCS11() ? "PKCS#11 DEVICE" : ctx.getKeyStorePath(),
+				        "Password:"
+				    );
+		}
+	    
+
 	    if(password == null) {
 	        loggedIn = false;
 	        disablePrivateKeyOperations();

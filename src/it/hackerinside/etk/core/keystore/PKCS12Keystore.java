@@ -47,10 +47,6 @@ public class PKCS12Keystore extends AbstractKeystore {
         
     }
     
-    public void setPassword(char[] password) {
-    	this.password = Arrays.copyOf(password, password.length);
-    }
-    
     /**
      * Constructs a new PKCS12Keystore with the specified File object and password.
      *
@@ -63,6 +59,20 @@ public class PKCS12Keystore extends AbstractKeystore {
     	Objects.requireNonNull(file);
         this.file = file;
         this.password = password;
+    }
+    
+    public PKCS12Keystore(char[] password) {
+    	super(SupportedKeystores.PKCS12);
+    	this.file = null;
+    	this.password = password;
+    }
+    
+    public void setPassword(char[] password) {
+    	this.password = Arrays.copyOf(password, password.length);
+    }
+    
+    protected char[] getPassword() {
+    	return Arrays.copyOf(password, password.length);
     }
 
     @Override
