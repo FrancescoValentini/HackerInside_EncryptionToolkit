@@ -69,7 +69,6 @@ import java.awt.event.ItemEvent;
 import javax.swing.border.TitledBorder;
 import javax.swing.border.EtchedBorder;
 import java.awt.Color;
-import javax.swing.BoxLayout;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.ChangeEvent;
 
@@ -295,6 +294,10 @@ public class SettingsForm {
 		btnOpenPKCS11Config.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		chckbUsePkcs11 = new JCheckBox("USE PKCS#11");
+		chckbUsePkcs11.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+			}
+		});
 		chckbUsePkcs11.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		GroupLayout gl_panel_2 = new GroupLayout(panel_2);
 		gl_panel_2.setHorizontalGroup(
@@ -445,6 +448,10 @@ public class SettingsForm {
 		panel_6.setLayout(null);
 		
 		chckbUseRemoteKeystore = new JCheckBox("ENABLE REMOTE KEYSTORE");
+		chckbUseRemoteKeystore.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+			}
+		});
 		chckbUseRemoteKeystore.setSelected(false);
 		chckbUseRemoteKeystore.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		chckbUseRemoteKeystore.setBounds(91, 129, 404, 29);
@@ -930,7 +937,7 @@ public class SettingsForm {
 		ctx.setPkcs11Driver(txtPkcs11ConfPath.getText());
 		ctx.setCipher(((SymmetricAlgorithms) cmbEncAlgPath.getSelectedItem()));
 		ctx.setHashAlgorithm((HashAlgorithm) cmbHashAlgPath.getSelectedItem());
-		ctx.setUsePkcs11(chckbUsePkcs11.isSelected());
+		//ctx.setUsePkcs11(chckbUsePkcs11.isSelected());
 		ctx.setUsePEM(chckbUsePem.isSelected());
 		ctx.setUseSKI(chckbxSKI.isSelected());
 		ctx.setTheme((UIThemes)cmbTheme.getSelectedItem());
@@ -946,7 +953,7 @@ public class SettingsForm {
 		ctx.setRemoteKeystoreUrl(txtbKeystoreServer.getText());
 		ctx.setRemoteKeystoreUser(txtbRemoteUser.getText());
 		ctx.setRemoteKeystorePwd(new String(txtbRemotePwd.getPassword()));
-		ctx.setUseRemoteKeystore(chckbUseRemoteKeystore.isSelected());
+		//ctx.setUseRemoteKeystore(chckbUseRemoteKeystore.isSelected());
 		
 		String selected = listboxCertificateTableColumns
 		        .getSelectedValuesList()
@@ -957,8 +964,30 @@ public class SettingsForm {
 		ctx.setVisibleColumns(selected);
 		
 		if(callback != null) callback.run();
+		updateKeystoreSelection();
 
 	}
+	
+	private void updateKeystoreSelection() {
+	    boolean remote = chckbUseRemoteKeystore.isSelected();
+	    boolean p11 = chckbUsePkcs11.isSelected();
+
+	    if (remote) {
+	        chckbUsePkcs11.setSelected(false);
+	        ctx.setUseRemoteKeystore(true);
+	        ctx.setUsePkcs11(false);
+
+	    } else if (p11) {
+	        chckbUseRemoteKeystore.setSelected(false);
+	        ctx.setUsePkcs11(true);
+	        ctx.setUseRemoteKeystore(false);
+
+	    } else {
+	        ctx.setUsePkcs11(false);
+	        ctx.setUseRemoteKeystore(false);
+	    }
+	}
+
 	
 	private void selectVisibleColumns() {
 	    String visible = ctx.getVisibleColumns();
