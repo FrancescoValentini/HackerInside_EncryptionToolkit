@@ -563,6 +563,21 @@ public class SettingsForm {
 						JButton btnNewSyncKey_1 = new JButton();
 						btnNewSyncKey_1.addActionListener(new ActionListener() {
 							public void actionPerformed(ActionEvent e) {
+								boolean res = DialogUtils.showConfirmBox(
+							            null, 
+							            "NEW SYNC KEY", 
+							            "Are you sure you want to save a new sync key?",
+							            "If you haven't backed up the key, data encrypted with the previous sync key will no longer be decryptable!",
+							            JOptionPane.WARNING_MESSAGE
+							        );
+								
+								if(!res) {
+									txtbSyncKey.setText(
+											new String(Base64.getEncoder().encode(ctx.getRemoteKeystoreSyncKey()))
+											);
+									return;
+								}
+								
 								boolean valid = false;
 							    try {
 							    	byte[] decoded = Base64.getDecoder().decode(new String(txtbSyncKey.getPassword()));
@@ -589,16 +604,7 @@ public class SettingsForm {
 						panel_7_1.add(btnNewSyncKey_1);
 						
 						btnNewSyncKey.addActionListener(e -> {
-							
-							boolean res = DialogUtils.showConfirmBox(
-						            null, 
-						            "NEW SYNC KEY", 
-						            "Are you sure you want to generate a new sync key?",
-						            "If you haven't backed up the key, data encrypted with the previous sync key will no longer be decryptable!",
-						            JOptionPane.WARNING_MESSAGE
-						        );
-							
-							if(!res) return;
+
 							
 						    byte[] key = new byte[32]; // 256 bits
 						    SecureRandom secureRandom = new SecureRandom();
