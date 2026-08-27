@@ -189,7 +189,7 @@ public class SettingsForm {
 		btnOpenKnownCerts.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		chckbUsePem = new JCheckBox("PEM Encoding");
-		chckbUsePem.setBounds(10, 158, 125, 29);
+		chckbUsePem.setBounds(10, 158, 215, 29);
 		chckbUsePem.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		JLabel lblNewLabel_3 = new JLabel("Buffer size (bytes):");
@@ -197,21 +197,21 @@ public class SettingsForm {
 		lblNewLabel_3.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		spnBufferSize = new JSpinner();
-		spnBufferSize.setBounds(197, 78, 86, 25);
+		spnBufferSize.setBounds(197, 78, 119, 25);
 		spnBufferSize.setModel(new SpinnerNumberModel(Integer.valueOf(8192), Integer.valueOf(1024), null, Integer.valueOf(1024)));
 		spnBufferSize.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		chckbPasswordCache = new JCheckBox("Enable Password Cache");
-		chckbPasswordCache.setBounds(301, 111, 191, 29);
+		chckbPasswordCache.setBounds(331, 111, 335, 29);
 
 		chckbPasswordCache.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		JLabel lblNewLabel_3_1 = new JLabel("Password cache timeout (s):");
-		lblNewLabel_3_1.setBounds(10, 117, 183, 17);
+		lblNewLabel_3_1.setBounds(10, 117, 203, 17);
 		lblNewLabel_3_1.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		spnCacheTimeout = new JSpinner();
-		spnCacheTimeout.setBounds(197, 113, 86, 25);
+		spnCacheTimeout.setBounds(223, 113, 93, 25);
 		spnCacheTimeout.setModel(new SpinnerNumberModel(0, 0, 120, 1));
 		spnCacheTimeout.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
@@ -221,11 +221,11 @@ public class SettingsForm {
 		chckbxSKI.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		chckbHideInvalidCerts = new JCheckBox("Hide invalid certificates");
-		chckbHideInvalidCerts.setBounds(301, 158, 490, 29);
+		chckbHideInvalidCerts.setBounds(301, 158, 386, 29);
 		chckbHideInvalidCerts.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		chckbPKCS11SignOnly = new JCheckBox("PKCS#11 sign-only mode");
-		chckbPKCS11SignOnly.setBounds(301, 190, 490, 29);
+		chckbPKCS11SignOnly.setBounds(301, 190, 386, 29);
 
 		chckbPKCS11SignOnly.setToolTipText("Prevents decryption issues with PKCS#11 tokens that do not support decryption.");
 		chckbPKCS11SignOnly.setFont(new Font("Tahoma", Font.PLAIN, 16));
@@ -414,7 +414,7 @@ public class SettingsForm {
 		
 		panel_3_1 = new JPanel();
 		panel_3_1.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, new Color(255, 255, 255), new Color(160, 160, 160)), "Certification Authorities", TitledBorder.LEADING, TitledBorder.TOP, null));
-		panel_3_1.setBounds(10, 74, 703, 195);
+		panel_3_1.setBounds(19, 74, 684, 195);
 		panel_4.add(panel_3_1);
 		panel_3_1.setLayout(new BorderLayout(0, 0));
 		
@@ -909,8 +909,11 @@ public class SettingsForm {
 		txtbRemotePwd.setText(ctx.getRemoteKeystorePwd());
 		chckbUseRemoteKeystore.setSelected(ctx.isUseRemoteKeystore());
 		
-		txtbSyncKey.setText(Base64.getEncoder().encodeToString(ctx.getRemoteKeystoreSyncKey()));
-
+		try {
+			txtbSyncKey.setText(Base64.getEncoder().encodeToString(ctx.getRemoteKeystoreSyncKey()));
+		}catch(Exception e) {
+			// ignore
+		}
 		
 		chckbPKCS11SignOnly.setSelected(ctx.isPkcs11SignOnly());
 		if (ctx.isPkcs11SignOnly()) {
