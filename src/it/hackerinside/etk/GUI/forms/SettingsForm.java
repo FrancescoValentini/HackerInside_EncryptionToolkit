@@ -4,6 +4,7 @@ import java.awt.EventQueue;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import javax.swing.JScrollPane;
 
 import java.awt.BorderLayout;
@@ -12,6 +13,8 @@ import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
 
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -37,9 +40,11 @@ import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
 import java.security.KeyStoreException;
+import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -66,6 +71,8 @@ import java.awt.event.ItemEvent;
 import javax.swing.border.TitledBorder;
 import javax.swing.border.EtchedBorder;
 import java.awt.Color;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.ChangeEvent;
 
 public class SettingsForm {
 
@@ -94,6 +101,16 @@ public class SettingsForm {
 	private JCheckBox chckbValKeyUsages;
 	private JList<CertificateColumn> listboxCertificateTableColumns;
 	private Runnable callback;
+	private JTextField txtbKeystoreServer;
+	private JTextField txtbRemoteUser;
+	private JPasswordField txtbRemotePwd;
+	private JCheckBox chckbUseRemoteKeystore;
+	private JButton btnLoadServerCert;
+	private JButton btnServerCertInfo;
+	private JButton btnClearServerCert;
+	private JCheckBox chckbxNewCheckBox;
+	private JPasswordField passwordField;
+	private JPasswordField txtbSyncKey;
 
 	/**
 	 * Launch the application.
@@ -134,12 +151,13 @@ public class SettingsForm {
 		frmHackerinsideEncryptionToolkit = new JFrame();
 		frmHackerinsideEncryptionToolkit.setResizable(false);
 		frmHackerinsideEncryptionToolkit.setTitle("HackerInside Encryption Toolkit | Settings");
-		frmHackerinsideEncryptionToolkit.setBounds(100, 100, 670, 400);
+		frmHackerinsideEncryptionToolkit.setBounds(100, 100, 879, 587);
 		//frmHackerinsideEncryptionToolkit.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		
 		
-		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.LEFT);
+		tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 		tabbedPane.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		frmHackerinsideEncryptionToolkit.getContentPane().add(tabbedPane, BorderLayout.CENTER);
 		
@@ -147,196 +165,122 @@ public class SettingsForm {
 		tabbedPane.addTab("General", null, panel, null);
 		
 		JLabel lblNewLabel = new JLabel("Keystore path:");
+		lblNewLabel.setBounds(68, 15, 119, 17);
 		lblNewLabel.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		txtbKeyStorePath = new JTextField();
+		txtbKeyStorePath.setBounds(197, 11, 381, 25);
 		txtbKeyStorePath.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		txtbKeyStorePath.setColumns(10);
 		
 		JButton btnOpenKeystore = new JButton("...");
+		btnOpenKeystore.setBounds(588, 11, 48, 25);
 		btnOpenKeystore.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		txtbKnownCertsPath = new JTextField();
+		txtbKnownCertsPath.setBounds(197, 45, 381, 25);
 		txtbKnownCertsPath.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		txtbKnownCertsPath.setColumns(10);
 		
 		JLabel lblKnownCertificatesPath = new JLabel("Known Certificates path:");
+		lblKnownCertificatesPath.setBounds(10, 48, 183, 17);
 		lblKnownCertificatesPath.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		JButton btnOpenKnownCerts = new JButton("...");
+		btnOpenKnownCerts.setBounds(588, 45, 48, 25);
 		btnOpenKnownCerts.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		chckbUsePem = new JCheckBox("PEM Encoding");
+		chckbUsePem.setBounds(10, 158, 215, 29);
 		chckbUsePem.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		JLabel lblNewLabel_3 = new JLabel("Buffer size (bytes):");
+		lblNewLabel_3.setBounds(10, 82, 149, 17);
 		lblNewLabel_3.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		spnBufferSize = new JSpinner();
+		spnBufferSize.setBounds(197, 78, 119, 25);
 		spnBufferSize.setModel(new SpinnerNumberModel(Integer.valueOf(8192), Integer.valueOf(1024), null, Integer.valueOf(1024)));
 		spnBufferSize.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		chckbPasswordCache = new JCheckBox("Enable Password Cache");
+		chckbPasswordCache.setBounds(331, 111, 335, 29);
 
 		chckbPasswordCache.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		JLabel lblNewLabel_3_1 = new JLabel("Password cache timeout (s):");
+		lblNewLabel_3_1.setBounds(10, 117, 203, 17);
 		lblNewLabel_3_1.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		spnCacheTimeout = new JSpinner();
+		spnCacheTimeout.setBounds(223, 113, 93, 25);
 		spnCacheTimeout.setModel(new SpinnerNumberModel(0, 0, 120, 1));
 		spnCacheTimeout.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		chckbxSKI = new JCheckBox("Use SKI during encryption");
+		chckbxSKI.setBounds(10, 190, 255, 29);
 		chckbxSKI.setToolTipText("Uses the Subject Key Identifier (SKI) to identify the certificate instead of the issuer name and serial number.");
 		chckbxSKI.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		chckbHideInvalidCerts = new JCheckBox("Hide invalid certificates");
+		chckbHideInvalidCerts.setBounds(301, 158, 386, 29);
 		chckbHideInvalidCerts.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		chckbPKCS11SignOnly = new JCheckBox("PKCS#11 sign-only mode");
+		chckbPKCS11SignOnly.setBounds(301, 190, 386, 29);
 
 		chckbPKCS11SignOnly.setToolTipText("Prevents decryption issues with PKCS#11 tokens that do not support decryption.");
 		chckbPKCS11SignOnly.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		panel.setLayout(null);
 		
 		chckbValKeyUsages = new JCheckBox("Validate Key Usages");
+		chckbValKeyUsages.setBounds(10, 222, 215, 29);
 		chckbValKeyUsages.setFont(new Font("Tahoma", Font.PLAIN, 16));
-		GroupLayout gl_panel = new GroupLayout(panel);
-		gl_panel.setHorizontalGroup(
-			gl_panel.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_panel.createSequentialGroup()
-					.addContainerGap()
-					.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-						.addGroup(gl_panel.createSequentialGroup()
-							.addComponent(chckbValKeyUsages, GroupLayout.PREFERRED_SIZE, 215, GroupLayout.PREFERRED_SIZE)
-							.addContainerGap())
-						.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-							.addGroup(gl_panel.createSequentialGroup()
-								.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-									.addGroup(gl_panel.createSequentialGroup()
-										.addGap(291)
-										.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-											.addComponent(chckbPKCS11SignOnly, GroupLayout.DEFAULT_SIZE, 490, Short.MAX_VALUE)
-											.addComponent(chckbHideInvalidCerts, GroupLayout.DEFAULT_SIZE, 490, Short.MAX_VALUE)))
-									.addComponent(chckbUsePem)
-									.addComponent(chckbxSKI, GroupLayout.PREFERRED_SIZE, 255, GroupLayout.PREFERRED_SIZE))
-								.addContainerGap())
-							.addGroup(gl_panel.createSequentialGroup()
-								.addGroup(gl_panel.createParallelGroup(Alignment.LEADING, false)
-									.addGroup(gl_panel.createSequentialGroup()
-										.addGap(58)
-										.addComponent(lblNewLabel, GroupLayout.PREFERRED_SIZE, 119, GroupLayout.PREFERRED_SIZE))
-									.addComponent(lblKnownCertificatesPath, GroupLayout.DEFAULT_SIZE, 183, Short.MAX_VALUE)
-									.addComponent(lblNewLabel_3, GroupLayout.PREFERRED_SIZE, 149, GroupLayout.PREFERRED_SIZE)
-									.addComponent(lblNewLabel_3_1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-								.addPreferredGap(ComponentPlacement.RELATED)
-								.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-									.addGroup(gl_panel.createSequentialGroup()
-										.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-											.addComponent(txtbKeyStorePath, GroupLayout.PREFERRED_SIZE, 381, GroupLayout.PREFERRED_SIZE)
-											.addComponent(txtbKnownCertsPath, GroupLayout.PREFERRED_SIZE, 381, GroupLayout.PREFERRED_SIZE))
-										.addGap(10)
-										.addGroup(gl_panel.createParallelGroup(Alignment.LEADING, false)
-											.addComponent(btnOpenKeystore, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-											.addComponent(btnOpenKnownCerts, GroupLayout.DEFAULT_SIZE, 48, Short.MAX_VALUE)))
-									.addComponent(spnBufferSize, GroupLayout.PREFERRED_SIZE, 86, GroupLayout.PREFERRED_SIZE)
-									.addGroup(gl_panel.createSequentialGroup()
-										.addComponent(spnCacheTimeout, GroupLayout.PREFERRED_SIZE, 86, GroupLayout.PREFERRED_SIZE)
-										.addGap(18)
-										.addComponent(chckbPasswordCache)))
-								.addGap(161)))))
-		);
-		gl_panel.setVerticalGroup(
-			gl_panel.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_panel.createSequentialGroup()
-					.addContainerGap()
-					.addGroup(gl_panel.createParallelGroup(Alignment.BASELINE)
-						.addComponent(txtbKeyStorePath, GroupLayout.PREFERRED_SIZE, 25, GroupLayout.PREFERRED_SIZE)
-						.addComponent(lblNewLabel)
-						.addComponent(btnOpenKeystore, GroupLayout.PREFERRED_SIZE, 25, GroupLayout.PREFERRED_SIZE))
-					.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-						.addGroup(gl_panel.createSequentialGroup()
-							.addGap(9)
-							.addGroup(gl_panel.createParallelGroup(Alignment.LEADING, false)
-								.addComponent(txtbKnownCertsPath, GroupLayout.PREFERRED_SIZE, 25, GroupLayout.PREFERRED_SIZE)
-								.addComponent(btnOpenKnownCerts, GroupLayout.PREFERRED_SIZE, 25, GroupLayout.PREFERRED_SIZE)))
-						.addGroup(gl_panel.createSequentialGroup()
-							.addGap(12)
-							.addComponent(lblKnownCertificatesPath, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)))
-					.addGap(8)
-					.addGroup(gl_panel.createParallelGroup(Alignment.BASELINE)
-						.addComponent(lblNewLabel_3)
-						.addComponent(spnBufferSize, GroupLayout.PREFERRED_SIZE, 25, GroupLayout.PREFERRED_SIZE))
-					.addGap(8)
-					.addGroup(gl_panel.createParallelGroup(Alignment.BASELINE)
-						.addComponent(lblNewLabel_3_1, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(spnCacheTimeout, GroupLayout.PREFERRED_SIZE, 25, GroupLayout.PREFERRED_SIZE)
-						.addComponent(chckbPasswordCache))
-					.addGap(18)
-					.addGroup(gl_panel.createParallelGroup(Alignment.BASELINE)
-						.addComponent(chckbUsePem)
-						.addComponent(chckbHideInvalidCerts))
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addGroup(gl_panel.createParallelGroup(Alignment.BASELINE)
-						.addComponent(chckbxSKI)
-						.addComponent(chckbPKCS11SignOnly))
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addComponent(chckbValKeyUsages)
-					.addContainerGap(382, Short.MAX_VALUE))
-		);
-		panel.setLayout(gl_panel);
+		panel.add(chckbValKeyUsages);
+		panel.add(chckbPKCS11SignOnly);
+		panel.add(chckbHideInvalidCerts);
+		panel.add(chckbUsePem);
+		panel.add(chckbxSKI);
+		panel.add(lblNewLabel);
+		panel.add(lblKnownCertificatesPath);
+		panel.add(lblNewLabel_3);
+		panel.add(lblNewLabel_3_1);
+		panel.add(txtbKeyStorePath);
+		panel.add(txtbKnownCertsPath);
+		panel.add(btnOpenKeystore);
+		panel.add(btnOpenKnownCerts);
+		panel.add(spnBufferSize);
+		panel.add(spnCacheTimeout);
+		panel.add(chckbPasswordCache);
 		
 		JPanel panel_1 = new JPanel();
 		tabbedPane.addTab("Algorithms", null, panel_1, null);
 		
 		JLabel lblNewLabel_1 = new JLabel("Default Encryption Algorithm:");
+		lblNewLabel_1.setBounds(10, 15, 226, 17);
 		lblNewLabel_1.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		JLabel lblNewLabel_1_1 = new JLabel("Default Hash Algorithm:");
+		lblNewLabel_1_1.setBounds(10, 51, 212, 17);
 		lblNewLabel_1_1.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		cmbEncAlgPath = new JComboBox();
+		cmbEncAlgPath.setBounds(240, 11, 339, 25);
 		cmbEncAlgPath.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		cmbHashAlgPath = new JComboBox();
+		cmbHashAlgPath.setBounds(240, 47, 339, 25);
 		cmbHashAlgPath.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		panel_1.setLayout(null);
 		
 		chckbRSAOAEP = new JCheckBox("Use RSA OAEP");
+		chckbRSAOAEP.setBounds(10, 79, 317, 25);
 		chckbRSAOAEP.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		GroupLayout gl_panel_1 = new GroupLayout(panel_1);
-		gl_panel_1.setHorizontalGroup(
-			gl_panel_1.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_panel_1.createSequentialGroup()
-					.addContainerGap()
-					.addGroup(gl_panel_1.createParallelGroup(Alignment.LEADING)
-						.addComponent(chckbRSAOAEP, GroupLayout.PREFERRED_SIZE, 317, GroupLayout.PREFERRED_SIZE)
-						.addGroup(gl_panel_1.createParallelGroup(Alignment.TRAILING, false)
-							.addGroup(gl_panel_1.createSequentialGroup()
-								.addComponent(lblNewLabel_1, GroupLayout.PREFERRED_SIZE, 226, GroupLayout.PREFERRED_SIZE)
-								.addPreferredGap(ComponentPlacement.RELATED)
-								.addComponent(cmbEncAlgPath, GroupLayout.PREFERRED_SIZE, 339, GroupLayout.PREFERRED_SIZE))
-							.addGroup(gl_panel_1.createSequentialGroup()
-								.addComponent(lblNewLabel_1_1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addGap(18)
-								.addComponent(cmbHashAlgPath, GroupLayout.PREFERRED_SIZE, 339, GroupLayout.PREFERRED_SIZE))))
-					.addContainerGap(218, Short.MAX_VALUE))
-		);
-		gl_panel_1.setVerticalGroup(
-			gl_panel_1.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_panel_1.createSequentialGroup()
-					.addContainerGap()
-					.addGroup(gl_panel_1.createParallelGroup(Alignment.BASELINE)
-						.addComponent(lblNewLabel_1)
-						.addComponent(cmbEncAlgPath, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addGap(11)
-					.addGroup(gl_panel_1.createParallelGroup(Alignment.BASELINE)
-						.addComponent(lblNewLabel_1_1, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(cmbHashAlgPath, GroupLayout.PREFERRED_SIZE, 25, GroupLayout.PREFERRED_SIZE))
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addComponent(chckbRSAOAEP)
-					.addContainerGap(523, Short.MAX_VALUE))
-		);
-		panel_1.setLayout(gl_panel_1);
+		panel_1.add(chckbRSAOAEP);
+		panel_1.add(lblNewLabel_1);
+		panel_1.add(cmbEncAlgPath);
+		panel_1.add(lblNewLabel_1_1);
+		panel_1.add(cmbHashAlgPath);
 		
 		JPanel panel_2 = new JPanel();
 		tabbedPane.addTab("PKCS#11", null, panel_2, null);
@@ -352,6 +296,10 @@ public class SettingsForm {
 		btnOpenPKCS11Config.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		
 		chckbUsePkcs11 = new JCheckBox("USE PKCS#11");
+		chckbUsePkcs11.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+			}
+		});
 		chckbUsePkcs11.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		GroupLayout gl_panel_2 = new GroupLayout(panel_2);
 		gl_panel_2.setHorizontalGroup(
@@ -468,7 +416,7 @@ public class SettingsForm {
 		
 		panel_3_1 = new JPanel();
 		panel_3_1.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, new Color(255, 255, 255), new Color(160, 160, 160)), "Certification Authorities", TitledBorder.LEADING, TitledBorder.TOP, null));
-		panel_3_1.setBounds(10, 74, 625, 195);
+		panel_3_1.setBounds(19, 74, 684, 195);
 		panel_4.add(panel_3_1);
 		panel_3_1.setLayout(new BorderLayout(0, 0));
 		
@@ -496,6 +444,235 @@ public class SettingsForm {
 		buttonsPanel.add(btnAddCertFile);
 		buttonsPanel.add(btnRemoveCert);
 		buttonsPanel.add(btnCertInfo);
+		
+		JPanel panel_6 = new JPanel();
+		tabbedPane.addTab("Remote Keystore", null, panel_6, null);
+		panel_6.setLayout(null);
+		
+		chckbUseRemoteKeystore = new JCheckBox("ENABLE REMOTE KEYSTORE");
+		chckbUseRemoteKeystore.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+			}
+		});
+		chckbUseRemoteKeystore.setSelected(false);
+		chckbUseRemoteKeystore.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		chckbUseRemoteKeystore.setBounds(91, 129, 404, 29);
+		panel_6.add(chckbUseRemoteKeystore);
+		
+		txtbKeystoreServer = new JTextField();
+		txtbKeystoreServer.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		txtbKeystoreServer.setColumns(10);
+		txtbKeystoreServer.setBounds(131, 11, 404, 25);
+		panel_6.add(txtbKeystoreServer);
+		
+		JLabel lblServer = new JLabel("Server:");
+		lblServer.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblServer.setBounds(10, 11, 109, 25);
+		panel_6.add(lblServer);
+		
+		txtbRemoteUser = new JTextField();
+		txtbRemoteUser.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		txtbRemoteUser.setColumns(10);
+		txtbRemoteUser.setBounds(131, 45, 404, 25);
+		panel_6.add(txtbRemoteUser);
+		
+		JLabel lblUsername = new JLabel("Username:");
+		lblUsername.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblUsername.setBounds(10, 45, 109, 25);
+		panel_6.add(lblUsername);
+		
+		txtbRemotePwd = new JPasswordField();
+		txtbRemotePwd.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		txtbRemotePwd.setColumns(10);
+		txtbRemotePwd.setBounds(131, 81, 404, 25);
+		panel_6.add(txtbRemotePwd);
+		
+		JLabel lblServer_1_1 = new JLabel("Password:");
+		lblServer_1_1.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblServer_1_1.setBounds(10, 81, 109, 25);
+		panel_6.add(lblServer_1_1);
+		
+		JPanel panel_7 = new JPanel();
+		panel_7.setBorder(new TitledBorder(null, "SSL SETTINGS", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		panel_7.setBounds(91, 284, 542, 108);
+		panel_6.add(panel_7);
+		panel_7.setLayout(null);
+		
+		chckbxNewCheckBox = new JCheckBox("Custom certificate");
+
+		chckbxNewCheckBox.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		chckbxNewCheckBox.setBounds(6, 21, 212, 23);
+		panel_7.add(chckbxNewCheckBox);
+		
+		btnServerCertInfo = new JButton("CERTIFICATE INFO");
+		btnServerCertInfo.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(ctx.getRemoteKeystoreCustomCert() != null) showCertificateInfo(ctx.getRemoteKeystoreCustomCert());
+			}
+		});
+		btnServerCertInfo.setEnabled(false);
+		btnServerCertInfo.setBounds(189, 51, 161, 34);
+		btnServerCertInfo.setFont(new Font("Consolas", Font.PLAIN, 14));
+		panel_7.add(btnServerCertInfo);
+		
+		btnLoadServerCert = new JButton("LOAD CERTIFICATE");
+
+		btnLoadServerCert.setEnabled(false);
+		btnLoadServerCert.setBounds(10, 51, 169, 34);
+		btnLoadServerCert.setFont(new Font("Consolas", Font.PLAIN, 14));
+		panel_7.add(btnLoadServerCert);
+		
+		btnClearServerCert = new JButton("CLEAR CERTIFICATE");
+		btnClearServerCert.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				ctx.setRemoteKeystoreUseCustomCert(false);
+				ctx.setRemoteKeystoreCustomCert(null);
+				btnServerCertInfo.setEnabled(false);
+				btnClearServerCert.setEnabled(false);
+			}
+		});
+		btnClearServerCert.setEnabled(false);
+		btnClearServerCert.setBounds(360, 51, 169, 34);
+		btnClearServerCert.setFont(new Font("Consolas", Font.PLAIN, 14));
+		panel_7.add(btnClearServerCert);
+		
+		JPanel panel_7_1 = new JPanel();
+		panel_7_1.setLayout(null);
+		
+		panel_7_1.setBorder(new TitledBorder(null, "SYNC KEY", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+
+		panel_7_1.setBounds(91, 165, 542, 108);
+		panel_6.add(panel_7_1);
+		// Sync key field
+		txtbSyncKey = new JPasswordField();
+		txtbSyncKey.setBounds(10, 23, 522, 29);
+		panel_7_1.add(txtbSyncKey);
+		txtbSyncKey.setFont(new Font("Consolas", Font.PLAIN, 15));
+		txtbSyncKey.setColumns(10);
+		
+				// Show/Hide button
+				JButton btnShowSyncKey = new JButton("Show");
+				btnShowSyncKey.setFont(new Font("Tahoma", Font.PLAIN, 14));
+				btnShowSyncKey.setBounds(10, 63, 70, 29);
+				panel_7_1.add(btnShowSyncKey);
+				
+						// Random key button
+						JButton btnNewSyncKey = new JButton("New");
+						btnNewSyncKey.setFont(new Font("Tahoma", Font.PLAIN, 14));
+						btnNewSyncKey.setBounds(90, 63, 70, 29);
+						panel_7_1.add(btnNewSyncKey);
+						
+						JButton btnNewSyncKey_1 = new JButton();
+						btnNewSyncKey_1.addActionListener(new ActionListener() {
+							public void actionPerformed(ActionEvent e) {
+								boolean res = DialogUtils.showConfirmBox(
+							            null, 
+							            "NEW SYNC KEY", 
+							            "Are you sure you want to save a new sync key?",
+							            "If you haven't backed up the key, data encrypted with the previous sync key will no longer be decryptable!",
+							            JOptionPane.WARNING_MESSAGE
+							        );
+								
+								if(!res) {
+									txtbSyncKey.setText(
+											new String(Base64.getEncoder().encode(ctx.getRemoteKeystoreSyncKey()))
+											);
+									return;
+								}
+								
+								boolean valid = false;
+							    try {
+							    	byte[] decoded = Base64.getDecoder().decode(new String(txtbSyncKey.getPassword()));
+							        valid = decoded.length == 16 || decoded.length == 32;
+							    } catch (IllegalArgumentException e1) {
+							        valid = false;
+							    }
+							    
+							    if(valid) ctx.setRemoteKeystoreSyncKey(new String(txtbSyncKey.getPassword()));
+							    else {
+							        DialogUtils.showMessageBox(
+								            null,
+								            "Unable to save sync-key!",
+								            "<html>Error saving the sync key.</html>",
+								            null,
+								            JOptionPane.ERROR_MESSAGE
+								        );
+							    }
+							}
+						});
+						btnNewSyncKey_1.setText("Save");
+						btnNewSyncKey_1.setFont(new Font("Tahoma", Font.PLAIN, 14));
+						btnNewSyncKey_1.setBounds(170, 63, 70, 29);
+						panel_7_1.add(btnNewSyncKey_1);
+						
+						JButton btnCopySyncKey = new JButton();
+						btnCopySyncKey.addActionListener(e -> {
+						    String password = new String(txtbSyncKey.getPassword());
+
+						    StringSelection selection = new StringSelection(password);
+
+						    Toolkit.getDefaultToolkit()
+						           .getSystemClipboard()
+						           .setContents(selection, null);
+						    
+				            DialogUtils.showMessageBox(
+				                    null,
+				                    "Sync Key copied!",
+				                    "The Sync Key has been copied to the clipboard.",
+				                    "",
+				                    JOptionPane.INFORMATION_MESSAGE
+				                );
+						});
+
+						btnCopySyncKey.setText("Copy");
+						btnCopySyncKey.setFont(new Font("Tahoma", Font.PLAIN, 14));
+						btnCopySyncKey.setBounds(250, 63, 70, 29);
+						panel_7_1.add(btnCopySyncKey);
+						
+						btnNewSyncKey.addActionListener(e -> {
+
+							
+						    byte[] key = new byte[32]; // 256 bits
+						    SecureRandom secureRandom = new SecureRandom();
+						    secureRandom.nextBytes(key);
+
+						    String base64Key = Base64.getEncoder().encodeToString(key);
+
+						    txtbSyncKey.setText(base64Key);
+						});
+				
+						btnShowSyncKey.addActionListener(e -> {
+						    if (txtbSyncKey.getEchoChar() == (char) 0) {
+						    	txtbSyncKey.setEchoChar('•');
+						        btnShowSyncKey.setText("Show");
+						    } else {
+						    	txtbSyncKey.setEchoChar((char) 0);
+						        btnShowSyncKey.setText("Hide");
+						    }
+						});
+		
+		chckbxNewCheckBox.addChangeListener(e -> {
+		    boolean selected = chckbxNewCheckBox.isSelected();
+		    btnLoadServerCert.setEnabled(selected);
+		});
+		
+		btnLoadServerCert.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+			    X509Certificate cert = loadCertificateFromFile();
+				
+				if(cert != null) {
+					ctx.setRemoteKeystoreCustomCert(cert);
+					btnServerCertInfo.setEnabled(true);
+					btnClearServerCert.setEnabled(true);
+					ctx.setRemoteKeystoreUseCustomCert(true);
+				}else {
+					btnServerCertInfo.setEnabled(false);
+					btnClearServerCert.setEnabled(false);
+					ctx.setRemoteKeystoreUseCustomCert(false);
+				}
+			}
+		});
+
 		
 		JPanel panel_5 = new JPanel();
 		tabbedPane.addTab("Preferences", null, panel_5, null);
@@ -753,6 +930,17 @@ public class SettingsForm {
 		spnBufferSize.setValue(ctx.getBufferSize());
 		spnCacheTimeout.setValue(ctx.getCacheEntryTimeout());
 		
+		txtbKeystoreServer.setText(ctx.getRemoteKeystoreUrl());
+		txtbRemoteUser.setText(ctx.getRemoteKeystoreUser());
+		txtbRemotePwd.setText(ctx.getRemoteKeystorePwd());
+		chckbUseRemoteKeystore.setSelected(ctx.isUseRemoteKeystore());
+		
+		try {
+			txtbSyncKey.setText(Base64.getEncoder().encodeToString(ctx.getRemoteKeystoreSyncKey()));
+		}catch(Exception e) {
+			// ignore
+		}
+		
 		chckbPKCS11SignOnly.setSelected(ctx.isPkcs11SignOnly());
 		if (ctx.isPkcs11SignOnly()) {
 		    chckbRSAOAEP.setEnabled(true);
@@ -763,6 +951,13 @@ public class SettingsForm {
 		    chckbRSAOAEP.setEnabled(false);
 		}
 		selectVisibleColumns();
+		
+		
+		if(ctx.getRemoteKeystoreUseCustomCert() && (ctx.getRemoteKeystoreCustomCert() != null)) {
+			chckbxNewCheckBox.setSelected(true);
+			btnServerCertInfo.setEnabled(true);
+			btnClearServerCert.setEnabled(true);
+		}
 	}
 	
 	
@@ -777,7 +972,7 @@ public class SettingsForm {
 		ctx.setPkcs11Driver(txtPkcs11ConfPath.getText());
 		ctx.setCipher(((SymmetricAlgorithms) cmbEncAlgPath.getSelectedItem()));
 		ctx.setHashAlgorithm((HashAlgorithm) cmbHashAlgPath.getSelectedItem());
-		ctx.setUsePkcs11(chckbUsePkcs11.isSelected());
+		//ctx.setUsePkcs11(chckbUsePkcs11.isSelected());
 		ctx.setUsePEM(chckbUsePem.isSelected());
 		ctx.setUseSKI(chckbxSKI.isSelected());
 		ctx.setTheme((UIThemes)cmbTheme.getSelectedItem());
@@ -790,6 +985,11 @@ public class SettingsForm {
 		ctx.setPkcs11SignOnly(chckbPKCS11SignOnly.isSelected());
 		ctx.setValidateKeyUsages(chckbValKeyUsages.isSelected());
 		
+		ctx.setRemoteKeystoreUrl(txtbKeystoreServer.getText());
+		ctx.setRemoteKeystoreUser(txtbRemoteUser.getText());
+		ctx.setRemoteKeystorePwd(new String(txtbRemotePwd.getPassword()));
+		//ctx.setUseRemoteKeystore(chckbUseRemoteKeystore.isSelected());
+		
 		String selected = listboxCertificateTableColumns
 		        .getSelectedValuesList()
 		        .stream()
@@ -799,8 +999,30 @@ public class SettingsForm {
 		ctx.setVisibleColumns(selected);
 		
 		if(callback != null) callback.run();
+		updateKeystoreSelection();
 
 	}
+	
+	private void updateKeystoreSelection() {
+	    boolean remote = chckbUseRemoteKeystore.isSelected();
+	    boolean p11 = chckbUsePkcs11.isSelected();
+
+	    if (remote) {
+	        chckbUsePkcs11.setSelected(false);
+	        ctx.setUseRemoteKeystore(true);
+	        ctx.setUsePkcs11(false);
+
+	    } else if (p11) {
+	        chckbUseRemoteKeystore.setSelected(false);
+	        ctx.setUsePkcs11(true);
+	        ctx.setUseRemoteKeystore(false);
+
+	    } else {
+	        ctx.setUsePkcs11(false);
+	        ctx.setUseRemoteKeystore(false);
+	    }
+	}
+
 	
 	private void selectVisibleColumns() {
 	    String visible = ctx.getVisibleColumns();

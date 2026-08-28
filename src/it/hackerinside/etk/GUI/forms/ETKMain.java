@@ -214,19 +214,7 @@ public class ETKMain {
 	        }
 	    });
 	    
-	    menuItemKeystoreLogin.addActionListener(e -> {
-	    	if(!loggedIn) {
-		        unlockKeystore();
-		        updateTable();
-	    	}else { // logout
-	    		ETKMain.loggedIn = false;
-	    		disablePrivateKeyOperations();
-	    		updateTable();
-	    		ctx.unloadKeystore();
-	    	}
-	    	
-	    	updateKeystoreLoginText();
-	    });
+	    menuItemKeystoreLogin.addActionListener(e -> loginOrLogout());
 	    
 
 	    
@@ -249,17 +237,8 @@ public class ETKMain {
 	    miDelete.addActionListener(new ActionListener() {
 	        @Override
 	        public void actionPerformed(ActionEvent e) {
-	            int viewRow = table.getSelectedRow();
-	            if (viewRow == -1) {
-	                DialogUtils.showMessageBox(null, "No selection", "No rows selected",
-	                        "Please select a certificate first.", JOptionPane.WARNING_MESSAGE);
-	                return;
-	            }
-	            int modelRow = table.convertRowIndexToModel(viewRow);
-	            CertificateTableRow row = tableModel.getRow(modelRow);
-	            if (row != null && row.original() != null) {
-	                deleteCertificate(row);
-	            }
+	            CertificateTableRow row = getSelectedCertificateRow();
+	            if (row != null) deleteCertificate(row);
 	        }
 	    });
 	    tablePopup.add(miDelete);
@@ -268,17 +247,8 @@ public class ETKMain {
 	    miExportKeypair.addActionListener(new ActionListener() {
 	        @Override
 	        public void actionPerformed(ActionEvent e) {
-	            int viewRow = table.getSelectedRow();
-	            if (viewRow == -1) {
-	                DialogUtils.showMessageBox(null, "No selection", "No rows selected",
-	                        "Please select a certificate first.", JOptionPane.WARNING_MESSAGE);
-	                return;
-	            }
-	            int modelRow = table.convertRowIndexToModel(viewRow);
-	            CertificateTableRow row = tableModel.getRow(modelRow);
-	            if (row != null && row.original() != null && Utils.acceptX509Certificate(row.original())) {
-	            	exportKeypair(row);
-	            }
+	            CertificateTableRow row = getSelectedCertificateRow();
+	            if (row != null && Utils.acceptX509Certificate(row.original())) exportKeypair(row);
 	        }
 	    });
 	    tablePopup.add(miExportKeypair);
@@ -287,22 +257,19 @@ public class ETKMain {
 	    miRename.addActionListener(new ActionListener() {
 	        @Override
 	        public void actionPerformed(ActionEvent e) {
-	            int viewRow = table.getSelectedRow();
-	            if (viewRow == -1) {
-	                DialogUtils.showMessageBox(
-	                        null,
-	                        "No selection",
-	                        "No rows selected",
-	                        "Please select an entry first.",
-	                        JOptionPane.WARNING_MESSAGE
-	                );
-	                return;
-	            }
-	            int modelRow = table.convertRowIndexToModel(viewRow);
-	            CertificateTableRow row = tableModel.getRow(modelRow);
-	            if (row != null) {
-	                renameAlias(row);
-	            }
+	        	  CertificateTableRow row = getSelectedRow();
+
+	        	    if (row != null) {
+	        	        renameAlias(row);
+	        	    } else {
+	        	        DialogUtils.showMessageBox(
+	        	                null,
+	        	                "No selection",
+	        	                "No rows selected",
+	        	                "Please select an entry first.",
+	        	                JOptionPane.WARNING_MESSAGE
+	        	        );
+	        	    }
 	        }
 	    });
 	    tablePopup.add(miRename);
@@ -311,8 +278,11 @@ public class ETKMain {
 	    miChangePassword.addActionListener(new ActionListener() {
 	        @Override
 	        public void actionPerformed(ActionEvent e) {
-	            int viewRow = table.getSelectedRow();
-	            if (viewRow == -1) {
+	        	CertificateTableRow row = getSelectedRow();
+
+	            if (row != null) {
+	                changeAliasPassword(row);
+	            } else {
 	                DialogUtils.showMessageBox(
 	                        null,
 	                        "No selection",
@@ -320,12 +290,6 @@ public class ETKMain {
 	                        "Please select an entry first.",
 	                        JOptionPane.WARNING_MESSAGE
 	                );
-	                return;
-	            }
-	            int modelRow = table.convertRowIndexToModel(viewRow);
-	            CertificateTableRow row = tableModel.getRow(modelRow);
-	            if (row != null) {
-	               changeAliasPassword(row);
 	            }
 	        }
 	    });
@@ -342,17 +306,8 @@ public class ETKMain {
 	    miExportToFile.addActionListener(new ActionListener() {
 	        @Override
 	        public void actionPerformed(ActionEvent e) {
-	            int viewRow = table.getSelectedRow();
-	            if (viewRow == -1) {
-	                DialogUtils.showMessageBox(null, "No selection", "No rows selected",
-	                        "Please select a certificate first.", JOptionPane.WARNING_MESSAGE);
-	                return;
-	            }
-	            int modelRow = table.convertRowIndexToModel(viewRow);
-	            CertificateTableRow row = tableModel.getRow(modelRow);
-	            if (row != null && row.original() != null) {
-	                exportCertificate(row);
-	            }
+	            CertificateTableRow row = getSelectedCertificateRow();
+	            if (row != null) exportCertificate(row);
 	        }
 	    });
 	    certificateExportMenu.add(miExportToFile);
@@ -362,17 +317,8 @@ public class ETKMain {
 	    miExportToString.addActionListener(new ActionListener() {
 	        @Override
 	        public void actionPerformed(ActionEvent e) {
-	            int viewRow = table.getSelectedRow();
-	            if (viewRow == -1) {
-	                DialogUtils.showMessageBox(null, "No selection", "No rows selected",
-	                        "Please select a certificate first.", JOptionPane.WARNING_MESSAGE);
-	                return;
-	            }
-	            int modelRow = table.convertRowIndexToModel(viewRow);
-	            CertificateTableRow row = tableModel.getRow(modelRow);
-	            if (row != null && row.original() != null) {
-	                exportCertificateToString(row);
-	            }
+	            CertificateTableRow row = getSelectedCertificateRow();
+	            if (row != null) exportCertificateToString(row);
 	        }
 	    });
 	    certificateExportMenu.add(miExportToString);
@@ -412,6 +358,20 @@ public class ETKMain {
 	    startProcedure();
 	}
 	
+	private void loginOrLogout() {
+    	if(!loggedIn) {
+	        unlockKeystore();
+	        updateTable();
+    	}else { // logout
+    		ETKMain.loggedIn = false;
+    		disablePrivateKeyOperations();
+    		updateTable();
+    		ctx.unloadKeystore();
+    	}
+    	
+    	updateKeystoreLoginText();
+	}
+	
 	private void updateTableColumns() {
 		columnsManager.hideAll();
 		columnsManager.showColumns(ctx.getVisibleColumns()); 
@@ -421,6 +381,34 @@ public class ETKMain {
     	if(!loggedIn) menuItemKeystoreLogin.setText("Keystore Login");
     	else menuItemKeystoreLogin.setText("Keystore Logout");
     }
+    
+    private CertificateTableRow getSelectedRow() {
+        int viewRow = table.getSelectedRow();
+        if (viewRow == -1) {
+            return null;
+        }
+
+        int modelRow = table.convertRowIndexToModel(viewRow);
+        return tableModel.getRow(modelRow);
+    }
+
+    private CertificateTableRow getSelectedCertificateRow() {
+        CertificateTableRow row = getSelectedRow();
+
+        if (row == null || row.original() == null) {
+            DialogUtils.showMessageBox(
+                    null,
+                    "No selection",
+                    "No rows selected",
+                    "Please select a certificate first.",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return null;
+        }
+
+        return row;
+    }
+
 	
 	/**
 	 * Deletes a certificate from the appropriate keystore based on its location.
@@ -595,12 +583,24 @@ public class ETKMain {
 	 * private key operations in case of failure.
 	 */
 	private void unlockKeystore() {
-	    char[] password = DialogUtils.showPasswordInputBox(
-	        null,
-	        "Unlock Keystore",
-	         ctx.usePKCS11() ? "PKCS#11 DEVICE" : ctx.getKeyStorePath(),
-	        "Password:"
-	    );
+		char[] password = null;
+		if(ctx.isUseRemoteKeystore()) {
+			 password = DialogUtils.showPasswordInputBox(
+				        null,
+				        "Unlock Keystore",
+				         "REMOTE PKCS#12 KEYSTORE",
+				        "Password:"
+				    );
+		}else {
+			 password = DialogUtils.showPasswordInputBox(
+				        null,
+				        "Unlock Keystore",
+				         ctx.usePKCS11() ? "PKCS#11 DEVICE" : ctx.getKeyStorePath(),
+				        "Password:"
+				    );
+		}
+	    
+
 	    if(password == null) {
 	        loggedIn = false;
 	        disablePrivateKeyOperations();
@@ -940,7 +940,7 @@ public class ETKMain {
 	        "New Name:"
 	    ));
 	    
-	    kms.setPwdProvider(() -> Utils.passwordCacheHitOrMiss(currAlias, () -> askUnlockPrivateKey(currAlias)));
+	    kms.setPwdProvider(() -> askUnlockPrivateKey(currAlias));
 
 	    try {
 			if(ctx.usePKCS11()) throw new UnsupportedOperationException("Operation not supported for PKCS11");

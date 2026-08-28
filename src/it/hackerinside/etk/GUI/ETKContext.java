@@ -1,10 +1,17 @@
 package it.hackerinside.etk.GUI;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.security.Security;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.util.Base64;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.InvalidPreferencesFormatException;
 import java.util.prefs.Preferences;
@@ -22,6 +29,7 @@ import it.hackerinside.etk.core.Models.SymmetricAlgorithms;
 import it.hackerinside.etk.core.keystore.AbstractKeystore;
 import it.hackerinside.etk.core.keystore.PKCS11Keystore;
 import it.hackerinside.etk.core.keystore.PKCS12Keystore;
+import it.hackerinside.etk.core.keystore.RemotePKCS12Keystore;
 
 /**
  * ETKContext is a singleton class that manages the application's keystore context
@@ -29,7 +37,7 @@ import it.hackerinside.etk.core.keystore.PKCS12Keystore;
  */
 public class ETKContext {
 	
-	public static final String ETK_VERSION = "1.0.17";
+	public static final String ETK_VERSION = "1.0.18";
 	
     /**
      * Singleton instance of ETKContext.
@@ -273,7 +281,21 @@ public class ETKContext {
         try {
             if (this.usePKCS11()) {
                 this.keystore = new PKCS11Keystore(this.getPkcs11Driver(), this.keystoreMasterPassword);
-            } else {
+            } else if(this.isUseRemoteKeystore()) {
+            	if(this.getRemoteKeystoreUseCustomCert() && (this.getRemoteKeystoreCustomCert() != null)) {
+                	this.keystore = new RemotePKCS12Keystore(this.keystoreMasterPassword, this.getRemoteKeystoreUrl(), this.getRemoteKeystoreUser(), this.getRemoteKeystorePwd(),this.getRemoteKeystoreCustomCert());
+            	}else {
+                	this.keystore = new RemotePKCS12Keystore(this.keystoreMasterPassword, this.getRemoteKeystoreUrl(), this.getRemoteKeystoreUser(), this.getRemoteKeystorePwd());
+            	}
+            	if(this.getRemoteKeystoreSyncKey() == null) {
+				    byte[] key = new byte[32]; // 256 bits
+				    SecureRandom secureRandom = new SecureRandom();
+				    secureRandom.nextBytes(key);
+				    this.setRemoteKeystoreSyncKey(Base64.getEncoder().encodeToString(key));
+            	}
+            	((RemotePKCS12Keystore) this.keystore).setSyncKey(this.getRemoteKeystoreSyncKey());
+            	
+            }else {
                 ensureDirectoryExists(this.getKeyStorePath());
                 this.keystore = new PKCS12Keystore(this.getKeyStorePath(), this.keystoreMasterPassword);
             }
@@ -724,6 +746,136 @@ public class ETKContext {
     public void setVisibleColumns(String columns) {
     	preferences.put(ApplicationPreferences.CERTIFICATE_TABLE_COLUMNS.getKey(), columns);
     }
+    
+    
+    public boolean isUseRemoteKeystore() {
+        String value = preferences.get(
+                ApplicationPreferences.USE_REMOTE_KEYSTORE.getKey(),
+                ApplicationPreferences.USE_REMOTE_KEYSTORE.getValue()
+            );
+        return Boolean.parseBoolean(value);
+    }
+
+    public void setUseRemoteKeystore(boolean useRemoteKeystore) {
+        preferences.put(
+                ApplicationPreferences.USE_REMOTE_KEYSTORE.getKey(),
+                Boolean.toString(useRemoteKeystore)
+            );
+    }
+
+    public String getRemoteKeystoreUrl() {
+        String value = preferences.get(
+                ApplicationPreferences.REMOTE_KEYSTORE_URL.getKey(),
+                ApplicationPreferences.REMOTE_KEYSTORE_URL.getValue()
+            );
+        return value;
+    }
+
+    public void setRemoteKeystoreUrl(String url) {
+        preferences.put(
+                ApplicationPreferences.REMOTE_KEYSTORE_URL.getKey(),
+                url
+            );
+    }
+
+    public String getRemoteKeystoreUser() {
+        String value = preferences.get(
+                ApplicationPreferences.REMOTE_KEYSTORE_USER.getKey(),
+                ApplicationPreferences.REMOTE_KEYSTORE_USER.getValue()
+            );
+        return value;
+    }
+
+    public void setRemoteKeystoreUser(String user) {
+        preferences.put(
+                ApplicationPreferences.REMOTE_KEYSTORE_USER.getKey(),
+                user
+            );
+    }
+
+    public String getRemoteKeystorePwd() {
+        String value = preferences.get(
+                ApplicationPreferences.REMOTE_KEYSTORE_PWD.getKey(),
+                ApplicationPreferences.REMOTE_KEYSTORE_PWD.getValue()
+            );
+        return value;
+    }
+
+    public void setRemoteKeystorePwd(String pwd) {
+        preferences.put(
+                ApplicationPreferences.REMOTE_KEYSTORE_PWD.getKey(),
+                pwd
+            );
+    }
+    
+    public byte[] getRemoteKeystoreSyncKey() {
+        String value = preferences.get(
+                ApplicationPreferences.REMOTE_KEYSTORE_SYNC_KEY.getKey(),
+                ApplicationPreferences.REMOTE_KEYSTORE_SYNC_KEY.getValue()
+            );
+        if(!value.isEmpty()) {
+            try {
+                return Base64.getDecoder().decode(value);
+            } catch (IllegalArgumentException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    public void setRemoteKeystoreSyncKey(String pwd) {
+        preferences.put(
+                ApplicationPreferences.REMOTE_KEYSTORE_SYNC_KEY.getKey(),
+                pwd
+            );
+    }
+    
+	public boolean getRemoteKeystoreUseCustomCert() {
+		String value = preferences.get(ApplicationPreferences.REMOTE_KEYSTORE_USE_CUSTOM_CERT.getKey(),
+				ApplicationPreferences.REMOTE_KEYSTORE_USE_CUSTOM_CERT.getValue());
+		return Boolean.parseBoolean(value);
+	}
+
+	public void setRemoteKeystoreUseCustomCert(boolean useCustomCert) {
+		preferences.put(ApplicationPreferences.REMOTE_KEYSTORE_USE_CUSTOM_CERT.getKey(),
+				Boolean.toString(useCustomCert));
+	}
+
+	public X509Certificate getRemoteKeystoreCustomCert() {
+		String value = preferences.get(ApplicationPreferences.REMOTE_KEYSTORE_CUSTOM_CERT.getKey(),
+				ApplicationPreferences.REMOTE_KEYSTORE_CUSTOM_CERT.getValue());
+
+		if (value == null || value.isEmpty()) {
+			return null;
+		}
+
+		try {
+			byte[] certificateBytes = Base64.getDecoder().decode(value);
+
+			CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+
+			return (X509Certificate) certificateFactory.generateCertificate(new ByteArrayInputStream(certificateBytes));
+
+		} catch (CertificateException | IllegalArgumentException e) {
+			throw new IllegalStateException("Unable to deserialize REMOTE_KEYSTORE_CUSTOM_CERT", e);
+		}
+	}
+
+    public void setRemoteKeystoreCustomCert(X509Certificate certificate) {
+        if (certificate == null) {
+            preferences.put(ApplicationPreferences.REMOTE_KEYSTORE_CUSTOM_CERT.getKey(),"");
+            return;
+        }
+        try {
+            String value = Base64.getEncoder().encodeToString(certificate.getEncoded());
+            preferences.put(ApplicationPreferences.REMOTE_KEYSTORE_CUSTOM_CERT.getKey(),value);
+
+        } catch (CertificateEncodingException e) {
+            throw new IllegalStateException("Unable to serialize REMOTE_KEYSTORE_CUSTOM_CERT",e);
+        }
+    }
+
+
     
     
     /**

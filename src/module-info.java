@@ -12,4 +12,5 @@ module HackerInside_EncryptionToolkit {
 	requires com.formdev.flatlaf;
 	requires java.prefs;
 	requires java.net.http;
+	requires java.datatransfer;
 }
