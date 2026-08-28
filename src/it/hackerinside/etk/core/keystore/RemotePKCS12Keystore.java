@@ -107,8 +107,10 @@ public class RemotePKCS12Keystore extends PKCS12Keystore {
         	try {
         		keystoreData = decrypt(keystoreData);
         	}catch (Exception e) {
-                initialize();
-                return;
+                throw new IOException(
+                        "Decryption error: " + 
+                        		"Keystore size: " + keystoreData.length +
+                        		" " +e.getMessage());
         	}
         	
         }
