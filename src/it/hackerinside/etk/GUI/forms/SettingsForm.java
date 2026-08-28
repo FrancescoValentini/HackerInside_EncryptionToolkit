@@ -13,6 +13,8 @@ import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
 
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -602,6 +604,30 @@ public class SettingsForm {
 						btnNewSyncKey_1.setFont(new Font("Tahoma", Font.PLAIN, 14));
 						btnNewSyncKey_1.setBounds(170, 63, 70, 29);
 						panel_7_1.add(btnNewSyncKey_1);
+						
+						JButton btnCopySyncKey = new JButton();
+						btnCopySyncKey.addActionListener(e -> {
+						    String password = new String(txtbSyncKey.getPassword());
+
+						    StringSelection selection = new StringSelection(password);
+
+						    Toolkit.getDefaultToolkit()
+						           .getSystemClipboard()
+						           .setContents(selection, null);
+						    
+				            DialogUtils.showMessageBox(
+				                    null,
+				                    "Sync Key copied!",
+				                    "The Sync Key has been copied to the clipboard.",
+				                    "",
+				                    JOptionPane.INFORMATION_MESSAGE
+				                );
+						});
+
+						btnCopySyncKey.setText("Copy");
+						btnCopySyncKey.setFont(new Font("Tahoma", Font.PLAIN, 14));
+						btnCopySyncKey.setBounds(250, 63, 70, 29);
+						panel_7_1.add(btnCopySyncKey);
 						
 						btnNewSyncKey.addActionListener(e -> {
 
