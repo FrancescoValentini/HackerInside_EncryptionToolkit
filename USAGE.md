@@ -108,3 +108,29 @@ showInfo=true
 
 > [!WARNING]
 > Il software non limita esplicitamente il supporto per algoritmi PQC quando si utilizza PKCS#11, ma questo caso non è mai stato testato. L'utilizzo di token PKCS#11 PQC potrebbe quindi non funzionare correttamente.
+
+## 🌐 Remote Keystore
+
+L'applicativo supporta l'archiviazione di un keystore PKCS#12 su un server remoto, consentendo di accedere al keystore da più dispositivi.
+
+Per utilizzare questa funzionalità è necessario configurare i parametri di connessione al server remoto e una SYNC KEY condivisa tra tutti i dispositivi che dovranno accedere al keystore.
+
+### 🔧 Parametri di configurazione
+- **Server:** endpoint del servizio remoto che espone il keystore. (Es: https://127.0.0.1:8080/keystore.p12)
+- **Username (opzionale):** username utilizzato per l'autenticazione al servizio remoto.
+- **Password (opzionale):** password utilizzata per l'autenticazione al servizio remoto.
+
+- **SYNC KEY:** chiave casuale di 256 bit utilizzata per cifrare il keystore, indipendentemente dal livello di cifratura fornito dal formato PKCS#12.
+La SYNC KEY deve essere identica su tutti i dispositivi che devono accedere al medesimo keystore remoto.
+
+- **SSL SETTINGS (opzionale):** impostazioni per la validazione del certificato TLS/SSL del server remoto. È possibile specificare il certificato del server oppure quello della relativa Certification Authority (CA).
+
+[Server di esempio](ETK-RemoteKeystoreServerExample.md)
+
+### ⚠️ Avvertenze
+
+> [!WARNING]
+> La funzionalità Remote Keystore non è progettata né testata per l'accesso concorrente. Si sconsiglia pertanto di utilizzare lo stesso keystore remoto contemporaneamente da più dispositivi o istanze dell'applicativo.
+
+> [!CAUTION]
+> La perdita della `SYNC KEY` comporta la perdita irreversibile dell'accesso al keystore remoto.
