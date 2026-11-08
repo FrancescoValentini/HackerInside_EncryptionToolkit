@@ -32,6 +32,7 @@ import org.bouncycastle.cms.PasswordRecipientInformation;
 import org.bouncycastle.cms.RecipientInformation;
 import org.bouncycastle.cms.jcajce.JceKEKAuthEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKEKEnvelopedRecipient;
+import org.bouncycastle.cms.jcajce.JceKEMAuthEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKEMEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKeyAgreeAuthEnvelopedRecipient;
 import org.bouncycastle.cms.jcajce.JceKeyAgreeEnvelopedRecipient;
