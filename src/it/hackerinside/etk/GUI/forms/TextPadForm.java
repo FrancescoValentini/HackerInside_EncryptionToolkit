@@ -53,6 +53,7 @@ import it.hackerinside.etk.GUI.FileDialogUtils;
 import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.GUI.DTOs.SecretKeyWrapper;
+import it.hackerinside.etk.GUI.Renderer.ComboBoxCertificateRenderer;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
 import it.hackerinside.etk.Utils.X509KeyUsageValidator;
 import it.hackerinside.etk.Utils.X509Utils;
@@ -358,6 +359,8 @@ public class TextPadForm {
 			}
 		});
 		
+		
+		
 		cmbSymmetricKeys.addActionListener(e -> {
 			SecretKeyWrapper selected = (SecretKeyWrapper) cmbSymmetricKeys.getSelectedItem();
 			if (selected != null) this.symmetricRecipient = selected.getAlias();
@@ -410,6 +413,8 @@ public class TextPadForm {
 		this.cmbEncAlgorithm.setSelectedItem(ctx.getCipher());
 		this.chckbUseSKI.setSelected(ctx.useSKI());
 		this.ec = new EncryptionService(ctx);
+		
+		cmbRecipientCert.setRenderer(new ComboBoxCertificateRenderer());
 		
 		populateKnowCerts(cmbRecipientCert);
 		populateSecretKeys(cmbSymmetricKeys);
