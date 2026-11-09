@@ -36,6 +36,7 @@ import it.hackerinside.etk.GUI.TimeUtils;
 import it.hackerinside.etk.GUI.Utils;
 import it.hackerinside.etk.GUI.DTOs.CertificateWrapper;
 import it.hackerinside.etk.GUI.DTOs.SecretKeyWrapper;
+import it.hackerinside.etk.GUI.Renderer.ComboBoxCertificateRenderer;
 import it.hackerinside.etk.core.Models.DefaultExtensions;
 import it.hackerinside.etk.core.Models.IdentifiedRecipient;
 import it.hackerinside.etk.core.Services.DecryptionService;
@@ -230,6 +231,7 @@ public class DecryptForm {
 		});
 		
 		this.decryptionService = new DecryptionService(ctx);
+		cmbPrivateKey.setRenderer(new ComboBoxCertificateRenderer());
 		
 		populaterCerts(cmbPrivateKey);
 		populateSecretKeys(cmbKek);
