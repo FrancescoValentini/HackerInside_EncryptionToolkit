@@ -8,14 +8,12 @@ import java.awt.GridLayout;
 import it.hackerinside.etk.GUI.DialogUtils;
 import it.hackerinside.etk.GUI.ETKContext;
 import it.hackerinside.etk.GUI.Hex64Filter;
+import it.hackerinside.etk.Utils.SymmetricKeyUtils;
 import it.hackerinside.etk.core.Services.KeysManagementService;
 
 import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import javax.swing.*;
 import javax.swing.text.AbstractDocument;
 
@@ -24,7 +22,6 @@ import java.security.InvalidKeyException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
 
@@ -418,23 +415,11 @@ public class SecretKeyManagementForm {
     }
     
     private byte[] hexStringToByteArray(String s) {
-        int len = s.length();
-        byte[] data = new byte[len / 2];
-        for (int i = 0; i < len; i += 2) {
-            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-                                 + Character.digit(s.charAt(i+1), 16));
-        }
-        return data;
+    	return SymmetricKeyUtils.hexStringToByteArray(s);
     }
     
     private byte[] kcv(byte[] keyBytes) throws InvalidKeyException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException {
-		byte[] binaryZeroes = new byte[16];
-		Arrays.fill(binaryZeroes, (byte) 01);
-		final SecretKey key = new SecretKeySpec(keyBytes, "AES");
-		final Cipher cipher = Cipher.getInstance("AES");
-		cipher.init(Cipher.ENCRYPT_MODE, key);
-		byte[] cipherText = cipher.doFinal(binaryZeroes);
-		return cipherText;
+    	return SymmetricKeyUtils.kcv(keyBytes);
     }
     
     private void validateHexKey(String key) {
