@@ -40,6 +40,8 @@ import it.hackerinside.etk.GUI.DTOs.ETKRecipient;
 import it.hackerinside.etk.GUI.DTOs.PasswordTableRow;
 import it.hackerinside.etk.GUI.DTOs.SecretKeyTableRow;
 import it.hackerinside.etk.GUI.DTOs.SecretKeyWrapper;
+import it.hackerinside.etk.GUI.Renderer.ComboBoxCertificateRenderer;
+import it.hackerinside.etk.GUI.Renderer.ETKRecipientRenderer;
 import it.hackerinside.etk.Utils.FileSizeFormatter;
 import it.hackerinside.etk.Utils.X509CertificateLoader;
 import it.hackerinside.etk.Utils.X509KeyUsageValidator;
@@ -106,7 +108,7 @@ public class EncryptForm {
 	private JComboBox<SecretKeyWrapper> cmbSymmetricKeys;
 	private JPanel pnlSymmetric;
 	private JTabbedPane tabbedPane;
-	private JComboBox cmbRecipientCert;
+	private JComboBox<CertificateWrapper> cmbRecipientCert;
 	private JPanel pwdPanel;
 	private JPasswordField txtbPassword;
 
@@ -401,6 +403,9 @@ public class EncryptForm {
 		});
 		
 		encryptionService = new EncryptionService(ctx);
+		cmbRecipientCert.setRenderer(new ComboBoxCertificateRenderer());
+		recipientsList.setCellRenderer(new ETKRecipientRenderer());
+		
 		populateSymmetricAlgorithms(cmbEncAlgorithm);
 		populateKnowCerts(cmbRecipientCert);
 		populateSecretKeys(cmbSymmetricKeys);
